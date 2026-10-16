@@ -47,6 +47,8 @@ func build() -> void:
     props()
     rooms()
     signage()
+    details()
+    tunnel_detail()
 
 # ------------------------------------------------------------------ 地坪 / 墙 / 顶
 func ground() -> void:
@@ -241,10 +243,10 @@ func niche() -> void:
     b.add_collider(_v(10.1, TY + 0.86, -61.6), _v(10.5, TY + 1.02, -61.2))
     # 梯子（靠尽头墙）
     for i in range(7):
-        var y2 := TY + 0.25 + float(i) * 0.34
-        b.box("metalD", _v(11.3, y2, z0 + 0.35), _v(11.9, y2 + 0.05, z0 + 0.43), false)
+        var y2 := TY + 0.28 + float(i) * 0.34
+        b.cyl_dir("metal", Vector3(11.60, y2, z0 + 0.39), 0.0, 0.60, 0.020, 8, true)
     for xx in [11.32, 11.88]:
-        b.box("metalD", _v(xx - 0.03, TY, z0 + 0.34), _v(xx + 0.03, TY + 2.3, z0 + 0.44), false)
+        b.cyl("metal", xx, z0 + 0.39, TY, TY + 2.34, 0.026, 0.026, 8, true, true)
     # 地面排水格栅 + 标牌 + 涂鸦
     b.box("dark", _v(9.2, TY + 0.01, -60.6), _v(10.1, TY + 0.04, -59.7), false)
     for i in range(5):
@@ -367,8 +369,15 @@ func small_room(x1: float, z0: float, z1: float, h: float, dz0: float, dz1: floa
         desk(x1 - 4.4, z1 - 3.7, x1 - 2.6, z1 - 1.3)                  # 南侧会议桌
         chair(x1 - 4.85, z1 - 2.5, FY, -PI * 0.5)
         chair(x1 - 2.15, z1 - 2.5, FY, PI * 0.5)
-        b.box("metalD", _v(PX0 + 2.2, FY, z1 - 1.0), _v(PX0 + 2.8, 1.0, z1 - 0.5), true)   # 饮水机
-        b.box("lampC", _v(PX0 + 2.25, 0.55, z1 - 1.02), _v(PX0 + 2.75, 0.85, z1 - 0.95), false, "p")
+        # 饮水机：圆角机箱 + 接水盘 + 冷热出水灯 + 半透明水桶
+        b.box("metalD", _v(PX0 + 2.15, FY, z1 - 1.05), _v(PX0 + 2.80, 0.95, z1 - 0.45), true, "all", 0.035)
+        b.box("dark", _v(PX0 + 2.28, 0.42, z1 - 1.09), _v(PX0 + 2.67, 0.80, z1 - 1.04), false)
+        b.box("lampC", _v(PX0 + 2.31, 0.56, z1 - 1.10), _v(PX0 + 2.43, 0.63, z1 - 1.06), false, "k")
+        b.box("red", _v(PX0 + 2.52, 0.56, z1 - 1.10), _v(PX0 + 2.64, 0.63, z1 - 1.06), false, "k")
+        b.box("metalD", _v(PX0 + 2.26, 0.30, z1 - 1.14), _v(PX0 + 2.69, 0.345, z1 - 1.01), false)
+        b.cyl("glass|dcefff", PX0 + 2.475, z1 - 0.75, 0.95, 1.06, 0.095, 0.095, 10, true, false)
+        b.cyl("glass|dcefff", PX0 + 2.475, z1 - 0.75, 1.06, 1.44, 0.195, 0.155, 12, true, false)
+        b.cyl("glass|dcefff", PX0 + 2.475, z1 - 0.75, 1.44, 1.50, 0.155, 0.095, 12, true, false)
     else:
         desk(x1 - 5.6, z0 + 0.30, x1 - 3.6, z0 + 2.00, 0.92)          # 调音台
         chair(x1 - 4.25, z0 + 1.30, FY, PI * 0.5)
@@ -464,110 +473,264 @@ func relay_cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void
     for lz in [z0 + 1.9, zc, z1 - 1.9]:
         b.light(_v(x1 + 0.09, 1.52, lz), Color(0.95, 0.88, 0.74), 1.9, 2.8, false)
 func bench(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
+    # 长椅：木条坐板 + 木条靠背 + 圆管腿 / 圆管横撑
+    var ySeat := base + 0.44
+    var zc := (z0 + z1) * 0.5
     for i in range(3):
         var xx := x0 + 0.05 + float(i) * 0.30
-        b.box("wood", _v(xx, base + 0.44, z0), _v(xx + 0.24, base + 0.49, z1), false, "all", 0.015)
+        b.box("wood", _v(xx, ySeat, z0), _v(xx + 0.24, ySeat + 0.05, z1), false, "all", 0.015)
     for i in range(2):
         var y := base + 0.62 + float(i) * 0.20
         var xx2 := x0 + 0.02 - float(i) * 0.045
-        b.box("woodD", _v(xx2, y, z0), _v(xx2 + 0.15, y + 0.14, z1), false, "all", 0.020)
-    for zz in [z0 + 0.05, z1 - 0.15]:
-        b.box("dark", _v(x0 + 0.02, base, zz), _v(x1 - 0.02, base + 0.44, zz + 0.10), false)
-        b.box("dark", _v(x0 + 0.02, base + 0.44, zz), _v(x0 + 0.09, base + 0.95, zz + 0.10), false)
-    var zc := (z0 + z1) * 0.5
-    b.box("dark", _v(x0 + 0.02, base, zc - 0.05), _v(x1 - 0.02, base + 0.44, zc + 0.05), false)
+        b.box("wood", _v(xx2, y, z0), _v(xx2 + 0.15, y + 0.14, z1), false, "all", 0.020)
+    for zz in [z0 + 0.22, zc, z1 - 0.22]:
+        for xx3 in [x0 + 0.10, x1 - 0.10]:
+            b.cyl("metalD", xx3, zz, base, ySeat, 0.032, 0.032, 8, false, false)
+        b.box("metalD", _v(x0 + 0.03, ySeat - 0.05, zz - 0.03), _v(x1 - 0.03, ySeat, zz + 0.03), false)
+        b.cyl("metalD", x0 + 0.04, zz, ySeat, base + 1.00, 0.030, 0.030, 8, false, false)
+    for xx4 in [x0 + 0.10, x1 - 0.10]:
+        b.cyl_z("metalD", xx4, base + 0.36, z0 + 0.16, z1 - 0.16, 0.026, 8, true)
     b.add_collider(_v(x0, base, z0), _v(x1, base + 0.50, z1))
-    var zc2 := (z0 + z1) * 0.5
+    b.light(_v(x0 + 0.50, base + 1.42, zc), Color(0.92, 0.86, 0.76), 3.2, 3.8, false)
     b.seats.append({"pos": Vector3(x0 + 0.62, base, z0 + (z1 - z0) * 0.30), "yaw": -PI * 0.5})
     b.seats.append({"pos": Vector3(x0 + 0.62, base, z0 + (z1 - z0) * 0.70), "yaw": -PI * 0.5})
 
 func vending(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
+    # 自动售货机：圆角外壳 → 玻璃橱窗（三层货道 / 商品 / 价签）→ 取货口 → 面板与退币口 → 顶部灯箱
     var h := base + 1.95
-    b.box("metalD", _v(x0, base, z0), _v(x1, h, z1), true, "all", 0.050)
-    b.box("dark", _v(x0 + 0.03, base + 0.12, z0 + 0.03), _v(x1 - 0.03, h - 0.12, z1 - 0.03), false)
-    # 展示橱窗 + 里面的饮料
-    b.box("glass", _v(x1 - 0.02, base + 0.55, z0 + 0.14), _v(x1 + 0.02, h - 0.32, z1 - 0.14), false, "p")
-    for i in range(3):
-        b.box(["red", "lamp", "lampC"][i], _v(x1 - 0.10, base + 0.72 + float(i) * 0.34, z0 + 0.20), _v(x1 - 0.06, base + 1.02 + float(i) * 0.34, z1 - 0.20), false, "p")
-    # 顶部灯带 / 取货口 / 按键面板
-    b.box("lamp", _v(x1 - 0.09, h - 0.28, z0 + 0.16), _v(x1 - 0.05, h - 0.16, z1 - 0.16), false, "p")
-    b.box("dark", _v(x1 - 0.10, base + 0.20, z0 + 0.30), _v(x1 - 0.02, base + 0.38, z1 - 0.30), true)
-    b.box("lampC", _v(x1 - 0.08, base + 1.10, z0 + 0.24), _v(x1 - 0.04, base + 1.42, z1 - 0.76), false, "p")
-    for i in range(6):
-        b.box("dark", _v(x1 - 0.07, base + 1.16 + float(i % 3) * 0.12, z1 - 0.72 + float(i / 3) * 0.16), _v(x1 - 0.03, base + 1.24 + float(i % 3) * 0.12, z1 - 0.66 + float(i / 3) * 0.16), false)
-    b.box("metalD", _v(x1 - 0.10, base + 0.02, z0 + 0.10), _v(x1 - 0.02, base + 0.16, z1 - 0.10), false)
-    b.light(_v(x1 + 0.55, base + 1.35, (z0 + z1) * 0.5), Color(0.45, 0.70, 0.95), 2.2, 8.0, false)
-    # 精修：货道隔板 / 价签条 / 退币口
+    var hz := base + 1.64
+    var xf := x1 + 0.20                      # 机器正面（玻璃 / 面板）所在的 x
+    var zw0 := z0 + 0.10                     # 橱窗北沿
+    var zw1 := z1 - 0.78                     # 橱窗南沿（南边留给面板）
+    b.box("dark", _v(x0 + 0.05, base, z0 + 0.05), _v(x1 - 0.05, base + 0.09, z1 - 0.05), false)
+    b.box("metalD", _v(x0, base + 0.09, z0), _v(x1, hz, z1), false, "all", 0.055)
+    b.box("metalD", _v(x0, hz, z0 + 0.04), _v(x1, h, z1 - 0.04), false, "all", 0.050)
+    b.add_collider(_v(x0, base, z0), _v(xf + 0.04, h, z1))
+    # ---- 橱窗：深色内衬 + 三层货道 ----
+    b.box("dark", _v(x1, base + 0.44, zw0), _v(x1 + 0.008, base + 1.60, zw1), false, "p")
     for si in range(3):
-        var sy := base + 0.60 + float(si) * 0.34
-        b.box("metalD", _v(x1 - 0.12, sy, z0 + 0.16), _v(x1 - 0.05, sy + 0.025, z1 - 0.16), false)
-        b.box("lampC", _v(x1 - 0.09, sy + 0.03, z0 + 0.18), _v(x1 - 0.06, sy + 0.075, z1 - 0.18), false, "p")
-    b.box("dark", _v(x1 - 0.10, base + 0.30, z1 - 0.62), _v(x1 - 0.02, base + 0.42, z1 - 0.44), false)
-    b.box("metalD", _v(x1 - 0.04, base + 0.33, z1 - 0.58), _v(x1 + 0.01, base + 0.355, z1 - 0.48), false, "p")
-    b.plaque("自动售货", _v(x1 - 0.005, base + 1.70, (z0 + z1) * 0.5), 0.62, 0.18, "x", 1, Color(0.55, 0.78, 1.0))
+        var sy := base + 0.62 + float(si) * 0.34
+        b.box("metal", _v(x1 + 0.008, sy, zw0 + 0.02), _v(x1 + 0.19, sy + 0.022, zw1 - 0.02), false, "t")
+        b.box("lampC", _v(x1 + 0.170, sy + 0.024, zw0 + 0.04), _v(x1 + 0.190, sy + 0.062, zw1 - 0.04), false, "p")
+        for gi in range(3):
+            var gz := zw0 + 0.08 + float(gi) * 0.42
+            b.box(["red", "lamp", "lampC", "exit"][(si + gi) % 4],
+                  _v(x1 + 0.020, sy + 0.024, gz), _v(x1 + 0.165, sy + 0.345, gz + 0.30), false)
+    # ---- 玻璃 + 上下压条 ----
+    b.box("glass", _v(xf - 0.010, base + 0.46, zw0 - 0.02), _v(xf + 0.006, base + 1.62, zw1 + 0.02), false)
+    b.box("metalD", _v(xf - 0.020, base + 0.42, zw0 - 0.04), _v(xf + 0.012, base + 0.48, zw1 + 0.04), false)
+    b.box("metalD", _v(xf - 0.020, base + 1.60, zw0 - 0.04), _v(xf + 0.012, base + 1.66, zw1 + 0.04), false)
+    # ---- 取货口（带挡板）----
+    b.box("dark", _v(xf - 0.055, base + 0.20, z0 + 0.34), _v(xf + 0.006, base + 0.44, zw1 - 0.06), false)
+    b.box("metalD", _v(xf - 0.06, base + 0.44, z0 + 0.32), _v(xf + 0.016, base + 0.50, zw1 - 0.04), false, "t")
+    b.box("metalD", _v(xf - 0.06, base + 0.20, z0 + 0.32), _v(xf + 0.016, base + 0.24, zw1 - 0.04), false, "b")
+    # ---- 面板：显示屏 + 按键 + 退币口 ----
+    b.box("dark", _v(xf - 0.035, base + 1.00, zw1 + 0.04), _v(xf + 0.006, base + 1.58, z1 - 0.10), false)
+    b.box("sign", _v(xf - 0.001, base + 1.34, zw1 + 0.10), _v(xf + 0.010, base + 1.52, z1 - 0.18), false, "p")
+    for i in range(6):
+        b.box("metalD", _v(xf - 0.001, base + 1.06 + float(i % 3) * 0.09, zw1 + 0.12 + float(i / 3) * 0.24),
+              _v(xf + 0.010, base + 1.13 + float(i % 3) * 0.09, zw1 + 0.20 + float(i / 3) * 0.24), false, "p")
+    b.box("dark", _v(xf - 0.001, base + 0.90, zw1 + 0.14), _v(xf + 0.012, base + 0.97, zw1 + 0.46), false, "p")
+    b.box("lampC", _v(xf + 0.011, base + 0.925, zw1 + 0.18), _v(xf + 0.020, base + 0.945, zw1 + 0.42), false, "p")
+    b.box("dark", _v(xf - 0.001, base + 0.78, z1 - 0.44), _v(xf + 0.012, base + 0.85, z1 - 0.16), false, "p")
+    # ---- 顶部灯箱 + 铭牌 ----
+    b.box("lamp", _v(xf - 0.012, h - 0.28, z0 + 0.14), _v(xf + 0.010, h - 0.10, z1 - 0.14), false, "p")
+    b.plaque("自动售货", _v(xf + 0.006, h - 0.19, (zw0 + zw1) * 0.5), 0.58, 0.16, "x", 1, Color(0.58, 0.82, 1.0))
+    b.light(_v(x1 + 0.10, base + 1.24, (zw0 + zw1) * 0.5), Color(0.72, 0.86, 1.0), 1.7, 2.6, false)
+    b.light(_v(xf + 0.55, base + 1.30, z1 - 0.40), Color(0.78, 0.86, 1.0), 1.4, 2.6, false)
 
 func bin(cx: float, cz: float, base := FY) -> void:
-    b.cyl("metalD", cx, cz, base + 0.02, base + 0.74, 0.23, 0.25, 12, false, true)   # 圆桶身
-    b.cyl("dark", cx, cz, base, base + 0.02, 0.20, 0.23, 12, false, true)
-    b.add_collider(_v(cx - 0.26, base, cz - 0.26), _v(cx + 0.26, base + 0.80, cz + 0.26))
-    b.box("dark", _v(cx - 0.25, base + 0.76, cz - 0.25), _v(cx + 0.25, base + 0.86, cz + 0.25), false, "all", 0.020)
-    b.box("dark", _v(cx - 0.11, base + 0.86, cz - 0.17), _v(cx + 0.11, base + 0.90, cz + 0.17), false)
-    b.box("metalD", _v(cx - 0.205, base + 0.18, cz - 0.205), _v(cx + 0.205, base + 0.23, cz + 0.205), false)
-    b.box("metalD", _v(cx - 0.205, base + 0.52, cz - 0.205), _v(cx + 0.205, base + 0.57, cz + 0.205), false)
+    # 垃圾桶：圆桶身 + 桶箍 + 压圈 + 内胆 + 烟灰盘
+    b.cyl("dark", cx, cz, base, base + 0.03, 0.23, 0.24, 12, false, false)
+    b.cyl("metalD", cx, cz, base + 0.03, base + 0.70, 0.235, 0.245, 12, false, false)
+    b.cyl("metal", cx, cz, base + 0.30, base + 0.335, 0.240, 0.243, 12, false, false)
+    b.cyl("metal", cx, cz, base + 0.55, base + 0.585, 0.243, 0.246, 12, false, false)
+    b.cyl("dark", cx, cz, base + 0.70, base + 0.735, 0.248, 0.248, 12, false, false)
+    b.cyl("metal", cx, cz, base + 0.735, base + 0.775, 0.252, 0.242, 12, true, false)
+    b.cyl("dark", cx, cz, base + 0.735, base + 0.90, 0.205, 0.200, 12, true, false)
+    b.cyl("metalD", cx, cz, base + 0.90, base + 0.955, 0.215, 0.205, 12, true, false)
+    for i in range(4):
+        var a := TAU * float(i) / 4.0 + 0.4
+        b.box("dark", _v(cx + cos(a) * 0.10 - 0.022, base + 0.930, cz + sin(a) * 0.10 - 0.022),
+              _v(cx + cos(a) * 0.10 + 0.022, base + 0.958, cz + sin(a) * 0.10 + 0.022), false)
+    b.add_collider(_v(cx - 0.27, base, cz - 0.27), _v(cx + 0.27, base + 0.98, cz + 0.27))
 
 func turnstile(cx: float, cz: float, base := FY) -> void:
+    # 闸机：底座法兰 + 圆柱立柱 + 三辊 + 刷卡面板 + 状态灯
     var h := base + 1.02
-    b.box("metalD", _v(cx - 0.20, base, cz - 0.78), _v(cx + 0.20, h, cz + 0.78), true, "all", 0.035)
-    b.box("dark", _v(cx - 0.17, base + 0.14, cz - 0.75), _v(cx + 0.17, h - 0.10, cz + 0.75), false)
-    b.box("metalD", _v(cx - 0.23, h, cz - 0.62), _v(cx + 0.23, h + 0.06, cz + 0.62), true, "all", 0.025)
-    b.box("dark", _v(cx - 0.17, h + 0.06, cz - 0.34), _v(cx + 0.17, h + 0.09, cz + 0.06), false)
-    b.box("lampC", _v(cx - 0.05, h + 0.09, cz - 0.02), _v(cx + 0.05, h + 0.12, cz + 0.08), false, "p")
-    b.box("red", _v(cx - 0.05, h + 0.09, cz + 0.20), _v(cx + 0.05, h + 0.12, cz + 0.30), false, "p")
-    b.box("metalD", _v(cx - 0.07, base + 0.82, cz - 0.07), _v(cx + 0.07, base + 1.00, cz + 0.07), false)
+    b.cyl("dark", cx, cz, base, base + 0.05, 0.30, 0.29, 12, true, false)
+    b.cyl("metalD", cx, cz, base + 0.05, h, 0.185, 0.176, 12, true, false)
+    b.cyl("metal", cx, cz, h, h + 0.11, 0.198, 0.186, 12, true, false)
+    b.cyl("lampC", cx, cz, base + 0.90, base + 0.965, 0.184, 0.184, 12, false, false)
+    b.cyl("red", cx, cz, base + 0.815, base + 0.875, 0.184, 0.184, 12, false, false)
+    b.add_collider(_v(cx - 0.30, base, cz - 0.30), _v(cx + 0.30, h + 0.11, cz + 0.30))
+    # 刷卡面板（朝 -Z：乘客从站台侧走过来）
+    b.box("dark", _v(cx - 0.14, base + 0.50, cz - 0.21), _v(cx + 0.14, base + 0.80, cz - 0.172), false)
+    b.box("sign", _v(cx - 0.12, base + 0.58, cz - 0.220), _v(cx + 0.12, base + 0.76, cz - 0.208), false, "k")
+    b.box("lampC", _v(cx - 0.03, base + 0.53, cz - 0.220), _v(cx + 0.03, base + 0.565, cz - 0.208), false, "k")
+    b.box("metalD", _v(cx - 0.16, base + 0.84, cz - 0.20), _v(cx + 0.16, base + 0.88, cz - 0.14), false, "t")
+    # 三辊：三根圆管绕立柱 120 度分布
     for i in range(3):
         var a := TAU * float(i) / 3.0 + 0.35
-        b.box_rot("metalD", Vector3(cx + cos(a) * 0.32, base + 0.90, cz + sin(a) * 0.32),
-                  Vector3(0.06, 0.06, 0.64), PI * 0.5 - a, false)
+        b.cyl_dir("metal", Vector3(cx + cos(a) * 0.40, base + 0.90, cz + sin(a) * 0.40),
+                  a, 0.62, 0.030, 8, true)
 
 func cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
-    b.box("metalD", _v(x0, FY, z0), _v(x1, h, z1), true, "all", 0.030)
+    b.box("metalD", _v(x0, FY, z0), _v(x1, h, z1), true, "all", 0.040)
     b.box("dark", _v(x0, h * 0.42, z0 - 0.01), _v(x1, h * 0.46, z1 + 0.01), false)
     var n := int(maxf(1.0, (z1 - z0) / 0.55))
     for i in range(n):
         var zz := z0 + (z1 - z0) * (float(i) + 0.5) / float(n)
         b.box("dark", _v(x1 - 0.02, 0.08, zz - 0.02), _v(x1 + 0.01, h - 0.08, zz + 0.02), false)
-        b.box("lampC", _v(x1 + 0.01, h * 0.55, zz - 0.05), _v(x1 + 0.04, h * 0.55 + 0.04, zz + 0.05), false, "p")
+        b.cyl_z("lampC", x1 + 0.025, h * 0.55, zz - 0.05, zz + 0.05, 0.016, 8, true)
 
 func locker(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
-    b.box("metalD", _v(x0, FY, z0), _v(x1, h, z1), true, "all", 0.030)
+    b.box("metalD", _v(x0, FY, z0), _v(x1, h, z1), true, "all", 0.040)
     for i in range(3):
         var zz := z0 + (z1 - z0) * (float(i) + 0.5) / 3.0
         b.box("dark", _v(x1 - 0.02, 0.06, zz - 0.02), _v(x1 + 0.01, h - 0.06, zz + 0.02), false)
-        b.box("lampC", _v(x1 + 0.01, h * 0.5, zz - 0.06), _v(x1 + 0.04, h * 0.5 + 0.05, zz + 0.06), false, "p")
+        b.cyl_z("lampC", x1 + 0.025, h * 0.50, zz - 0.06, zz + 0.06, 0.016, 8, true)
+        b.box("metalD", _v(x1 - 0.01, h * 0.72, zz - 0.12), _v(x1 + 0.012, h * 0.75, zz + 0.12), false, "p")
     b.box("dark", _v(x0, h - 0.06, z0), _v(x1, h, z1), false)
 
 func desk(x0: float, z0: float, x1: float, z1: float, h := 0.76, base := FY) -> void:
-    b.box("metalD", _v(x0, h - 0.05, z0), _v(x1, h, z1), false, "all", 0.022)     # 台面（圆角）
-    b.add_collider(_v(x0, base, z0), _v(x1, h, z1))                               # 整张桌子算实体
-    b.box("dark", _v(x0 + 0.04, base + 0.08, z0 + 0.04), _v(x1 - 0.04, h - 0.05, z0 + 0.10), false)   # 侧板
+    b.box("metalD", _v(x0, h - 0.05, z0), _v(x1, h, z1), false, "all", 0.030)      # 台面（圆角）
+    b.add_collider(_v(x0, base, z0), _v(x1, h, z1))
+    b.box("dark", _v(x0 + 0.04, base + 0.08, z0 + 0.04), _v(x1 - 0.04, h - 0.05, z0 + 0.10), false)
     b.box("dark", _v(x0 + 0.04, base + 0.08, z1 - 0.10), _v(x1 - 0.04, h - 0.05, z1 - 0.04), false)
-    b.box("metalD", _v(x1 - 0.55, 0.42, z0 + 0.06), _v(x1 - 0.06, h - 0.05, z1 - 0.06), true, "all", 0.020)  # 抽屉箱（圆角）
-    b.box("dark", _v(x1 - 0.53, 0.52, z0 + 0.05), _v(x1 - 0.08, 0.58, z1 - 0.05), false)
-    b.box("lampC", _v(x1 - 0.30, 0.585, z0 + 0.10), _v(x1 - 0.26, 0.615, z1 - 0.10), false, "p")    # 拉手
-    b.box("dark", _v(x0 + 0.10, 0.20, z0 + 0.12), _v(x1 - 0.60, 0.24, z1 - 0.12), false)            # 横撑
+    b.box("metalD", _v(x1 - 0.55, base + 0.42, z0 + 0.06), _v(x1 - 0.06, h - 0.05, z1 - 0.06), true, "all", 0.028)
+    b.box("dark", _v(x1 - 0.53, base + 0.52, z0 + 0.05), _v(x1 - 0.08, base + 0.58, z1 - 0.05), false)
+    b.cyl_z("lampC", x1 - 0.048, base + 0.60, z0 + 0.10, z1 - 0.10, 0.016, 8, true)
+    b.box("dark", _v(x0 + 0.10, base + 0.20, z0 + 0.12), _v(x1 - 0.60, base + 0.24, z1 - 0.12), false)
 
 func chair(cx: float, cz: float, base := FY, yaw := 0.0) -> void:
     var c := Vector3(cx, base, cz)
     var ca := cos(yaw)
     var sa := sin(yaw)
     var R := func(l: Vector3) -> Vector3: return Vector3(c.x + l.x * ca + l.z * sa, c.y + l.y, c.z - l.x * sa + l.z * ca)
-    b.box_rot("dark", R.call(Vector3(0, 0.43, 0)), Vector3(0.48, 0.06, 0.48), yaw, false)          # 座面
-    b.box_rot("dark", R.call(Vector3(0, 0.67, 0.20)), Vector3(0.48, 0.42, 0.08), yaw, false)        # 靠背
-    for dx in [-0.20, 0.20]:
-        for dz in [-0.20, 0.20]:
-            b.box_rot("dark", R.call(Vector3(dx, 0.20, dz)), Vector3(0.05, 0.40, 0.05), yaw, false)
+    b.box_rot("dark", R.call(Vector3(0, 0.44, 0)), Vector3(0.46, 0.05, 0.46), yaw, false)          # 座面
+    b.box_rot("metalD", R.call(Vector3(0, 0.415, 0)), Vector3(0.40, 0.03, 0.40), yaw, false)        # 座面下框
+    b.box_rot("dark", R.call(Vector3(0, 0.68, 0.20)), Vector3(0.44, 0.40, 0.07), yaw, false)        # 靠背
+    for dx in [-0.18, 0.18]:
+        for dz in [-0.18, 0.18]:
+            var p: Vector3 = R.call(Vector3(dx, 0, dz))
+            b.cyl("metalD", p.x, p.z, base, base + 0.42, 0.024, 0.024, 8, false, false)             # 圆管腿
+    for dx2 in [-0.16, 0.16]:
+        var p2: Vector3 = R.call(Vector3(dx2, 0, 0.19))
+        b.cyl("metalD", p2.x, p2.z, base + 0.44, base + 0.90, 0.022, 0.022, 8, false, false)        # 靠背立杆
     b.add_collider(_v(cx - 0.30, base, cz - 0.30), _v(cx + 0.30, base + 0.50, cz + 0.30))
     b.seats.append({"pos": Vector3(cx - sin(yaw) * 0.02, base, cz - cos(yaw) * 0.02), "yaw": yaw})
+
+# ------------------------------------------------------------------ 站体细节构件
+## 门套：门洞两侧门边 + 门楣（向 +X 凸出 0.13）
+func door_frame(x: float, dz0: float, dz1: float, dh: float) -> void:
+    var t := 0.08
+    for zz in [dz0 - t, dz1]:
+        b.box("metalD", _v(x - 0.02, FY, zz), _v(x + 0.13, dh + 0.09, zz + t), false, "all", 0.018)
+    b.box("metalD", _v(x - 0.02, dh + 0.01, dz0 - t), _v(x + 0.13, dh + 0.09, dz1 + t), false, "all", 0.018)
+
+## 圆管栏杆（沿 x 方向一道）
+func railing(x0: float, x1: float, z: float) -> void:
+    var n := int(maxf(1.0, absf(x1 - x0) / 2.0))
+    for i in range(n + 1):
+        var x := lerpf(x0, x1, float(i) / float(n))
+        b.cyl("metal", x, z, FY, FY + 1.06, 0.036, 0.030, 8, true, false)
+    for yy in [FY + 1.00, FY + 0.58]:
+        b.cyl_dir("metal", Vector3((x0 + x1) * 0.5, yy, z), 0.0, absf(x1 - x0), 0.030, 8, true)
+    b.cyl_dir("metal", Vector3((x0 + x1) * 0.5, FY + 0.20, z), 0.0, absf(x1 - x0), 0.022, 8, true)
+    b.add_collider(_v(minf(x0, x1), FY, z - 0.06), _v(maxf(x0, x1), FY + 1.06, z + 0.06))
+
+## 圆管栏杆（沿 z 方向一道，站在 y_base 的台面上）
+func railing_z(x: float, z0: float, z1: float, y_base: float) -> void:
+    var n := int(maxf(1.0, absf(z1 - z0) / 2.0))
+    for i in range(n + 1):
+        var z := lerpf(z0, z1, float(i) / float(n))
+        b.cyl("metal", x, z, y_base, y_base + 1.00, 0.036, 0.030, 8, true, false)
+    for yy in [y_base + 0.94, y_base + 0.54]:
+        b.cyl_z("metal", x, yy, z0, z1, 0.030, 8, true)
+    b.add_collider(_v(x - 0.06, y_base, minf(z0, z1)), _v(x + 0.06, y_base + 1.00, maxf(z0, z1)))
+
+## 标牌包边：面板四周一圈金属边框
+func sign_frame(cx: float, cy: float, w: float, h: float, z: float, depth: float) -> void:
+    var t := 0.07
+    var hw := w * 0.5
+    var hh := h * 0.5
+    var z0 := z - depth * 0.5 - 0.02
+    var z1 := z + depth * 0.5 + 0.02
+    b.box("metal", _v(cx - hw - t, cy + hh, z0), _v(cx + hw + t, cy + hh + t, z1), false)
+    b.box("metal", _v(cx - hw - t, cy - hh - t, z0), _v(cx + hw + t, cy - hh, z1), false)
+    b.box("metal", _v(cx - hw - t, cy - hh, z0), _v(cx - hw, cy + hh, z1), false)
+    b.box("metal", _v(cx + hw, cy - hh, z0), _v(cx + hw + t, cy + hh, z1), false)
+
+# ------------------------------------------------------------------ 站体细节
+func details() -> void:
+    # 三处门洞的门套
+    door_frame(-14.20, 27.00, 29.60, 2.24)
+    door_frame(-11.00, 7.60, 9.60, 2.19)
+    door_frame(-11.50, 37.60, 39.60, 2.19)
+    # 站台端头圆管栏杆：北端一整道；南端留 3.2 m 检修口
+    railing(-17.30, -0.90, -54.40)
+    railing(-17.30, -9.10, 49.30)
+    railing(-5.90, -0.90, 49.30)
+    # 检修环线检修走道栏杆
+    railing_z(10.45, -64.60, -58.30, TY + 0.25)
+    # 后墙分缝：每 2.4 m 一道竖缝 + 一道通长横缝
+    var zz := ZS0 + 1.2
+    while zz < ZS1 - 0.6:
+        b.box("dark", _v(PX0 + 0.005, FY + 0.02, zz - 0.012), _v(PX0 + 0.030, CH - 0.10, zz + 0.012), false, "p")
+        zz += 2.4
+    b.box("metalD", _v(PX0 + 0.005, 2.62, ZS0), _v(PX0 + 0.030, 2.68, ZS1), false, "p")
+    # 柱脚防撞条：黄环 + 黑胶环
+    for i in range(8):
+        var cz := -40.0 + float(i) * 12.0
+        b.cyl("hazard", -8.60, cz, FY + 0.13, FY + 0.28, 0.475, 0.475, 14, false, false)
+        b.cyl("rubber", -8.60, cz, FY + 0.28, FY + 0.36, 0.462, 0.462, 14, false, false)
+
+# ------------------------------------------------------------------ 隧道口 / 电缆桥架 / 检修梯
+## 洞口拱圈：比洞身略大一圈的收边
+func arch_ring(z: float, depth: float) -> void:
+    var ri := BORE_R + 0.01
+    var ro := BORE_R + 0.17
+    var segs := 18
+    var cen := Vector3(4.0, BORE_SP, 0.0)
+    for i in range(segs):
+        var a0: float = PI * (1.0 - float(i) / float(segs))
+        var a1: float = PI * (1.0 - float(i + 1) / float(segs))
+        var am := (a0 + a1) * 0.5
+        var n := Vector3(cos(am), sin(am), 0.0).normalized()
+        var o0 := cen + Vector3(cos(a0), sin(a0), 0.0) * ro
+        var o1 := cen + Vector3(cos(a1), sin(a1), 0.0) * ro
+        var q0 := cen + Vector3(cos(a0), sin(a0), 0.0) * ri
+        var q1 := cen + Vector3(cos(a1), sin(a1), 0.0) * ri
+        b.quad("conc", Vector3(o0.x, o0.y, z), Vector3(o1.x, o1.y, z), Vector3(o1.x, o1.y, z + depth), Vector3(o0.x, o0.y, z + depth), n)
+        b.quad("conc", Vector3(q1.x, q1.y, z), Vector3(q0.x, q0.y, z), Vector3(q0.x, q0.y, z + depth), Vector3(q1.x, q1.y, z + depth), -n)
+        b.quad("conc", Vector3(q0.x, q0.y, z), Vector3(q1.x, q1.y, z), Vector3(o1.x, o1.y, z), Vector3(o0.x, o0.y, z), Vector3(0, 0, -1))
+        b.quad("conc", Vector3(o0.x, o0.y, z + depth), Vector3(o1.x, o1.y, z + depth), Vector3(q1.x, q1.y, z + depth), Vector3(q0.x, q0.y, z + depth), Vector3(0, 0, 1))
+
+func tunnel_detail() -> void:
+    # 两个隧道口的拱形收边
+    arch_ring(ZS0 - 0.55, 0.55)
+    arch_ring(ZS1, 0.55)
+    # 电缆桥架：隧道东壁的梯式桥架 + 两根电缆 + 支架
+    var bx := TX1 - 0.45
+    var by := TY + 3.05
+    b.box("metalD", _v(bx - 0.32, by, -122.0), _v(bx + 0.02, by + 0.05, -58.0), false)
+    b.box("metalD", _v(bx - 0.32, by, -122.0), _v(bx - 0.27, by + 0.24, -58.0), false)
+    b.box("metalD", _v(bx - 0.03, by, -122.0), _v(bx + 0.02, by + 0.24, -58.0), false)
+    b.cyl_z("dark", bx - 0.22, by + 0.11, -122.0, -58.0, 0.032, 8, true)
+    b.cyl_z("dark", bx - 0.10, by + 0.11, -122.0, -58.0, 0.032, 8, true)
+    var tz := -121.0
+    while tz < -58.0:
+        b.box("metalD", _v(bx - 0.30, by + 0.17, tz), _v(bx, by + 0.23, tz + 0.06), false)
+        b.box("metalD", _v(bx + 0.00, by - 0.04, tz), _v(bx + 0.30, by + 0.02, tz + 0.06), false)
+        tz += 3.5
+    # 洞口附近的检修梯（圆管横档 + 圆管立杆）
+    for i in range(8):
+        var ly := TY + 0.32 + float(i) * 0.34
+        b.cyl_dir("metal", Vector3(6.55, ly, -59.5), 0.0, 0.56, 0.020, 8, true)
+    for lx in [6.29, 6.81]:
+        b.cyl("metal", lx, -59.5, TY, TY + 2.94, 0.026, 0.026, 8, true, true)
+
 # ------------------------------------------------------------------ 标识
 func signage() -> void:
     # 出口卷帘 + 闸机
@@ -578,11 +741,14 @@ func signage() -> void:
     for i in range(3):
         turnstile(-10.5 + float(i) * 3.4, ZS1 - 13.0)
     # 悬挂站牌 + 时钟
-    b.box("metalD", _v(-5.55, 3.10, -30.10), _v(-4.45, 4.16, -29.90), false)
-    b.box("metalD", _v(-5.55, 3.10, 19.90), _v(-4.45, 4.16, 20.10), false)
-    b.box("metalD", _v(-5.55, 3.30, -2.10), _v(-4.45, 3.96, -1.90), false)
-    b.box("metalD", _v(-5.35, CH - 0.9, -30.04), _v(-5.15, CH, -29.96), false)
-    b.box("metalD", _v(-4.85, CH - 0.9, -30.04), _v(-4.65, CH, -29.96), false)
+    # 三块吊挂站牌：面板 + 四边包边 + 两根圆管吊杆 + 顶座
+    for sg in [[-30.0, 3.10, 4.16], [20.0, 3.10, 4.16], [-2.0, 3.30, 3.96]]:
+        var sz: float = sg[0]
+        b.box("metalD", _v(-5.55, sg[1], sz - 0.10), _v(-4.45, sg[2], sz + 0.10), false)
+        sign_frame(-5.00, (sg[1] + sg[2]) * 0.5, 1.10, sg[2] - sg[1], sz, 0.20)
+        for xx in [-5.32, -4.68]:
+            b.cyl("metalD", xx, sz - 0.04, sg[2] + 0.07, CH, 0.024, 0.024, 8, true, false)
+        b.box("metalD", _v(-5.42, CH - 0.07, sz - 0.07), _v(-4.58, CH, sz + 0.07), false)
     b.label3d("岚 桥 站", _v(-4.40, 3.62, -30.0), 0.44, Color(0.93, 0.96, 1.0), PI * 0.5)
     b.label3d("岚 桥 站", _v(-5.60, 3.62, -30.0), 0.44, Color(0.93, 0.96, 1.0), -PI * 0.5)
     b.label3d("出 口 EXIT", _v(-4.40, 3.62, 20.0), 0.34, Color(0.55, 1.0, 0.70), PI * 0.5)
@@ -639,6 +805,16 @@ func branch_area() -> void:
     b.box("hazard", _v(7.22, TY + 0.52, -114.50), _v(8.18, TY + 0.58, -113.90), false)
     b.box("metalD", _v(5.60, TY + 0.10, -116.4), _v(7.25, TY + 0.24, -114.9), false)
     b.box("dark", _v(4.60, TY + 0.02, -112.4), _v(7.40, TY + 0.10, -112.2), false)
+    # 滑床板 + 表示杆 + 转辙机底板 + 道岔标志灯
+    for i in range(5):
+        var sz2 := -116.1 + float(i) * 0.86
+        b.box("metalD", _v(3.05, TY + 0.16, sz2), _v(4.35, TY + 0.20, sz2 + 0.52), false, "t")
+    b.box("metal", _v(4.40, TY + 0.19, -114.55), _v(7.35, TY + 0.235, -114.35), false)
+    b.box("metalD", _v(7.10, TY + 0.01, -115.20), _v(8.30, TY + 0.09, -113.30), false, "t")
+    for xx2 in [8.05, 8.22]:
+        b.cyl("metalD", xx2, -114.20, TY + 0.09, TY + 0.86, 0.030, 0.026, 8, true, false)
+    b.box("exit", _v(8.00, TY + 0.64, -114.20), _v(8.28, TY + 0.78, -113.84), false, "p")
+    b.box("red", _v(8.00, TY + 0.64, -114.56), _v(8.28, TY + 0.78, -114.20), false, "p")
     # —— 标牌 / 照明
     b.plaque("检修环线 · 侧线", _v(QX1 - 0.04, TY + 2.20, -100.0), 2.2, 0.42, "x", -1, Color(1.0, 0.82, 0.42))
     b.plaque("道岔 1", _v(8.35, TY + 0.80, -113.2), 0.8, 0.24, "x", 1, Color(0.55, 0.78, 1.0))

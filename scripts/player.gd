@@ -93,6 +93,21 @@ func _mesh_box(size: Vector3, col: Color, off: Vector3, emis := 0.0) -> MeshInst
 	mi.position = off
 	return mi
 
+func _mesh_cyl(size: Vector3, col: Color, off: Vector3) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = size.x * 0.5
+	cm.bottom_radius = size.x * 0.5
+	cm.height = size.y
+	cm.radial_segments = 10
+	mi.mesh = cm
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = 0.80
+	mi.material_override = m
+	mi.position = off
+	return mi
+
 func _joint(nm: String, parent: Node3D, joint: Vector3) -> Node3D:
 	var n := Node3D.new()
 	n.name = nm
@@ -110,25 +125,35 @@ func _build_body() -> void:
 	add_child(body)
 
 	var hip := _joint("hip", body, Vector3(0, 0.86, 0))
+	var skin := Color(0.70, 0.56, 0.47)
 	hip.add_child(_mesh_box(Vector3(0.36, 0.20, 0.24), dark, Vector3(0, -0.02, 0)))
 	var torso := _joint("torso", body, Vector3(0, 0.94, 0))
 	torso.add_child(_mesh_box(Vector3(0.42, 0.50, 0.26), coat, Vector3(0, 0.25, 0)))
 	torso.add_child(_mesh_box(Vector3(0.46, 0.30, 0.29), vest, Vector3(0, 0.26, 0), 0.55))   # 反光背心
+	torso.add_child(_mesh_box(Vector3(0.44, 0.045, 0.27), dark, Vector3(0, 0.01, 0)))          # 腰带
 	torso.add_child(_mesh_box(Vector3(0.10, 0.14, 0.02), vest, Vector3(0.11, 0.34, -0.15), 0.9))  # 工牌
+	torso.add_child(_mesh_box(Vector3(0.38, 0.02, 0.02), dark, Vector3(0, 0.44, -0.13)))        # 挂绳
+	torso.add_child(_mesh_box(Vector3(0.12, 0.14, 0.07), Color(0.30, 0.26, 0.20), Vector3(-0.15, 0.06, 0.15)))  # 工具腰包
 	var head := _joint("head", body, Vector3(0, 1.44, 0))
-	head.add_child(_mesh_box(Vector3(0.22, 0.23, 0.22), Color(0.62, 0.52, 0.44), Vector3(0, 0.12, 0)))
-	head.add_child(_mesh_box(Vector3(0.24, 0.09, 0.24), dark, Vector3(0, 0.24, 0)))          # 帽子
-	head.add_child(_mesh_box(Vector3(0.26, 0.03, 0.10), dark, Vector3(0, 0.21, -0.13)))      # 帽檐
+	head.add_child(_mesh_box(Vector3(0.22, 0.23, 0.22), skin, Vector3(0, 0.12, 0)))
+	head.add_child(_mesh_box(Vector3(0.235, 0.065, 0.235), Color(0.10, 0.09, 0.10), Vector3(0, 0.045, 0.008)))
+	for ex in [-0.055, 0.055]:
+		head.add_child(_mesh_box(Vector3(0.045, 0.026, 0.02), Color(0.06, 0.06, 0.07), Vector3(ex, 0.135, -0.105)))
+	head.add_child(_mesh_box(Vector3(0.24, 0.09, 0.24), dark, Vector3(0, 0.255, 0)))            # 帽子
+	head.add_child(_mesh_box(Vector3(0.26, 0.03, 0.10), dark, Vector3(0, 0.225, -0.13)))        # 帽檐
+	head.add_child(_mesh_box(Vector3(0.06, 0.03, 0.02), vest, Vector3(0, 0.20, -0.115), 0.6))   # 帽徽
 	for sgn in [-1.0, 1.0]:
-		var sh := _joint("shoulder%s" % ("L" if sgn < 0 else "R"), body, Vector3(sgn * 0.27, 1.40, 0))
-		sh.add_child(_mesh_box(Vector3(0.12, 0.42, 0.13), coat, Vector3(0, -0.21, 0)))
-		var el := _joint("elbow%s" % ("L" if sgn < 0 else "R"), sh, Vector3(0, -0.42, 0))
-		el.add_child(_mesh_box(Vector3(0.11, 0.34, 0.12), coat, Vector3(0, -0.17, 0)))
-		var hp := _joint("hip%s" % ("L" if sgn < 0 else "R"), body, Vector3(sgn * 0.11, 0.84, 0))
-		hp.add_child(_mesh_box(Vector3(0.16, 0.44, 0.17), dark, Vector3(0, -0.22, 0)))
-		var kn := _joint("knee%s" % ("L" if sgn < 0 else "R"), hp, Vector3(0, -0.44, 0))
-		kn.add_child(_mesh_box(Vector3(0.14, 0.42, 0.15), dark, Vector3(0, -0.21, 0)))
-		var ft := _joint("foot%s" % ("L" if sgn < 0 else "R"), kn, Vector3(0, -0.42, 0))
+		var sfx := "L" if sgn < 0 else "R"
+		var sh := _joint("shoulder" + sfx, body, Vector3(sgn * 0.27, 1.40, 0))
+		sh.add_child(_mesh_cyl(Vector3(0.125, 0.44, 0.125), coat, Vector3(0, -0.22, 0)))        # 上臂（圆管）
+		var el := _joint("elbow" + sfx, sh, Vector3(0, -0.42, 0))
+		el.add_child(_mesh_cyl(Vector3(0.115, 0.34, 0.115), coat, Vector3(0, -0.17, 0)))        # 小臂
+		el.add_child(_mesh_box(Vector3(0.095, 0.11, 0.10), skin, Vector3(0, -0.38, 0)))          # 手
+		var hp := _joint("hip" + sfx, body, Vector3(sgn * 0.11, 0.84, 0))
+		hp.add_child(_mesh_cyl(Vector3(0.175, 0.46, 0.175), dark, Vector3(0, -0.23, 0)))        # 大腿
+		var kn := _joint("knee" + sfx, hp, Vector3(0, -0.44, 0))
+		kn.add_child(_mesh_cyl(Vector3(0.155, 0.42, 0.155), dark, Vector3(0, -0.21, 0)))        # 小腿
+		var ft := _joint("foot" + sfx, kn, Vector3(0, -0.42, 0))
 		ft.add_child(_mesh_box(Vector3(0.15, 0.08, 0.28), Color(0.08, 0.09, 0.11), Vector3(0, -0.04, -0.05)))
 	body.visible = false
 
@@ -142,20 +167,42 @@ func _build_viewarm() -> void:
 	mat.emission_enabled = true
 	mat.emission = Color(0.24, 0.30, 0.38)
 	mat.emission_energy_multiplier = 0.18
+	var gmat := StandardMaterial3D.new()
+	gmat.albedo_color = Color(0.17, 0.18, 0.21)
+	gmat.roughness = 0.85
+	gmat.emission_enabled = true
+	gmat.emission = Color(0.17, 0.18, 0.21)
+	gmat.emission_energy_multiplier = 0.10
 	var fore := MeshInstance3D.new()
-	var fb := BoxMesh.new()
-	fb.size = Vector3(0.11, 0.11, 0.42)
-	fore.mesh = fb
-	fore.position = Vector3(0.02, -0.05, -0.20)
+	var fm := CylinderMesh.new()
+	fm.top_radius = 0.052
+	fm.bottom_radius = 0.062
+	fm.height = 0.40
+	fm.radial_segments = 10
+	fore.mesh = fm
+	fore.position = Vector3(0.02, -0.05, -0.22)
+	fore.rotation.x = PI * 0.5
 	fore.material_override = mat
 	view_arm.add_child(fore)
 	var hand := MeshInstance3D.new()
-	var hb := BoxMesh.new()
-	hb.size = Vector3(0.13, 0.10, 0.17)
-	hand.mesh = hb
-	hand.position = Vector3(0.02, -0.06, -0.47)
-	hand.material_override = mat
+	var hm := CylinderMesh.new()
+	hm.top_radius = 0.048
+	hm.bottom_radius = 0.054
+	hm.height = 0.16
+	hm.radial_segments = 8
+	hand.mesh = hm
+	hand.position = Vector3(0.016, -0.062, -0.49)
+	hand.rotation.x = PI * 0.5
+	hand.material_override = gmat
 	view_arm.add_child(hand)
+	for fx in [-0.026, 0.0, 0.026]:
+		var fg := MeshInstance3D.new()
+		var ff := BoxMesh.new()
+		ff.size = Vector3(0.021, 0.032, 0.075)
+		fg.mesh = ff
+		fg.position = Vector3(0.016 + fx, -0.062, -0.60)
+		fg.material_override = gmat
+		view_arm.add_child(fg)
 	var cuff := MeshInstance3D.new()
 	var cb := BoxMesh.new()
 	cb.size = Vector3(0.15, 0.15, 0.08)

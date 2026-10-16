@@ -246,6 +246,24 @@ func cyl(key: String, cx: float, cz: float, y0: float, y1: float, r0: float, r1:
         if cap_bottom:
             tri(key, Vector3(cx, y0, cz), Vector3(p1.x, y0, p1.z), Vector3(p0.x, y0, p0.z), Vector3(0, -1, 0))
 
+## 任意水平朝向的圆管（三辊 / 横栏杆 / 梯子横档）：中心 c，yaw 方向，长度 length
+func cyl_dir(key: String, c: Vector3, yaw: float, length: float, r: float, segs := 8, cap := true) -> void:
+    var d := Vector3(cos(yaw), 0.0, sin(yaw))
+    var n := Vector3(-sin(yaw), 0.0, cos(yaw))
+    var h0 := c - d * (length * 0.5)
+    var h1 := c + d * (length * 0.5)
+    for i in range(segs):
+        var a0 := TAU * float(i) / float(segs)
+        var a1 := TAU * float(i + 1) / float(segs)
+        var am := (a0 + a1) * 0.5
+        var o0 := n * (cos(a0) * r) + Vector3(0.0, sin(a0) * r, 0.0)
+        var o1 := n * (cos(a1) * r) + Vector3(0.0, sin(a1) * r, 0.0)
+        var nn := (n * cos(am) + Vector3(0.0, sin(am), 0.0)).normalized()
+        quad(key, h0 + o0, h0 + o1, h1 + o1, h1 + o0, nn)
+        if cap:
+            tri(key, h1, h1 + o0, h1 + o1, d)
+            tri(key, h0, h0 + o1, h0 + o0, -d)
+
 ## 水平圆柱（灯管 / 管线 / 栏杆）：沿 z 轴
 func cyl_z(key: String, cx: float, cy: float, z0: float, z1: float, r: float, segs := 10, cap := true) -> void:
     for i in range(segs):

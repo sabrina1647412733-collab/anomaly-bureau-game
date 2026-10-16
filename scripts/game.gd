@@ -323,17 +323,60 @@ func _make_npcs() -> void:
 func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionary:
 	var n := Node3D.new()
 	n.position = pos
-	var body := MeshInstance3D.new()
-	var cap := CapsuleMesh.new(); cap.radius = 0.30; cap.height = 1.4
-	body.mesh = cap; body.position = Vector3(0, 0.75, 0)
-	var head := MeshInstance3D.new()
-	var sph := SphereMesh.new(); sph.radius = 0.17; sph.height = 0.34
-	head.mesh = sph; head.position = Vector3(0, 1.62, 0)
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.30, 0.40, 0.52)
-	body.material_override = m
-	head.material_override = m
-	n.add_child(body); n.add_child(head)
+	var skin := Color(0.68, 0.55, 0.46)
+	var cloth := Color(0.26, 0.34, 0.44)
+	var cloth2 := Color(0.15, 0.18, 0.23)
+	var hair := Color(0.10, 0.09, 0.10)
+	var cap_on := false
+	match nm:
+		"林岚":
+			cloth = Color(0.20, 0.36, 0.50)
+			cloth2 = Color(0.13, 0.17, 0.23)
+			n.rotation.y = -PI * 0.5          # 站在信号室门口，面朝站台（+X）
+		"周砚":
+			cloth = Color(0.42, 0.31, 0.20)
+			cloth2 = Color(0.16, 0.14, 0.16)
+			n.rotation.y = 0.0                # 站台南头，面朝北（-Z）
+		"陈默":
+			cloth = Color(0.22, 0.25, 0.23)
+			cloth2 = Color(0.12, 0.13, 0.14)
+			hair = Color(0.56, 0.56, 0.57)
+			cap_on = true
+			n.rotation.y = PI                 # 北隧道口，面朝站台（+Z）
+	# 头 / 发 / 帽 / 眼
+	_part(n, "head", Vector3(0, 1.60, 0), Vector3(0.21, 0.23, 0.20), skin)
+	_part(n, "hair", Vector3(0, 1.705, -0.01), Vector3(0.235, 0.075, 0.225), hair)
+	if cap_on:
+		_part(n, "cap", Vector3(0, 1.740, 0), Vector3(0.245, 0.055, 0.235), cloth2)
+		_part(n, "visor", Vector3(0, 1.718, -0.155), Vector3(0.235, 0.030, 0.110), cloth2)
+	else:
+		_part(n, "hairback", Vector3(0, 1.575, 0.098), Vector3(0.215, 0.215, 0.045), hair)
+	for ex in [-0.055, 0.055]:
+		_part(n, "eye", Vector3(ex, 1.617, -0.104), Vector3(0.045, 0.026, 0.020), Color(0.06, 0.06, 0.07))
+	# 躯干 / 领口 / 工牌
+	_part(n, "torso", Vector3(0, 1.26, 0), Vector3(0.40, 0.46, 0.24), cloth)
+	_part(n, "collar", Vector3(0, 1.470, 0), Vector3(0.30, 0.065, 0.215), cloth2)
+	_part(n, "badge", Vector3(0.10, 1.345, -0.132), Vector3(0.055, 0.075, 0.016), accent, 1.6)
+	_part(n, "belt", Vector3(0, 1.010, 0), Vector3(0.35, 0.065, 0.25), cloth2)
+	# 四肢：圆管（比方块更像人）
+	for sgn in [-1.0, 1.0]:
+		var sfx := "L" if sgn < 0 else "R"
+		_part(n, "leg" + sfx, Vector3(sgn * 0.105, 0.665, 0), Vector3(0.155, 0.66, 0.165), cloth2, 0.0, true)
+		_part(n, "shoe" + sfx, Vector3(sgn * 0.105, 0.300, -0.035), Vector3(0.155, 0.085, 0.26), Color(0.07, 0.07, 0.08))
+		_part(n, "armU" + sfx, Vector3(sgn * 0.245, 1.305, 0), Vector3(0.115, 0.33, 0.125), cloth, 0.0, true)
+		_part(n, "armL" + sfx, Vector3(sgn * 0.255, 0.985, -0.030), Vector3(0.100, 0.31, 0.110), cloth, 0.0, true)
+		_part(n, "hand" + sfx, Vector3(sgn * 0.255, 0.790, -0.050), Vector3(0.095, 0.120, 0.100), skin)
+	# 每人的随身物（区分剪影）
+	match nm:
+		"林岚":
+			_part(n, "case", Vector3(-0.345, 0.740, -0.02), Vector3(0.20, 0.16, 0.34), Color(0.55, 0.34, 0.16))
+			_part(n, "caseLid", Vector3(-0.345, 0.830, -0.02), Vector3(0.17, 0.03, 0.30), Color(0.30, 0.32, 0.34))
+		"周砚":
+			_part(n, "muff", Vector3(-0.310, 1.020, -0.02), Vector3(0.19, 0.16, 0.24), Color(0.10, 0.10, 0.12))
+			_part(n, "headband", Vector3(0, 1.455, 0.010), Vector3(0.345, 0.045, 0.255), Color(0.10, 0.10, 0.12))
+		"陈默":
+			_part(n, "brief", Vector3(-0.335, 0.700, -0.02), Vector3(0.22, 0.24, 0.10), Color(0.17, 0.13, 0.10))
+			_part(n, "briefLid", Vector3(-0.335, 0.830, -0.02), Vector3(0.19, 0.03, 0.06), Color(0.35, 0.30, 0.20))
 	var key := OmniLight3D.new()
 	key.position = Vector3(0.5, 1.5, 0.6)
 	key.light_color = Color(0.75, 0.82, 0.95)
@@ -341,14 +384,6 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	key.omni_range = 4.5
 	key.shadow_enabled = false
 	n.add_child(key)
-	var badge := MeshInstance3D.new()
-	var bs := SphereMesh.new(); bs.radius = 0.06; bs.height = 0.12
-	badge.mesh = bs; badge.position = Vector3(0, 1.35, 0)
-	var bm := StandardMaterial3D.new()
-	bm.albedo_color = accent
-	bm.emission_enabled = true; bm.emission = accent; bm.emission_energy_multiplier = 1.8
-	badge.material_override = bm
-	n.add_child(badge)
 	var lbl := Label3D.new()
 	lbl.font = font
 	lbl.text = nm
@@ -356,12 +391,39 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	lbl.pixel_size = 0.30 / 96.0 * 2.2
 	lbl.modulate = accent
 	lbl.outline_size = 8
-	lbl.position = Vector3(0, 2.15, 0)
+	lbl.position = Vector3(0, 2.12, 0)
 	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	n.add_child(lbl)
 	add_child(n)
 	n.visible = false
 	return {"name": nm, "node": n, "accent": accent, "show_round": show_round, "label": lbl}
+
+func _part(parent: Node3D, nm: String, p: Vector3, size: Vector3, col: Color,
+		emis := 0.0, tube := false) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = nm
+	if tube:
+		var cm := CylinderMesh.new()
+		cm.top_radius = size.x * 0.5
+		cm.bottom_radius = size.x * 0.5
+		cm.height = size.y
+		cm.radial_segments = 8
+		mi.mesh = cm
+	else:
+		var bm := BoxMesh.new()
+		bm.size = size
+		mi.mesh = bm
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = 0.78
+	if emis > 0.0:
+		m.emission_enabled = true
+		m.emission = col
+		m.emission_energy_multiplier = emis
+	mi.material_override = m
+	mi.position = p
+	parent.add_child(mi)
+	return mi
 
 func _make_buttons() -> void:
 	# 序章控制台：三个能按的钮
