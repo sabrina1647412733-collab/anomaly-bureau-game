@@ -139,14 +139,14 @@ func _make_font() -> void:
 
 func _make_env() -> void:
 	# —— 观感可调参数：改这两个数就能整体调亮暗 / 调泛光强度 ——
-	const LOOK_EXPOSURE := 0.90      # 曝光：0.8 更暗更夜，1.2 更亮
-	const LOOK_GLOW := 0.32          # 泛光强度：只让灯本身发光，不做梦幻感
+	const LOOK_EXPOSURE := 0.58      # 曝光：0.8 更暗更夜，1.2 更亮
+	const LOOK_GLOW := 0.45          # 泛光强度：只让灯本身发光，不做梦幻感
 	var e := Environment.new()
 	e.background_mode = Environment.BG_COLOR
 	e.background_color = Color(0.027, 0.043, 0.063)
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	e.ambient_light_color = Color(0.52, 0.62, 0.78)
-	e.ambient_light_energy = 0.55
+	e.ambient_light_energy = 0.18
 	e.fog_enabled = false
 	# —— 电影感调色（2026-10-16 观感升级）：ACES 色调映射让高光有滚降、泛光让灯带真的发光、SSAO 补角落接触阴影 ——
 	e.tonemap_mode = Environment.TONE_MAPPER_ACES
@@ -172,7 +172,7 @@ func _make_env() -> void:
 		e.ssao_light_affect = 0.12
 	e.adjustment_enabled = true
 	e.adjustment_contrast = 1.04
-	e.adjustment_saturation = 1.25
+	e.adjustment_saturation = 1.05
 	var we := WorldEnvironment.new()
 	we.environment = e
 	add_child(we)

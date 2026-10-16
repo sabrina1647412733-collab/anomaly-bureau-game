@@ -11,9 +11,9 @@ uniform float metallic = 0.0;
 uniform float specular = 0.35;               // 高光强度（非金属材质用）
 uniform vec3  emission_color : source_color = vec3(0.0, 0.0, 0.0);
 uniform float emission_energy = 0.0;
-uniform vec3  fog_color : source_color = vec3(0.060, 0.085, 0.120);   // 淡蓝雾：远处是空气不是黑洞
+uniform vec3  fog_color : source_color = vec3(0.016, 0.024, 0.034);   // 淡蓝雾：远处是空气不是黑洞
 uniform float fog_start = 16.0;
-uniform float fog_end = 80.0;
+uniform float fog_end = 62.0;
 
 varying vec3 wpos;
 

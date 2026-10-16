@@ -222,6 +222,40 @@ func box_bev(key: String, mn: Vector3, mx: Vector3, r: float, solid := false) ->
     if solid:
         add_collider(Vector3(x0, y0, z0), Vector3(x1, y1, z1))
 
+## 圆柱 / 圆锥台（低多边形）：segs 边，可分别给上下半径与端盖
+func cyl(key: String, cx: float, cz: float, y0: float, y1: float, r0: float, r1: float, segs := 12, cap_top := false, cap_bottom := false) -> void:
+    var rr0 := maxf(r0, 0.001)
+    var rr1 := maxf(r1, 0.001)
+    var h := maxf(y1 - y0, 0.001)
+    for i in range(segs):
+        var a0 := TAU * float(i) / float(segs)
+        var a1 := TAU * float(i + 1) / float(segs)
+        var am := (a0 + a1) * 0.5
+        var p0 := Vector3(cx + cos(a0) * rr0, 0.0, cz + sin(a0) * rr0)
+        var p1 := Vector3(cx + cos(a1) * rr0, 0.0, cz + sin(a1) * rr0)
+        var q0 := Vector3(cx + cos(a0) * rr1, 0.0, cz + sin(a0) * rr1)
+        var q1 := Vector3(cx + cos(a1) * rr1, 0.0, cz + sin(a1) * rr1)
+        var n := Vector3(cos(am), (rr0 - rr1) / h, sin(am)).normalized()
+        quad(key, Vector3(p0.x, y0, p0.z), Vector3(p1.x, y0, p1.z), Vector3(q1.x, y1, q1.z), Vector3(q0.x, y1, q0.z), n)
+        if cap_top:
+            tri(key, Vector3(cx, y1, cz), Vector3(q0.x, y1, q0.z), Vector3(q1.x, y1, q1.z), Vector3(0, 1, 0))
+        if cap_bottom:
+            tri(key, Vector3(cx, y0, cz), Vector3(p1.x, y0, p1.z), Vector3(p0.x, y0, p0.z), Vector3(0, -1, 0))
+
+## 水平圆柱（灯管 / 管线 / 栏杆）：沿 z 轴
+func cyl_z(key: String, cx: float, cy: float, z0: float, z1: float, r: float, segs := 10, cap := true) -> void:
+    for i in range(segs):
+        var a0 := TAU * float(i) / float(segs)
+        var a1 := TAU * float(i + 1) / float(segs)
+        var am := (a0 + a1) * 0.5
+        var p0 := Vector3(cx + cos(a0) * r, cy + sin(a0) * r, 0.0)
+        var p1 := Vector3(cx + cos(a1) * r, cy + sin(a1) * r, 0.0)
+        var n := Vector3(cos(am), sin(am), 0.0)
+        quad(key, Vector3(p0.x, p0.y, z0), Vector3(p1.x, p1.y, z0), Vector3(p1.x, p1.y, z1), Vector3(p0.x, p0.y, z1), n)
+        if cap:
+            tri(key, Vector3(cx, cy, z0), Vector3(p1.x, p1.y, z0), Vector3(p0.x, p0.y, z0), Vector3(0, 0, -1))
+            tri(key, Vector3(cx, cy, z1), Vector3(p0.x, p0.y, z1), Vector3(p1.x, p1.y, z1), Vector3(0, 0, 1))
+
 func box(key: String, mn: Vector3, mx: Vector3, solid := false, faces := "all", bev := 0.0) -> void:
     if bev > 0.004 and faces == "all":
         box_bev(key, mn, mx, bev, solid)
@@ -275,11 +309,14 @@ func box_rot(key: String, c: Vector3, size: Vector3, yaw: float, solid := false)
 func slab(key: String, x0: float, z0: float, x1: float, z1: float, y_top: float, thick := 0.6, solid := true) -> void:
     box(key, Vector3(x0, y_top - thick, z0), Vector3(x1, y_top, z1), solid, "t")
 
+## 全局灯光强度：地下地铁要暗，只留灯带与应急灯
+const LIGHT_SCALE := 0.42
+
 func light(pos: Vector3, color: Color, energy: float, rng: float, shadows := false) -> OmniLight3D:
     var l := OmniLight3D.new()
     l.position = pos
     l.light_color = color
-    l.light_energy = energy
+    l.light_energy = energy * LIGHT_SCALE
     l.omni_range = rng
     l.shadow_enabled = shadows
     l.light_specular = 0.6

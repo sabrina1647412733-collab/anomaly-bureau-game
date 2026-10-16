@@ -37,6 +37,7 @@ func _v(x: float, y: float, z: float) -> Vector3:
 func build() -> void:
     ground()
     walls()
+    vault()
     platform_edge()
     columns_and_lights()
     track()
@@ -55,9 +56,45 @@ func ground() -> void:
 func walls() -> void:
     b.box("panel", _v(PX0 - 0.5, FY, ZS0 - 0.6), _v(PX0, CH, ZS1 + 0.6), true, "p")
     b.box("panel", _v(TX1, TY, ZS0), _v(TX1 + 0.7, CH, ZS1), true, "n")
-    b.box("panel", _v(PX0 - 0.6, FY, ZS0 - 0.6), _v(TX0, CH, ZS0), true, "f")
-    b.box("panel", _v(PX0 - 0.6, FY, ZS1), _v(TX0, CH, ZS1 + 0.6), true, "k")
-    b.box("ceil", _v(PX0 - 0.6, CH, ZS0 - 0.6), _v(TX1 + 0.7, CH + 0.6, ZS1 + 0.6), true, "b")
+    b.box("panel", _v(PX0 - 0.6, FY, ZS0 - 0.6), _v(TX0, CH + 1.4, ZS0), true, "f")
+    b.box("panel", _v(PX0 - 0.6, FY, ZS1), _v(TX0, CH + 1.4, ZS1 + 0.6), true, "k")
+    b.box("ceil", _v(TX0, CH, ZS0 - 0.6), _v(TX1 + 0.7, CH + 0.6, ZS1 + 0.6), true, "b")   # 轨行区平顶
+
+# ------------------------------------------------------------------ 站台厅拱顶
+## 浅桶形拱顶（半正弦剖面）+ 每 6m 一道拱肋，替掉原来的平板吊顶
+func vault() -> void:
+    var sag := 1.15
+    var x0 := PX0
+    var x1 := TX0
+    var segs := 26
+    var zz0 := ZS0 - 0.6
+    var zz1 := ZS1 + 0.6
+    for i in range(segs):
+        var t0 := float(i) / float(segs)
+        var t1 := float(i + 1) / float(segs)
+        var xa := lerpf(x0, x1, t0)
+        var xb := lerpf(x0, x1, t1)
+        var ya := CH + sag * sin(PI * t0)
+        var yb := CH + sag * sin(PI * t1)
+        var tm := (t0 + t1) * 0.5
+        var slope := sag * PI / (x1 - x0) * cos(PI * tm)
+        var n := Vector3(slope, -1.0, 0.0).normalized()
+        b.quad("ceil", Vector3(xa, ya, zz0), Vector3(xb, yb, zz0), Vector3(xb, yb, zz1), Vector3(xa, ya, zz1), n)
+    # 拱肋
+    var zr := zz0
+    while zr < zz1:
+        for i in range(segs):
+            var t0 := float(i) / float(segs)
+            var t1 := float(i + 1) / float(segs)
+            var xa := lerpf(x0, x1, t0)
+            var xb := lerpf(x0, x1, t1)
+            var ya := CH + sag * sin(PI * t0) - 0.055
+            var yb := CH + sag * sin(PI * t1) - 0.055
+            var tm := (t0 + t1) * 0.5
+            var slope := sag * PI / (x1 - x0) * cos(PI * tm)
+            var n := Vector3(slope, -1.0, 0.0).normalized()
+            b.quad("metalD", Vector3(xa, ya, zr), Vector3(xb, yb, zr), Vector3(xb, yb, zr + 0.40), Vector3(xa, ya, zr + 0.40), n)
+        zr += 6.0
 
 func platform_edge() -> void:
     b.box("conc", _v(-0.35, TY, ZS0), _v(0.0, FY, ZS1), false, "p")
@@ -72,11 +109,15 @@ func platform_edge() -> void:
 func columns_and_lights() -> void:
     for i in range(8):
         var z := -40.0 + float(i) * 12.0
-        b.box("colTile", _v(-9.05, FY, z - 0.45), _v(-8.15, CH, z + 0.45), true)
-        b.box("colAmber", _v(-9.06, 1.42, z - 0.47), _v(-8.14, 1.56, z + 0.47), false, "p")
-        b.box("metalD", _v(-9.15, FY, z - 0.55), _v(-8.05, 0.10, z + 0.55), false)
-        b.box("metalD", _v(-9.15, CH - 0.14, z - 0.55), _v(-8.05, CH, z + 0.55), false)
-        b.box("sign", _v(-9.07, 1.42, z - 0.47), _v(-8.13, 1.52, z + 0.47), false, "p")
+        var cx := -8.60
+        # 圆柱柱：柱础（圆台）→ 柱身 → 柱头（外扩圆台）
+        b.cyl("colTile", cx, z, FY + 0.12, CH - 0.22, 0.42, 0.42, 14, false, false)
+        b.cyl("metalD", cx, z, FY, FY + 0.12, 0.55, 0.46, 14, false, true)
+        b.cyl("metalD", cx, z, CH - 0.22, CH, 0.46, 0.56, 14, true, false)
+        # 站名环带（琥珀 + 蓝牌）
+        b.cyl("colAmber", cx, z, 1.38, 1.60, 0.435, 0.435, 14, false, false)
+        b.cyl("sign", cx, z, 1.42, 1.54, 0.448, 0.448, 14, false, false)
+        b.add_collider(_v(cx - 0.52, FY, z - 0.52), _v(cx + 0.52, CH, z + 0.52))
     # 站台灯带
     for i in range(22):
         var z := -52.5 + float(i) * 5.0
@@ -471,7 +512,9 @@ func vending(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
     b.plaque("自动售货", _v(x1 - 0.005, base + 1.70, (z0 + z1) * 0.5), 0.62, 0.18, "x", 1, Color(0.55, 0.78, 1.0))
 
 func bin(cx: float, cz: float, base := FY) -> void:
-    b.box("metalD", _v(cx - 0.22, base, cz - 0.22), _v(cx + 0.22, base + 0.76, cz + 0.22), true, "all", 0.050)
+    b.cyl("metalD", cx, cz, base + 0.02, base + 0.74, 0.23, 0.25, 12, false, true)   # 圆桶身
+    b.cyl("dark", cx, cz, base, base + 0.02, 0.20, 0.23, 12, false, true)
+    b.add_collider(_v(cx - 0.26, base, cz - 0.26), _v(cx + 0.26, base + 0.80, cz + 0.26))
     b.box("dark", _v(cx - 0.25, base + 0.76, cz - 0.25), _v(cx + 0.25, base + 0.86, cz + 0.25), false, "all", 0.020)
     b.box("dark", _v(cx - 0.11, base + 0.86, cz - 0.17), _v(cx + 0.11, base + 0.90, cz + 0.17), false)
     b.box("metalD", _v(cx - 0.205, base + 0.18, cz - 0.205), _v(cx + 0.205, base + 0.23, cz + 0.205), false)
