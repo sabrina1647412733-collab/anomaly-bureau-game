@@ -27,6 +27,9 @@ const CCTV := [
 	{"pos": Vector3(15.6, 3.20, -60.0), "name": "检修环线"},
 ]
 const CCTV_FOV := 46.0
+## 第二人称（对脸视角）：镜头在角色正前方看着他的眼睛
+const FACE_DIST := 1.15
+const FACE_LOOK_UP := -0.02
 const TP_UP := 0.55
 
 var mouse_sens := 0.0022
@@ -37,7 +40,7 @@ var cap_node: CollisionShape3D
 var pitch := 0.0
 var can_move := true
 var allow_capture := true
-var cam_mode := 0          # 0 第一人称 / 1 第三人称 / 2 第二人称（站内监视器）
+var cam_mode := 0          # 0 第一人称 / 1 第三人称 / 2 第二人称（正面看眼睛）/ 3 监视器
 var cctv_i := 0
 var _fov_before_cctv := 74.0
 var crouching := false
@@ -235,8 +238,8 @@ func _build_viewarm() -> void:
 
 func toggle_cam() -> void:
 	var prev := cam_mode
-	cam_mode = (cam_mode + 1) % 3
-	if cam_mode == 2:
+	cam_mode = (cam_mode + 1) % 4
+	if cam_mode == 3:
 		_fov_before_cctv = cam.fov
 		# 进入监视器视角时，自动挑离玩家最近的那台
 		var best := 0
@@ -248,14 +251,14 @@ func toggle_cam() -> void:
 				best = i
 		cctv_i = best
 		cam.fov = CCTV_FOV
-	elif prev == 2:
+	elif prev == 3:
 		cam.fov = _fov_before_cctv
 	body.visible = (cam_mode != 0)
 	if view_arm != null:
 		view_arm.visible = (cam_mode == 0 and not sitting)
 
 func next_cctv() -> void:
-	if cam_mode != 2:
+	if cam_mode != 3:
 		return
 	cctv_i = (cctv_i + 1) % CCTV.size()
 
@@ -295,8 +298,8 @@ func eye() -> Vector3:
 	return cam.global_position
 
 func forward() -> Vector3:
-	if cam_mode == 2:
-		return -global_transform.basis.z      # 监视器视角：以角色自身朝向做交互判定
+	if cam_mode >= 2:
+		return -global_transform.basis.z      # 第二/监视器视角：以角色自身朝向做交互判定
 	return -cam.global_transform.basis.z
 
 func look(delta_rot: Vector2) -> void:
@@ -413,6 +416,21 @@ func _physics_process(delta: float) -> void:
 func _update_camera(delta: float, planar: float, running: bool) -> void:
 	var eh := eye_height()
 	if cam_mode == 2:
+		# 第二人称：站到角色正前方、眼睛高度，回头看他的眼睛；鼠标上下 = 绕着他上下看
+		var eye_p := global_position + Vector3(0, eye_height() - 0.10, 0)
+		var fwd := -global_transform.basis.z
+		var right := global_transform.basis.x.normalized()
+		var dir := fwd.rotated(right, -clampf(pitch, -1.15, 0.75))
+		var want := eye_p + dir * FACE_DIST
+		var sp := get_world_3d().direct_space_state
+		var qf := PhysicsRayQueryParameters3D.create(eye_p, want)
+		qf.exclude = [get_rid()]
+		var hf: Dictionary = sp.intersect_ray(qf)
+		if not hf.is_empty():
+			want = hf["position"] + (eye_p - hf["position"]).normalized() * 0.24
+		cam.global_position = want
+		cam.look_at(eye_p + Vector3(0, FACE_LOOK_UP, 0), Vector3.UP)
+	elif cam_mode == 3:
 		var c: Dictionary = CCTV[clampi(cctv_i, 0, CCTV.size() - 1)]
 		cam.global_position = c["pos"]
 		cam.look_at(global_position + Vector3(0, (1.30 if sitting else 1.05), 0), Vector3.UP)

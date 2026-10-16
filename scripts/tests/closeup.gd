@@ -79,8 +79,11 @@ func _run(nm: String, x: float, y: float, z: float, yaw: float, pitch: float,
 	if flags.has("third"):
 		game.player.toggle_cam()
 	if flags.has("cctv"):
-		game.player.toggle_cam()
-		game.player.toggle_cam()
+		for i in range(2):
+			game.player.toggle_cam()
+	if flags.has("cam3"):
+		for i in range(3):
+			game.player.toggle_cam()
 	var old_fov: float = game.player.cam.fov
 	if fov > 0.0:
 		game.player.cam.fov = fov

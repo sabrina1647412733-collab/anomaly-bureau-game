@@ -47,6 +47,7 @@ func build() -> void:
     props()
     rooms()
     signage()
+    platform_info()
     details()
     tunnel_detail()
 
@@ -620,6 +621,38 @@ func chair(cx: float, cz: float, base := FY, yaw := 0.0) -> void:
         b.cyl("metalD", p2.x, p2.z, base + 0.44, base + 0.90, 0.022, 0.022, 8, false, false)        # 靠背立杆
     b.add_collider(_v(cx - 0.30, base, cz - 0.30), _v(cx + 0.30, base + 0.50, cz + 0.30))
     b.seats.append({"pos": Vector3(cx - sin(yaw) * 0.02, base, cz - cos(yaw) * 0.02), "yaw": yaw})
+
+# ------------------------------------------------------------------ 站台信息层（能读的文字）
+## 后墙上的一块信息牌：金属边框 + 深色面板 + 标题条 + 若干行文字。
+## 文字用 Label3D（字形材质自带亮度），夜里也读得出来。
+func sign_board(z: float, w: float, title: String, lines: Array, accent: Color) -> void:
+    var y0 := 1.20
+    var y1 := 2.90
+    var x := PX0 + 0.03
+    b.box("metalD", _v(x, y0 - 0.06, z - w * 0.5 - 0.06), _v(x + 0.08, y1 + 0.06, z + w * 0.5 + 0.06), false, "all", 0.022)
+    b.box("dark", _v(x + 0.08, y0, z - w * 0.5), _v(x + 0.11, y1, z + w * 0.5), false, "p")
+    b.add_collider(_v(x, y0 - 0.06, z - w * 0.5 - 0.06), _v(x + 0.12, y1 + 0.06, z + w * 0.5 + 0.06))
+    var fx := x + 0.12
+    b.box("sign", _v(fx, y1 - 0.30, z - w * 0.44), _v(fx + 0.012, y1 - 0.07, z + w * 0.44), false, "p")
+    b.label3d(title, _v(fx + 0.03, y1 - 0.185, z), 0.135, Color(0.95, 0.98, 1.0), PI * 0.5)
+    var n := maxi(lines.size(), 1)
+    for i in range(lines.size()):
+        var ry := y1 - 0.58 - float(i) * (1.16 / float(n))
+        b.label3d(String(lines[i]), _v(fx + 0.03, ry, z), 0.12, accent, PI * 0.5)
+    b.light(_v(x + 0.75, 2.10, z), Color(0.88, 0.92, 1.0), 1.0, 3.8, false)
+
+## 五块牌子：位置都避开了广告灯箱、售货机与三间房间（后墙可用的空段是 z -56..2.5 / 14.5..24 / 45..50）
+func platform_info() -> void:
+    sign_board(-50.0, 1.35, "运 营 线 路 图",
+        ["● 岚桥站", "○ 西陵桥", "○ 人民路", "○ 车辆段"], Color(0.72, 0.84, 0.98))
+    sign_board(-40.0, 1.10, "首 末 班 时 刻",
+        ["首班  05:42", "末班  23:50", "间隔  8 分", "夜班  00:17"], Color(0.90, 0.74, 0.44))
+    sign_board(-17.5, 1.05, "安 全 告 示",
+        ["站台端头 禁止进入", "越过黄线 有危险", "紧急停车 按钮", "全站 监控覆盖"], Color(0.95, 0.64, 0.54))
+    sign_board(15.2, 1.05, "票 价 与 乘 车",
+        ["起步  2 元", "全程  6 元", "交通卡  通用", "发票请询 客服"], Color(0.74, 0.90, 0.80))
+    sign_board(48.5, 1.20, "值 班 记 录",
+        ["00:16:43 手动进路", "0017 次 二道 停稳", "信号 红灯 延迟半秒", "记录人 林远舟"], Color(0.92, 0.88, 0.72))
 
 # ------------------------------------------------------------------ 站体细节构件
 ## 门套：门洞两侧门边 + 门楣（向 +X 凸出 0.13）

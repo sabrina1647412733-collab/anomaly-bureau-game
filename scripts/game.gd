@@ -353,21 +353,30 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 			hair = Color(0.14, 0.24, 0.24)        # 帽子 / 发（青灰）
 			cap_on = true
 			n.rotation.y = PI                     # 北隧道口，面朝站台（+Z）
-	# 头 / 发 / 帽 / 眼
-	_part(n, "head", Vector3(0, 1.60, 0), Vector3(0.21, 0.23, 0.20), skin)
-	_part(n, "hair", Vector3(0, 1.705, -0.01), Vector3(0.235, 0.075, 0.225), hair)
+	# 上半身与头各挂一个枢轴：呼吸、转头、点头都作用在枢轴上（零件名不变，量测脚本照样认）
+	var upper := Node3D.new()
+	upper.name = "upper"
+	upper.position = Vector3(0, 0.995, 0)
+	n.add_child(upper)
+	var hp := Node3D.new()
+	hp.name = "headPivot"
+	hp.position = Vector3(0, 0.605, 0)          # 世界 y = 1.60
+	upper.add_child(hp)
+	# 头 / 发 / 帽 / 眼（坐标相对头枢轴）
+	_part(hp, "head", Vector3(0, 0, 0), Vector3(0.21, 0.23, 0.20), skin)
+	_part(hp, "hair", Vector3(0, 0.105, -0.01), Vector3(0.235, 0.075, 0.225), hair)
 	if cap_on:
-		_part(n, "cap", Vector3(0, 1.740, 0), Vector3(0.245, 0.055, 0.235), cloth2)
-		_part(n, "visor", Vector3(0, 1.718, -0.155), Vector3(0.235, 0.030, 0.110), cloth2)
+		_part(hp, "cap", Vector3(0, 0.140, 0), Vector3(0.245, 0.055, 0.235), cloth2)
+		_part(hp, "visor", Vector3(0, 0.118, -0.155), Vector3(0.235, 0.030, 0.110), cloth2)
 	else:
-		_part(n, "hairback", Vector3(0, 1.575, 0.098), Vector3(0.215, 0.215, 0.045), hair)
+		_part(hp, "hairback", Vector3(0, -0.025, 0.098), Vector3(0.215, 0.215, 0.045), hair)
 	for ex in [-0.055, 0.055]:
-		_part(n, "eye", Vector3(ex, 1.617, -0.104), Vector3(0.045, 0.026, 0.020), Color(0.06, 0.06, 0.07))
-	# 躯干 / 领口 / 工牌
-	_part(n, "torso", Vector3(0, 1.26, 0), Vector3(0.40, 0.46, 0.24), cloth)
-	_part(n, "collar", Vector3(0, 1.470, 0), Vector3(0.30, 0.065, 0.215), cloth2)
-	_part(n, "badge", Vector3(0.10, 1.345, -0.132), Vector3(0.055, 0.075, 0.016), accent, 1.6)
-	_part(n, "belt", Vector3(0, 1.010, 0), Vector3(0.35, 0.065, 0.25), cloth2)
+		_part(hp, "eye", Vector3(ex, 0.017, -0.104), Vector3(0.045, 0.026, 0.020), Color(0.06, 0.06, 0.07))
+	# 躯干 / 领口 / 工牌（坐标相对上半身枢轴）
+	_part(upper, "torso", Vector3(0, 0.265, 0), Vector3(0.40, 0.46, 0.24), cloth)
+	_part(upper, "collar", Vector3(0, 0.475, 0), Vector3(0.30, 0.065, 0.215), cloth2)
+	_part(upper, "badge", Vector3(0.10, 0.350, -0.132), Vector3(0.055, 0.075, 0.016), accent, 1.6)
+	_part(upper, "belt", Vector3(0, 0.015, 0), Vector3(0.35, 0.065, 0.25), cloth2)
 	# 四肢：圆管（比方块更像人）
 	for sgn in [-1.0, 1.0]:
 		var sfx := "L" if sgn < 0 else "R"
@@ -375,25 +384,25 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		_part(n, "leg" + sfx, Vector3(sgn * 0.105, 0.770, 0), Vector3(0.155, 0.45, 0.165), cloth2, 0.0, true)
 		_part(n, "shin" + sfx, Vector3(sgn * 0.105, 0.3175, 0), Vector3(0.140, 0.455, 0.150), cloth2, 0.0, true)
 		_part(n, "shoe" + sfx, Vector3(sgn * 0.105, 0.045, -0.035), Vector3(0.155, 0.09, 0.26), Color(0.07, 0.07, 0.08))
-		_part(n, "armU" + sfx, Vector3(sgn * 0.245, 1.305, 0), Vector3(0.115, 0.33, 0.125), cloth, 0.0, true)
-		_part(n, "armL" + sfx, Vector3(sgn * 0.255, 0.985, -0.030), Vector3(0.100, 0.31, 0.110), cloth, 0.0, true)
-		_part(n, "hand" + sfx, Vector3(sgn * 0.255, 0.790, -0.050), Vector3(0.095, 0.120, 0.100), skin)
+		_part(upper, "armU" + sfx, Vector3(sgn * 0.245, 0.310, 0), Vector3(0.115, 0.33, 0.125), cloth, 0.0, true)
+		_part(upper, "armL" + sfx, Vector3(sgn * 0.255, -0.010, -0.030), Vector3(0.100, 0.31, 0.110), cloth, 0.0, true)
+		_part(upper, "hand" + sfx, Vector3(sgn * 0.255, -0.205, -0.050), Vector3(0.095, 0.120, 0.100), skin)
 	# 及膝长大衣下摆（挂在躯干节点上；下摆底 0.60，大腿在这个深度只摆 ±0.15，包得住）
 	if long_coat:
-		_part(n, "coatSkirt", Vector3(0, 0.735, 0), Vector3(0.46, 0.27, 0.30), cloth)
-		_part(n, "coatHem", Vector3(0, 0.612, 0), Vector3(0.475, 0.055, 0.315), Color(0.30, 0.17, 0.10))
-		_part(n, "coatBackSlit", Vector3(0, 0.72, 0.152), Vector3(0.30, 0.22, 0.012), Color(0.05, 0.05, 0.05))
+		_part(upper, "coatSkirt", Vector3(0, -0.260, 0), Vector3(0.46, 0.27, 0.30), cloth)
+		_part(upper, "coatHem", Vector3(0, -0.383, 0), Vector3(0.475, 0.055, 0.315), Color(0.30, 0.17, 0.10))
+		_part(upper, "coatBackSlit", Vector3(0, -0.275, 0.152), Vector3(0.30, 0.22, 0.012), Color(0.05, 0.05, 0.05))
 	# 每人的随身物（区分剪影）
 	match nm:
 		"林岚":
-			_part(n, "case", Vector3(-0.345, 0.740, -0.02), Vector3(0.20, 0.16, 0.34), Color(0.55, 0.34, 0.16))
-			_part(n, "caseLid", Vector3(-0.345, 0.830, -0.02), Vector3(0.17, 0.03, 0.30), Color(0.30, 0.32, 0.34))
+			_part(upper, "case", Vector3(-0.345, -0.255, -0.02), Vector3(0.20, 0.16, 0.34), Color(0.55, 0.34, 0.16))
+			_part(upper, "caseLid", Vector3(-0.345, -0.165, -0.02), Vector3(0.17, 0.03, 0.30), Color(0.30, 0.32, 0.34))
 		"周砚":
-			_part(n, "muff", Vector3(-0.310, 1.020, -0.02), Vector3(0.19, 0.16, 0.24), Color(0.10, 0.10, 0.12))
-			_part(n, "headband", Vector3(0, 1.455, 0.010), Vector3(0.345, 0.045, 0.255), Color(0.10, 0.10, 0.12))
+			_part(upper, "muff", Vector3(-0.310, 0.025, -0.02), Vector3(0.19, 0.16, 0.24), Color(0.10, 0.10, 0.12))
+			_part(upper, "headband", Vector3(0, 0.460, 0.010), Vector3(0.345, 0.045, 0.255), Color(0.10, 0.10, 0.12))
 		"陈默":
-			_part(n, "brief", Vector3(-0.335, 0.700, -0.02), Vector3(0.22, 0.24, 0.10), Color(0.17, 0.13, 0.10))
-			_part(n, "briefLid", Vector3(-0.335, 0.830, -0.02), Vector3(0.19, 0.03, 0.06), Color(0.35, 0.30, 0.20))
+			_part(upper, "brief", Vector3(-0.335, -0.295, -0.02), Vector3(0.22, 0.24, 0.10), Color(0.17, 0.13, 0.10))
+			_part(upper, "briefLid", Vector3(-0.335, -0.165, -0.02), Vector3(0.19, 0.03, 0.06), Color(0.35, 0.30, 0.20))
 	var key := OmniLight3D.new()
 	key.position = Vector3(0.5, 1.5, 0.6)
 	key.light_color = Color(0.75, 0.82, 0.95)
@@ -413,7 +422,8 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	n.add_child(lbl)
 	add_child(n)
 	n.visible = false
-	return {"name": nm, "node": n, "accent": accent, "show_round": show_round, "label": lbl}
+	return {"name": nm, "node": n, "accent": accent, "show_round": show_round, "label": lbl,
+		"upper": upper, "head": hp}
 
 func _part(parent: Node3D, nm: String, p: Vector3, size: Vector3, col: Color,
 		emis := 0.0, tube := false) -> MeshInstance3D:
@@ -498,6 +508,8 @@ func _start_round() -> void:
 		_say("旁白", "23:50。最后一次。0017 次已经在进站信号里。你只有这 27 分钟。")
 
 func _process(delta: float) -> void:
+	_anim_npcs(delta)
+
 	t_now += delta
 	if state == "play":
 		round_elapsed += delta
@@ -1104,8 +1116,10 @@ func _update_hud() -> void:
 	var mm := ((m % 1440) + 1440) % 1440
 	var ss := int((clock_min - floor(clock_min)) * 60.0)
 	hud_clock.text = "%02d:%02d:%02d" % [mm / 60, mm % 60, ss]
-	hud_cam.visible = (player.cam_mode == 2)
+	hud_cam.visible = (player.cam_mode >= 2)
 	if player.cam_mode == 2:
+		hud_cam.text = "● 第二人称 · 正面看着你     [V] 切换视角"
+	elif player.cam_mode == 3:
 		hud_cam.text = "● %s  %s   [N] 换机位" % [player.cctv_tag(), player.cctv_name()]
 	hud_clock.add_theme_color_override("font_color",
 		Color(0.95, 0.30, 0.26) if clock_min >= 1454.5 else Color(0.88, 0.64, 0.29))
@@ -1201,9 +1215,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			match player.cam_mode:
 				0: _say("旁白", "视角：第一人称")
 				1: _say("旁白", "视角：第三人称")
-				2: _say("旁白", "视角：监视器 %s（%s）· [N] 换机位" % [player.cctv_tag(), player.cctv_name()])
+				2: _say("旁白", "视角：第二人称 · 正面看着你（鼠标上下 = 绕看）")
+				3: _say("旁白", "视角：监视器 %s（%s）· [N] 换机位" % [player.cctv_tag(), player.cctv_name()])
 		elif event.physical_keycode == KEY_N:
-			if player.cam_mode == 2:
+			if player.cam_mode == 3:
 				player.next_cctv()
 				_say("旁白", "监视器 %s（%s）" % [player.cctv_tag(), player.cctv_name()])
 		elif event.physical_keycode == KEY_B:
@@ -1556,3 +1571,33 @@ func _begin_divert_end() -> void:
 	train.set_divert(true)
 	_set_switch_green(true)
 	_say("旁白", "你扳动了道岔。绿灯亮起来的时候，黑暗里有一道光在动。")
+
+## NPC 微动：呼吸起伏 + 头转向玩家（限幅）+ 说话时小幅点头
+func _anim_npcs(delta: float) -> void:
+	if npcs.size() == 0 or player == null:
+		return
+	var t := float(Time.get_ticks_msec()) * 0.001
+	var k := clampf(delta * 3.2, 0.0, 1.0)
+	for i in range(npcs.size()):
+		var np: Dictionary = npcs[i]
+		var n: Node3D = np["node"]
+		if not n.visible:
+			continue
+		var up: Node3D = np.get("upper")
+		var hd: Node3D = np.get("head")
+		if up == null or hd == null:
+			continue
+		up.position.y = 0.995 + sin(t * 1.15 + float(i) * 2.1) * 0.009        # 呼吸
+		# 朝玩家转头（超过 9 m 或不在身前就回正）
+		var rel: Vector3 = n.global_transform.basis.inverse() * (player.eye() - (n.global_position + Vector3(0, 1.60, 0)))
+		var want := 0.0
+		if rel.length() < 9.0:
+			var ang := atan2(-rel.x, -rel.z)
+			if absf(ang) < 1.5:
+				want = clampf(ang, -0.72, 0.72)
+		hd.rotation.y = lerpf(hd.rotation.y, want, k)
+		# 正在跟他说话 → 小幅点头
+		var nod := 0.0
+		if dialog_npc == np and hud_sub != null and hud_sub.visible:
+			nod = sin(t * 6.2) * 0.05
+		hd.rotation.x = lerpf(hd.rotation.x, nod, clampf(delta * 6.0, 0.0, 1.0))
