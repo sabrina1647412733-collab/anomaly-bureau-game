@@ -78,6 +78,9 @@ func _run(nm: String, x: float, y: float, z: float, yaw: float, pitch: float,
 		game.player.rotation.y = yaw
 	if flags.has("third"):
 		game.player.toggle_cam()
+	if flags.has("cctv"):
+		game.player.toggle_cam()
+		game.player.toggle_cam()
 	var old_fov: float = game.player.cam.fov
 	if fov > 0.0:
 		game.player.cam.fov = fov

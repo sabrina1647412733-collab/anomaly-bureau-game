@@ -15,6 +15,18 @@ const EYE_SIT := 1.30
 const COYOTE := 0.12
 const PITCH_MAX := 1.45
 const TP_DIST := 3.3
+## 第二人称「监视器」机位：站内固定摄像机，镜头对着玩家
+const CCTV := [
+	{"pos": Vector3(-8.6, 4.35, -44.0), "name": "站台北段"},
+	{"pos": Vector3(-8.6, 4.35, -20.0), "name": "站台中段"},
+	{"pos": Vector3(-8.6, 4.35, 4.0), "name": "站台南段"},
+	{"pos": Vector3(-8.6, 4.35, 28.0), "name": "信号室前"},
+	{"pos": Vector3(-8.6, 4.35, 48.0), "name": "出口闸机"},
+	{"pos": Vector3(-14.9, 3.05, 20.0), "name": "站台西侧"},
+	{"pos": Vector3(11.0, 3.60, -95.0), "name": "岔区"},
+	{"pos": Vector3(15.6, 3.20, -60.0), "name": "检修环线"},
+]
+const CCTV_FOV := 46.0
 const TP_UP := 0.55
 
 var mouse_sens := 0.0022
@@ -25,7 +37,9 @@ var cap_node: CollisionShape3D
 var pitch := 0.0
 var can_move := true
 var allow_capture := true
-var cam_mode := 0          # 0 第一人称 / 1 第三人称
+var cam_mode := 0          # 0 第一人称 / 1 第三人称 / 2 第二人称（站内监视器）
+var cctv_i := 0
+var _fov_before_cctv := 74.0
 var crouching := false
 var crouch_k := 0.0
 var sitting := false
@@ -220,10 +234,36 @@ func _build_viewarm() -> void:
 	view_arm.add_child(cuff)
 
 func toggle_cam() -> void:
-	cam_mode = 1 - cam_mode
-	body.visible = (cam_mode == 1)
+	var prev := cam_mode
+	cam_mode = (cam_mode + 1) % 3
+	if cam_mode == 2:
+		_fov_before_cctv = cam.fov
+		# 进入监视器视角时，自动挑离玩家最近的那台
+		var best := 0
+		var bd := 1e9
+		for i in range(CCTV.size()):
+			var d: float = (CCTV[i]["pos"] as Vector3).distance_to(global_position)
+			if d < bd:
+				bd = d
+				best = i
+		cctv_i = best
+		cam.fov = CCTV_FOV
+	elif prev == 2:
+		cam.fov = _fov_before_cctv
+	body.visible = (cam_mode != 0)
 	if view_arm != null:
 		view_arm.visible = (cam_mode == 0 and not sitting)
+
+func next_cctv() -> void:
+	if cam_mode != 2:
+		return
+	cctv_i = (cctv_i + 1) % CCTV.size()
+
+func cctv_name() -> String:
+	return String(CCTV[clampi(cctv_i, 0, CCTV.size() - 1)]["name"])
+
+func cctv_tag() -> String:
+	return "CAM %02d" % (clampi(cctv_i, 0, CCTV.size() - 1) + 1)
 
 func sit_at(pos: Vector3, yaw: float) -> void:
 	sitting = true
@@ -250,13 +290,13 @@ func eye_height() -> float:
 	return h
 
 func eye() -> Vector3:
-	if cam_mode == 1:
-		return global_position + Vector3(0, eye_height() - 0.08, 0)   # 第三人称仍用角色眼睛做交互判定
+	if cam_mode != 0:
+		return global_position + Vector3(0, eye_height() - 0.08, 0)   # 第三/第二人称仍用角色眼睛做交互判定
 	return cam.global_position
 
 func forward() -> Vector3:
-	if cam_mode == 1:
-		return -cam.global_transform.basis.z
+	if cam_mode == 2:
+		return -global_transform.basis.z      # 监视器视角：以角色自身朝向做交互判定
 	return -cam.global_transform.basis.z
 
 func look(delta_rot: Vector2) -> void:
@@ -372,7 +412,11 @@ func _physics_process(delta: float) -> void:
 
 func _update_camera(delta: float, planar: float, running: bool) -> void:
 	var eh := eye_height()
-	if cam_mode == 0:
+	if cam_mode == 2:
+		var c: Dictionary = CCTV[clampi(cctv_i, 0, CCTV.size() - 1)]
+		cam.global_position = c["pos"]
+		cam.look_at(global_position + Vector3(0, (1.30 if sitting else 1.05), 0), Vector3.UP)
+	elif cam_mode == 0:
 		cam.position = Vector3(0, eh + sin(head_bob * 2.0) * 0.028 * bob_amp - dip, 0)
 		cam.rotation = Vector3(pitch, 0.0, 0.0)
 		# 跑动/蹲下时轻微侧倾
@@ -400,7 +444,7 @@ func _update_body(delta: float, planar: float) -> void:
 		# 大腿略下倾 11.8°、小腿竖直，脚掌正好踩到地面（以前髋陷进座面、脚还悬空）。
 		# 第一人称坐姿必须藏掉自己的头：相机会正好落在头部方块内部，不藏就是穿模。
 		body.visible = true
-		parts["head"].visible = (cam_mode == 1)
+		parts["head"].visible = (cam_mode != 0)
 		parts["hip"].position = Vector3(0, 0.575, 0)
 		parts["torso"].position = Vector3(0, 0.655, 0)
 		parts["head"].position = Vector3(0, 1.155, 0)
@@ -412,8 +456,8 @@ func _update_body(delta: float, planar: float) -> void:
 			parts["knee" + sgn].rotation = Vector3(-1.279, 0, 0)
 			parts["elbow" + sgn].rotation = Vector3(0.45, 0, 0)
 		return
-	body.visible = (cam_mode == 1)
-	parts["head"].visible = true
+	body.visible = (cam_mode != 0)
+	parts["head"].visible = (cam_mode != 0)
 	var k := crouch_k
 	parts["hip"].position = Vector3(0, 0.86 - 0.36 * k, 0)
 	parts["torso"].position = Vector3(0, 0.94 - 0.36 * k, 0)

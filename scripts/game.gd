@@ -36,6 +36,7 @@ var hud_end: Label
 var hud_end_title: Label
 var hud_fade: ColorRect
 var hud_map
+var hud_cam: Label
 var clock_label: Label3D
 
 var clock_min := T_START
@@ -233,6 +234,9 @@ func _make_hud() -> void:
 	hud_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_fade.modulate.a = 0.0
 	root.add_child(hud_fade)
+	hud_cam = _label(root, 0, Vector2(18, 838), Vector2(430, 26), 15, Color(0.55, 0.92, 0.66))
+	hud_cam.visible = false
+	hud_cam.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hud_map = HudMap.new()
 	hud_map.font = font
 	hud_map.player_node = player
@@ -1100,6 +1104,9 @@ func _update_hud() -> void:
 	var mm := ((m % 1440) + 1440) % 1440
 	var ss := int((clock_min - floor(clock_min)) * 60.0)
 	hud_clock.text = "%02d:%02d:%02d" % [mm / 60, mm % 60, ss]
+	hud_cam.visible = (player.cam_mode == 2)
+	if player.cam_mode == 2:
+		hud_cam.text = "● %s  %s   [N] 换机位" % [player.cctv_tag(), player.cctv_name()]
 	hud_clock.add_theme_color_override("font_color",
 		Color(0.95, 0.30, 0.26) if clock_min >= 1454.5 else Color(0.88, 0.64, 0.29))
 	if clock_label != null:
@@ -1191,7 +1198,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				_interact()
 		elif event.physical_keycode == KEY_V:
 			player.toggle_cam()
-			_say("旁白", "视角：第三人称" if player.cam_mode == 1 else "视角：第一人称")
+			match player.cam_mode:
+				0: _say("旁白", "视角：第一人称")
+				1: _say("旁白", "视角：第三人称")
+				2: _say("旁白", "视角：监视器 %s（%s）· [N] 换机位" % [player.cctv_tag(), player.cctv_name()])
+		elif event.physical_keycode == KEY_N:
+			if player.cam_mode == 2:
+				player.next_cctv()
+				_say("旁白", "监视器 %s（%s）" % [player.cctv_tag(), player.cctv_name()])
 		elif event.physical_keycode == KEY_B:
 			_toggle_bag(not bag_open)
 		elif event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_5:
