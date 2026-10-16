@@ -55,12 +55,29 @@ func _run(nm: String, x: float, y: float, z: float, yaw: float, pitch: float,
 	if flags.has("npc"):
 		for np in game.npcs:
 			np["node"].visible = true
-	if flags.has("sit"):
+	if flags.has("seats"):
+		for i in range(game.builder.seats.size()):
+			var st: Dictionary = game.builder.seats[i]
+			print("[SEAT] #", i, " pos=", st["pos"], " yaw=", st["yaw"])
+	var seat_idx := -1
+	for f in flags:
+		if str(f).begins_with("seat="):
+			seat_idx = int(str(f).substr(5))
+	if seat_idx >= 0 and seat_idx < game.builder.seats.size():
+		var s: Dictionary = game.builder.seats[seat_idx]
+		game.player.sit_at(s["pos"], float(s["yaw"]))
+		print("[CLOSEUP] 坐在 #", seat_idx, " ", s["pos"])
+		if flags.has("sit"):
+			game.player.sitting = true
+	elif flags.has("sit"):
 		game.player.sitting = true
-	game.player.global_position = Vector3(x, y, z)
-	game.player.rotation.y = yaw
 	game.player.pitch = pitch
 	game.player.cam.rotation.x = pitch
+	if seat_idx < 0:
+		game.player.global_position = Vector3(x, y, z)
+		game.player.rotation.y = yaw
+	if flags.has("third"):
+		game.player.toggle_cam()
 	var old_fov: float = game.player.cam.fov
 	if fov > 0.0:
 		game.player.cam.fov = fov

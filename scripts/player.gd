@@ -11,7 +11,7 @@ const GRAV := 22.0
 const KEY_TURN := 1.9
 const EYE := 1.66
 const EYE_CROUCH := 1.02
-const EYE_SIT := 1.22
+const EYE_SIT := 1.32
 const COYOTE := 0.12
 const PITCH_MAX := 1.45
 const TP_DIST := 3.3
@@ -126,7 +126,7 @@ func _build_body() -> void:
 
 	var hip := _joint("hip", body, Vector3(0, 0.86, 0))
 	var skin := Color(0.70, 0.56, 0.47)
-	hip.add_child(_mesh_box(Vector3(0.36, 0.20, 0.24), dark, Vector3(0, -0.02, 0)))
+	hip.add_child(_mesh_box(Vector3(0.36, 0.20, 0.24), dark, Vector3(0, 0.0125, 0)))
 	var torso := _joint("torso", body, Vector3(0, 0.94, 0))
 	torso.add_child(_mesh_box(Vector3(0.42, 0.50, 0.26), coat, Vector3(0, 0.25, 0)))
 	torso.add_child(_mesh_box(Vector3(0.46, 0.30, 0.29), vest, Vector3(0, 0.26, 0), 0.55))   # 反光背心
@@ -393,19 +393,24 @@ func _update_body(delta: float, planar: float) -> void:
 	if body == null:
 		return
 	if sitting:
+		# 坐姿：髋抬到「大腿底面正好落在座面上」（长椅座面顶 0.49、椅子 0.465），
+		# 大腿略下倾 11.8°、小腿竖直，脚掌正好踩到地面（以前髋陷进座面、脚还悬空）。
+		# 第一人称坐姿必须藏掉自己的头：相机会正好落在头部方块内部，不藏就是穿模。
 		body.visible = true
-		parts["hip"].position = Vector3(0, 0.46, 0)
-		parts["torso"].position = Vector3(0, 0.54, 0)
-		parts["head"].position = Vector3(0, 1.04, 0)
+		parts["head"].visible = (cam_mode == 1)
+		parts["hip"].position = Vector3(0, 0.59, 0)
+		parts["torso"].position = Vector3(0, 0.67, 0)
+		parts["head"].position = Vector3(0, 1.17, 0)
 		for sgn in ["L", "R"]:
-			parts["shoulder" + sgn].position = Vector3((-0.27 if sgn == "L" else 0.27), 1.00, 0)
+			parts["shoulder" + sgn].position = Vector3((-0.27 if sgn == "L" else 0.27), 1.13, 0)
 			parts["shoulder" + sgn].rotation = Vector3(0.35, 0, 0)
-			parts["hip" + sgn].position = Vector3((-0.11 if sgn == "L" else 0.11), 0.46, 0)
-			parts["hip" + sgn].rotation = Vector3(PI * 0.5, 0, 0)
-			parts["knee" + sgn].rotation = Vector3(-PI * 0.5, 0, 0)
+			parts["hip" + sgn].position = Vector3((-0.11 if sgn == "L" else 0.11), 0.59, 0)
+			parts["hip" + sgn].rotation = Vector3(1.3649, 0, 0)
+			parts["knee" + sgn].rotation = Vector3(-1.3649, 0, 0)
 			parts["elbow" + sgn].rotation = Vector3(0.45, 0, 0)
 		return
 	body.visible = (cam_mode == 1)
+	parts["head"].visible = true
 	var k := crouch_k
 	parts["hip"].position = Vector3(0, 0.86 - 0.36 * k, 0)
 	parts["torso"].position = Vector3(0, 0.94 - 0.36 * k, 0)
