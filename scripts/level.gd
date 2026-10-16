@@ -496,7 +496,7 @@ func bench(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
     for xx4 in [x0 + 0.10, x0 + 0.50]:
         b.cyl_z("metalD", xx4, base + 0.36, z0 + 0.16, z1 - 0.16, 0.026, 8, true)
     b.add_collider(_v(x0, base, z0), _v(x0 + 0.66, base + 0.50, z1))
-    b.light(_v(x0 + 0.42, base + 1.42, zc), Color(0.92, 0.86, 0.76), 3.2, 3.8, false)
+    b.light(_v(x0 + 0.46, base + 1.78, zc), Color(0.92, 0.86, 0.76), 1.05, 3.0, false)
     b.seats.append({"pos": Vector3(x0 + 0.28, base, z0 + (z1 - z0) * 0.30), "yaw": -PI * 0.5})
     b.seats.append({"pos": Vector3(x0 + 0.28, base, z0 + (z1 - z0) * 0.70), "yaw": -PI * 0.5})
 
@@ -647,7 +647,8 @@ func lost_and_found(z: float) -> void:
         b.cyl_z("metal", x + d + 0.030, y0 + 0.135, z + w * 0.5 - 0.20, z + w * 0.5 - 0.14, 0.013, 8, true)
         b.label3d("%d" % (i + 1), _v(x + d + 0.032, y0 + 0.135, z - w * 0.5 + 0.16), 0.030, Color(0.55, 0.78, 1.0), PI * 0.5)
     # 台面 + 铭牌
-    b.box("metal", _v(x, 0.94, z - w * 0.5 - 0.03), _v(x + d + 0.03, yTop, z + w * 0.5 + 0.03), false, "all", 0.016)
+    b.box("metalD", _v(x, 0.99, z - w * 0.5 - 0.015), _v(x + d + 0.012, yTop, z + w * 0.5 + 0.015), false, "all", 0.014)
+    b.box("dark", _v(x + d - 0.005, 0.99, z - w * 0.5 - 0.012), _v(x + d + 0.012, 1.02, z + w * 0.5 + 0.012), false, "p")
     b.plaque("失物招领", _v(x + d + 0.045, 1.045, z), 0.50, 0.086, "x", 1, Color(0.62, 0.86, 1.0))
     b.light(_v(x + 0.80, 1.62, z), Color(0.72, 0.82, 0.95), 1.2, 3.6, false)
     # 上方：泛黄剪报（字号很小，要贴近才看得清）
