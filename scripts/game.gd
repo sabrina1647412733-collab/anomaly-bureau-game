@@ -60,6 +60,8 @@ var prompt: Variant = null
 var prompt_ring: MeshInstance3D = null      # 交互目标脚下的「呼吸环」
 var prompt_ring_mat: StandardMaterial3D = null
 var ring_flash := 0.0                      # 按下 E 之后 1 秒的高亮
+var desk_phone_mat: StandardMaterial3D = null   # 调度台上那台老式电话的指示灯
+var desk_phone_t := 0.0
 var sub := ""
 var sub_cps := 26.0
 var sub_time := 0.0
@@ -127,6 +129,7 @@ func _ready() -> void:
 	_make_buttons()
 	_make_switch_signal()
 	_make_prompt_ring()
+	_make_desk_props()
 	train = TrainScript.new(self)
 	train.reset()
 	spots = [
@@ -659,6 +662,7 @@ func _process(delta: float) -> void:
 		_cutscene(delta)
 	_animate_doors(delta)
 	_animate_items(delta)
+	_update_desk_props(delta)
 	_update_interaction()
 	_update_prompt_ring(delta)
 	_update_hud()
@@ -1283,6 +1287,61 @@ func _update_prompt_ring(delta: float) -> void:
 	prompt_ring.scale = Vector3(br, 1.0, br)
 	prompt_ring_mat.albedo_color.a = clampf(0.42 + 0.16 * breathe + ring_flash * 0.5, 0.0, 1.0)
 	prompt_ring_mat.emission_energy_multiplier = 0.75 + 0.30 * breathe + ring_flash * 1.5
+## 调度台台面上的三件小物件：保温杯 / 值班日志 / 老式电话。
+## 台面高度 1.15（和 ITEM_DEFS 里那两件线索摆在同一个面上）。
+func _make_desk_props() -> void:
+	var root3 := Node3D.new()
+	root3.name = "DeskProps"
+	add_child(root3)
+	var steel := StandardMaterial3D.new()
+	steel.albedo_color = Color(0.56, 0.59, 0.63); steel.roughness = 0.34; steel.metallic = 0.45
+	var steelD := StandardMaterial3D.new()
+	steelD.albedo_color = Color(0.30, 0.32, 0.35); steelD.roughness = 0.5; steelD.metallic = 0.3
+	var paper := StandardMaterial3D.new()
+	paper.albedo_color = Color(0.84, 0.82, 0.76); paper.roughness = 0.85
+	var cover := StandardMaterial3D.new()
+	cover.albedo_color = Color(0.20, 0.22, 0.26); cover.roughness = 0.75
+	var phoneM := StandardMaterial3D.new()
+	phoneM.albedo_color = Color(0.30, 0.11, 0.11); phoneM.roughness = 0.55
+	var bakelite := StandardMaterial3D.new()
+	bakelite.albedo_color = Color(0.13, 0.13, 0.15); bakelite.roughness = 0.45
+	# ① 保温杯（杯身 + 杯盖圈 + 一圈深色腰线）
+	_item_part(root3, Vector3(0.084, 0.20, 0.084), Vector3(-16.72, 1.25, -12.60), steel, true)
+	_item_part(root3, Vector3(0.090, 0.035, 0.090), Vector3(-16.72, 1.367, -12.60), steelD, true)
+	_item_part(root3, Vector3(0.090, 0.020, 0.090), Vector3(-16.72, 1.19, -12.60), steelD, true)
+	# ② 值班日志（深色封皮 + 露出来的纸口 + 一支笔）
+	_item_part(root3, Vector3(0.24, 0.030, 0.32), Vector3(-16.55, 1.166, -12.30), cover)
+	_item_part(root3, Vector3(0.222, 0.018, 0.30), Vector3(-16.55, 1.190, -12.30), paper)
+	_item_part(root3, Vector3(0.014, 0.014, 0.20), Vector3(-16.62, 1.206, -12.34), bakelite)
+	# ③ 老式电话（机身 + 拨号盘 + 听筒 + 指示灯）—— 彩蛋：指示灯按「三短一长」闪
+	_item_part(root3, Vector3(0.17, 0.075, 0.28), Vector3(-16.74, 1.187, -15.30), phoneM)
+	_item_part(root3, Vector3(0.13, 0.020, 0.13), Vector3(-16.74, 1.229, -15.24), bakelite, true)
+	_item_part(root3, Vector3(0.075, 0.055, 0.075), Vector3(-16.74, 1.252, -15.24), cover, true)
+	_item_part(root3, Vector3(0.145, 0.040, 0.062), Vector3(-16.74, 1.245, -15.46), bakelite)
+	_item_part(root3, Vector3(0.145, 0.040, 0.062), Vector3(-16.74, 1.245, -15.14), bakelite)
+	_item_part(root3, Vector3(0.050, 0.030, 0.035), Vector3(-16.74, 1.245, -15.30), bakelite)
+	desk_phone_mat = StandardMaterial3D.new()
+	desk_phone_mat.albedo_color = Color(0.85, 0.72, 0.40)
+	desk_phone_mat.emission_enabled = true
+	desk_phone_mat.emission = Color(0.95, 0.78, 0.40)
+	desk_phone_mat.emission_energy_multiplier = 1.4
+	_item_part(root3, Vector3(0.026, 0.026, 0.026), Vector3(-16.680, 1.228, -15.200), desk_phone_mat)
+
+## 老式电话的指示灯：三短一长（= 检修暗号里那个「三/四」的节奏），周期 3.2 秒。
+func _update_desk_props(delta: float) -> void:
+	if desk_phone_mat == null:
+		return
+	desk_phone_t = fposmod(desk_phone_t + delta, 3.2)
+	var on := false
+	if desk_phone_t < 0.20:
+		on = true
+	elif desk_phone_t >= 0.45 and desk_phone_t < 0.65:
+		on = true
+	elif desk_phone_t >= 0.90 and desk_phone_t < 1.10:
+		on = true
+	elif desk_phone_t >= 1.35 and desk_phone_t < 2.05:
+		on = true
+	desk_phone_mat.emission_energy_multiplier = 1.6 if on else 0.05
 # ------------------------------------------------------------------ 动画
 func _animate_doors(delta: float) -> void:
 	var lv: MeshInstance3D = get_meta("lever")
