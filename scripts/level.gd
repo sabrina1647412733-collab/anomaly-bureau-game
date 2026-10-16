@@ -48,6 +48,7 @@ func build() -> void:
     rooms()
     signage()
     platform_info()
+    lost_and_found(-32.30)
     details()
     tunnel_detail()
 
@@ -624,6 +625,38 @@ func chair(cx: float, cz: float, base := FY, yaw := 0.0) -> void:
         b.cyl("metalD", p2.x, p2.z, base + 0.44, base + 0.90, 0.022, 0.022, 8, false, false)        # 靠背立杆
     b.add_collider(_v(cx - 0.30, base, cz - 0.30), _v(cx + 0.30, base + 0.50, cz + 0.30))
     b.seats.append({"pos": Vector3(cx - sin(yaw) * 0.02, base, cz - cos(yaw) * 0.02), "yaw": yaw})
+
+# ------------------------------------------------------------------ 失物招领柜 + 旧剪报
+## 站台西墙 z≈-32.3：三层玻璃格子的失物招领柜；上方钉一张泛黄剪报（十七年前那次事故）
+func lost_and_found(z: float) -> void:
+    var x := PX0 + 0.03
+    var w := 1.40
+    var d := 0.42
+    var yTop := 1.15
+    # 柜体：正面留空（不加 "p"），三格才是真的空腔，里面放得下东西
+    b.box("metalD", _v(x, FY, z - w * 0.5), _v(x + d, yTop, z + w * 0.5), true, "nbtfk")
+    b.box("dark", _v(x + 0.015, FY + 0.06, z - w * 0.5 + 0.05), _v(x + 0.035, yTop - 0.03, z + w * 0.5 - 0.05), false, "p")
+    b.box("dark", _v(x + 0.03, FY + 0.06, z - w * 0.5 + 0.05), _v(x + d, FY + 0.09, z + w * 0.5 - 0.05), false, "t")
+    # 三层：每层一块层板 + 玻璃门 + 锁孔 + 编号
+    for i in range(4):
+        var ys := 0.10 + float(i) * 0.28
+        b.box("metal", _v(x + 0.02, ys - 0.02, z - w * 0.5 + 0.05), _v(x + d + 0.02, ys + 0.012, z + w * 0.5 - 0.05), false)
+    for i in range(3):
+        var y0 := 0.10 + float(i) * 0.28
+        b.box("glass", _v(x + d + 0.012, y0 + 0.014, z - w * 0.5 + 0.07), _v(x + d + 0.026, y0 + 0.264, z + w * 0.5 - 0.07), false)
+        b.cyl_z("metal", x + d + 0.030, y0 + 0.135, z + w * 0.5 - 0.20, z + w * 0.5 - 0.14, 0.013, 8, true)
+        b.label3d("%d" % (i + 1), _v(x + d + 0.032, y0 + 0.135, z - w * 0.5 + 0.16), 0.030, Color(0.55, 0.78, 1.0), PI * 0.5)
+    # 台面 + 铭牌
+    b.box("metal", _v(x, 0.94, z - w * 0.5 - 0.03), _v(x + d + 0.03, yTop, z + w * 0.5 + 0.03), false, "all", 0.016)
+    b.plaque("失物招领", _v(x + d + 0.045, 1.045, z), 0.50, 0.086, "x", 1, Color(0.62, 0.86, 1.0))
+    b.light(_v(x + 0.80, 1.62, z), Color(0.72, 0.82, 0.95), 1.2, 3.6, false)
+    # 上方：泛黄剪报（字号很小，要贴近才看得清）
+    b.box("dark", _v(x, 1.50, z - 0.53), _v(x + 0.035, 2.08, z + 0.53), false, "p")
+    b.box("white|e8dcc0", _v(x + 0.036, 1.54, z - 0.49), _v(x + 0.046, 2.04, z + 0.49), false, "p")
+    b.label3d("岚 桥 站 · 事 故 责 任 认 定", _v(x + 0.06, 1.955, z), 0.036, Color(0.28, 0.22, 0.14), PI * 0.5)
+    b.label3d("三名乘客擅自进入轨行区。", _v(x + 0.06, 1.865, z), 0.029, Color(0.33, 0.27, 0.19), PI * 0.5)
+    b.label3d("值班员 林远舟 已按规程处置，0017 次未停。", _v(x + 0.06, 1.795, z), 0.024, Color(0.33, 0.27, 0.19), PI * 0.5)
+    b.label3d("—— 但前一天的值班记录被撕掉一页。", _v(x + 0.06, 1.70, z), 0.026, Color(0.48, 0.26, 0.20), PI * 0.5)
 
 # ------------------------------------------------------------------ 站台信息层（能读的文字）
 ## 后墙上的一块信息牌：金属边框 + 深色面板 + 标题条 + 若干行文字。

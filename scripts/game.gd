@@ -93,6 +93,8 @@ var dv_said := false
 var saw_lag := false
 var board_cards: Array = []
 var board_root: Node3D
+var ending_key_cab: Node3D      # 结局 B：钥匙留在失物招领柜
+var ending_key_desk: Node3D     # 结局 A：钥匙放回调度台面
 const BOARD_X := -17.94
 const BOARD_Z0 := -16.80
 const BOARD_DZ := 0.60              # 在岔区机位看见了「红灯晚了半秒」
@@ -116,6 +118,7 @@ func _ready() -> void:
 	_make_items()
 	_make_doors()
 	_make_clue_board()
+	_make_ending_props()
 	_make_npcs()
 	_make_buttons()
 	_make_switch_signal()
@@ -864,6 +867,11 @@ func _skip_cutscene() -> void:
 
 func _show_end(kind: String) -> void:
 	_fade_to(0.0, 0.7)
+	# 彩蛋：结局文字里那把钥匙的去向，在场景里真的出现
+	if ending_key_cab != null:
+		ending_key_cab.visible = (kind != "A")
+	if ending_key_desk != null:
+		ending_key_desk.visible = (kind == "A")
 	shown_end = kind
 	state = "ending"
 	hud_end_title.add_theme_color_override("font_color", Color(0.88, 0.64, 0.29))
@@ -1798,3 +1806,15 @@ func _read_board() -> void:
 	if got_n >= 5:
 		txt += "\n\n五条记录连起来：00:16:43 那道手动进路，本来就不该存在。"
 	_say("旁白", txt)
+
+## 彩蛋：两把「停用钥匙」的落点。A 结局放回调度台面（原文「放在桌上」），B 结局留在失物招领柜格子（原文「留在失物招领柜」）
+func _make_ending_props() -> void:
+	var kd := {"id": "key", "col": Color(0.88, 0.64, 0.29)}
+	ending_key_cab = _make_item_model(kd)
+	ending_key_cab.position = Vector3(-17.760, 0.392, -32.290)   # 柜子第 2 格，摆在层板上
+	add_child(ending_key_cab)
+	ending_key_cab.visible = false
+	ending_key_desk = _make_item_model(kd)
+	ending_key_desk.position = Vector3(-16.98, 1.156, -12.62)   # 调度台台面
+	add_child(ending_key_desk)
+	ending_key_desk.visible = false
