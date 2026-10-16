@@ -88,6 +88,10 @@ func _run(nm: String, x: float, y: float, z: float, yaw: float, pitch: float,
 		for bc in game.board_cards:
 			vis += ("1" if bc["node"].visible else "0")
 		print("[BOARD] 卡片可见性（7 张，应全 1）= ", vis)
+	for f in flags:
+		if str(f).begins_with("clock="):
+			game.clock_min = float(str(f).substr(6))
+			print("[CLOSEUP] 时钟拨到 ", game.clock_min)
 	if flags.has("noarm"):
 		game.player.view_arm.visible = false
 	if flags.has("third"):

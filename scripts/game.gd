@@ -671,6 +671,14 @@ func _check_scripted() -> void:
 		_say("旁白", "隧道里有光。它来了。")
 	if clock_min >= 1452.0 and not _once("warn"):
 		_say("站内广播", "0017 次，岚桥站呼叫。前方四道占用，立即停车，等待人工引导。站台乘客请后退至黄线内。")
+	# ---- 时间压力：离 00:16:43（T_LOCK）越近，三条提醒 + HUD 与调度台台上的钟一起变色/按秒跳 ----
+	if clock_min >= T_LOCK - 2.0 and not _once("lock2m"):
+		_say("旁白", "调度台上的钟指着 00:14:43。00:16:43 之前，进路必须锁死。")
+	if clock_min >= T_LOCK - 0.5 and not _once("lock30s"):
+		_say("旁白", "还有半分钟。")
+		play_click()
+	if clock_min >= T_LOCK and not _once("lockpass"):
+		_say("旁白", "00:16:43 过去了。")
 
 var _once_flags := {}
 func _once(k: String) -> bool:
@@ -1332,10 +1340,16 @@ func _update_hud() -> void:
 		hud_cam.text = "● 第二人称 · 正面看着你     [V] 切换视角"
 	elif player.cam_mode == 3:
 		hud_cam.text = "● %s  %s   [N] 换机位" % [player.cctv_tag(), player.cctv_name()]
-	hud_clock.add_theme_color_override("font_color",
-		Color(0.95, 0.30, 0.26) if clock_min >= 1454.5 else Color(0.88, 0.64, 0.29))
+	# 时钟：橙 → 红 随剩余时间推进；最后 30 秒里按秒跳一下（不再是一个静态颜色）
+	var tleft := T_LOCK - clock_min
+	var tcol := Color(0.88, 0.64, 0.29).lerp(Color(0.95, 0.22, 0.18), clampf(1.0 - tleft / 2.0, 0.0, 1.0))
+	var beat := 1.0
+	if tleft <= 0.5 and tleft > 0.0:
+		beat = 0.55 + 0.45 * (1.0 - fposmod(clock_min * 60.0, 1.0))
+	hud_clock.add_theme_color_override("font_color", Color(tcol.r * beat, tcol.g * beat, tcol.b * beat, 1.0))
 	if clock_label != null:
 		clock_label.text = "%02d:%02d" % [mm / 60, mm % 60]
+		clock_label.modulate = Color(tcol.r * beat, tcol.g * beat, tcol.b * beat, 1.0)
 	_refresh_items_ui()
 
 func _update_map() -> void:
