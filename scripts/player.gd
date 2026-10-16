@@ -1,6 +1,7 @@
 extends CharacterBody3D
 ## 第一/第三人称控制器：走 / 跑 / 跳 / 蹲 / 坐 + 低模角色
 
+const CharBody := preload("res://scripts/charbody.gd")
 const SPEED_WALK := 3.2
 const SPEED_RUN := 6.0
 const SPEED_CROUCH := 1.5
@@ -126,6 +127,19 @@ func _mesh_cyl(size: Vector3, col: Color, off: Vector3) -> MeshInstance3D:
 	mi.position = off
 	return mi
 
+func _mesh_bevbox(size: Vector3, col: Color, off: Vector3, bev := 0.03, emis := 0.0) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = CharBody.bev_box(size, bev)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = 0.80
+	if emis > 0.0:
+		m.emission_enabled = true
+		m.emission = col
+		m.emission_energy_multiplier = emis
+	mi.material_override = m
+	mi.position = off
+	return mi
 func _mesh_sphere(size: Vector3, col: Color, off: Vector3) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var sm := SphereMesh.new()
@@ -164,9 +178,9 @@ func _build_body() -> void:
 
 	var hip := _joint("hip", body, Vector3(0, 0.86, 0))
 	var skin := Color(0.90, 0.71, 0.60)
-	hip.add_child(_mesh_box(Vector3(0.36, 0.20, 0.24), dark, Vector3(0, 0.0125, 0)))
+	hip.add_child(_mesh_bevbox(Vector3(0.36, 0.20, 0.24), dark, Vector3(0, 0.0125, 0), 0.018))
 	var torso := _joint("torso", body, Vector3(0, 0.94, 0))
-	torso.add_child(_mesh_box(Vector3(0.42, 0.46, 0.26), coat, Vector3(0, 0.23, 0)))
+	torso.add_child(_mesh_bevbox(Vector3(0.42, 0.46, 0.26), coat, Vector3(0, 0.23, 0), 0.022))
 	# 内层：衬衫领口 + 前襟在背心下面露一条（叠穿的读法）
 	torso.add_child(_mesh_box(Vector3(0.205, 0.048, 0.208), shirt, Vector3(0, 0.468, 0.004)))
 	torso.add_child(_mesh_box(Vector3(0.062, 0.078, 0.022), shirt, Vector3(0, 0.428, -0.128)))
@@ -176,7 +190,7 @@ func _build_body() -> void:
 	# 现在换成 8 段低多边形椭球（三角肌），肩线从躯干顶自然滚下来接住上臂圆管。
 	for sc in [-1.0, 1.0]:
 		torso.add_child(_mesh_sphere(Vector3(0.186, 0.176, 0.210), coat, Vector3(sc * 0.235, 0.425, 0)))
-	torso.add_child(_mesh_box(Vector3(0.44, 0.44, 0.275), vest, Vector3(0, 0.22, 0), 0.55))   # 反光背心（A 里是从胸到胯的长背心）
+	torso.add_child(_mesh_bevbox(Vector3(0.44, 0.44, 0.275), vest, Vector3(0, 0.22, 0), 0.020, 0.55))   # 反光背心（A 里是从胸到胯的长背心）
 	torso.add_child(_mesh_box(Vector3(0.45, 0.045, 0.285), Color(0.89, 0.80, 0.33), Vector3(0, 0.36, 0), 0.9))
 	torso.add_child(_mesh_box(Vector3(0.45, 0.045, 0.285), Color(0.89, 0.80, 0.33), Vector3(0, 0.13, 0), 0.9))
 	# 背心的两条肩带盖过肩膀（原来只有胸口一块平板，肩上是空的）
@@ -192,11 +206,11 @@ func _build_body() -> void:
 	torso.add_child(_mesh_box(Vector3(0.38, 0.02, 0.02), dark, Vector3(0, 0.44, -0.13)))        # 挂绳
 	torso.add_child(_mesh_box(Vector3(0.12, 0.14, 0.07), Color(0.30, 0.26, 0.20), Vector3(-0.15, 0.06, 0.15)))  # 工具腰包
 	var head := _joint("head", body, Vector3(0, 1.44, 0))
-	head.add_child(_mesh_box(Vector3(0.205, 0.20, 0.205), skin, Vector3(0, 0.105, 0)))
-	head.add_child(_mesh_box(Vector3(0.208, 0.040, 0.208), Color(0.10, 0.09, 0.10), Vector3(0, 0.210, 0.012)))
-	head.add_child(_mesh_box(Vector3(0.196, 0.180, 0.038), Color(0.10, 0.09, 0.10), Vector3(0, 0.108, 0.100)))
+	head.add_child(_mesh_bevbox(Vector3(0.205, 0.20, 0.205), skin, Vector3(0, 0.105, 0), 0.020))
+	head.add_child(_mesh_bevbox(Vector3(0.208, 0.040, 0.208), Color(0.10, 0.09, 0.10), Vector3(0, 0.210, 0.012), 0.012))
+	head.add_child(_mesh_bevbox(Vector3(0.196, 0.180, 0.038), Color(0.10, 0.09, 0.10), Vector3(0, 0.108, 0.100), 0.010))
 	for hx in [-0.101, 0.101]:
-		head.add_child(_mesh_box(Vector3(0.028, 0.120, 0.186), Color(0.10, 0.09, 0.10), Vector3(hx, 0.148, 0.004)))
+		head.add_child(_mesh_bevbox(Vector3(0.028, 0.120, 0.186), Color(0.10, 0.09, 0.10), Vector3(hx, 0.148, 0.004), 0.008))
 	# 五官：耳朵 / 眉 / 眼 / 鼻 / 嘴（脸不再是一块光板）
 	for ex in [-0.104, 0.104]:
 		head.add_child(_mesh_box(Vector3(0.018, 0.048, 0.034), skin.darkened(0.12), Vector3(ex, 0.100, 0.008)))
@@ -206,8 +220,8 @@ func _build_body() -> void:
 		head.add_child(_mesh_box(Vector3(0.038, 0.021, 0.02), Color(0.06, 0.06, 0.07), Vector3(eye_x, 0.117, -0.101)))
 	head.add_child(_mesh_box(Vector3(0.030, 0.050, 0.028), skin.darkened(0.10), Vector3(0, 0.094, -0.104)))
 	head.add_child(_mesh_box(Vector3(0.042, 0.013, 0.012), Color(0.46, 0.27, 0.26), Vector3(0, 0.062, -0.100)))
-	head.add_child(_mesh_box(Vector3(0.225, 0.075, 0.225), dark, Vector3(0, 0.235, 0)))          # 帽子
-	head.add_child(_mesh_box(Vector3(0.245, 0.028, 0.095), dark, Vector3(0, 0.208, -0.122)))      # 帽檐
+	head.add_child(_mesh_bevbox(Vector3(0.225, 0.075, 0.225), dark, Vector3(0, 0.235, 0), 0.014))          # 帽子
+	head.add_child(_mesh_bevbox(Vector3(0.245, 0.028, 0.095), dark, Vector3(0, 0.208, -0.122), 0.010))      # 帽檐
 	head.add_child(_mesh_box(Vector3(0.058, 0.028, 0.02), vest, Vector3(0, 0.185, -0.108), 0.6))  # 帽徽
 	for sgn in [-1.0, 1.0]:
 		var sfx := "L" if sgn < 0 else "R"
@@ -224,7 +238,7 @@ func _build_body() -> void:
 		kn.add_child(_mesh_cyl(Vector3(0.155, 0.36, 0.155), dark, Vector3(0, -0.18, 0)))          # 小腿
 		kn.add_child(_mesh_box(Vector3(0.152, 0.032, 0.162), dark.darkened(0.35), Vector3(0, -0.330, 0)))  # 裤脚
 		var ft := _joint("foot" + sfx, kn, Vector3(0, -0.36, 0))
-		ft.add_child(_mesh_box(Vector3(0.15, 0.08, 0.28), Color(0.08, 0.09, 0.11), Vector3(0, -0.04, -0.05)))
+		ft.add_child(_mesh_bevbox(Vector3(0.15, 0.08, 0.28), Color(0.08, 0.09, 0.11), Vector3(0, -0.04, -0.05), 0.014))
 	body.visible = false
 
 func _build_viewarm() -> void:

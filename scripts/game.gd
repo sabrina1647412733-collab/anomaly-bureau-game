@@ -4,6 +4,7 @@ extends Node3D
 const StationBuilder := preload("res://scripts/station.gd")
 const Level := preload("res://scripts/level.gd")
 const PlayerScript := preload("res://scripts/player.gd")
+const CharBody := preload("res://scripts/charbody.gd")
 const TrainScript := preload("res://scripts/train.gd")
 const HudMap := preload("res://scripts/hudmap.gd")
 const MenuScript := preload("res://scripts/menu.gd")
@@ -441,13 +442,13 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	hp.position = Vector3(0, 0.625, 0)          # 世界 y = 1.62（抬高 2cm 给脖子留位置）
 	upper.add_child(hp)
 	# 头 / 发 / 帽（坐标相对头枢轴）
-	_part(hp, "head", Vector3(0, 0, 0), Vector3(0.21, 0.23, 0.20), skin)
-	_part(hp, "hairTop", Vector3(0, 0.118, 0.014), Vector3(0.222, 0.045, 0.222), hair)
-	_part(hp, "hairBack", Vector3(0, 0.012, 0.104), Vector3(0.212, 0.212, 0.044), hair)
+	_part(hp, "head", Vector3(0, 0, 0), Vector3(0.21, 0.23, 0.20), skin, 0.0, false, Vector3.ZERO, false, 0.020)
+	_part(hp, "hairTop", Vector3(0, 0.118, 0.014), Vector3(0.222, 0.045, 0.222), hair, 0.0, false, Vector3.ZERO, false, 0.012)
+	_part(hp, "hairBack", Vector3(0, 0.012, 0.104), Vector3(0.212, 0.212, 0.044), hair, 0.0, false, Vector3.ZERO, false, 0.010)
 	for hx in [-0.104, 0.104]:
-		_part(hp, "hairSide" + ("L" if hx < 0 else "R"), Vector3(hx, 0.052, 0.004), Vector3(0.030, 0.132, 0.192), hair)
+		_part(hp, "hairSide" + ("L" if hx < 0 else "R"), Vector3(hx, 0.052, 0.004), Vector3(0.030, 0.132, 0.192), hair, 0.0, false, Vector3.ZERO, false, 0.008)
 	if nm == "林岚":
-		_part(hp, "ponytail", Vector3(0, -0.070, 0.128), Vector3(0.086, 0.185, 0.068), hair)
+		_part(hp, "ponytail", Vector3(0, -0.070, 0.128), Vector3(0.086, 0.185, 0.068), hair, 0.0, false, Vector3.ZERO, false, 0.009)
 	# 五官：脸不再是一块光板（眉 / 眼 / 鼻 / 嘴 / 耳），全部压在 z = -0.10 这条面上
 	for ex in [-0.106, 0.106]:
 		_part(hp, "ear" + ("L" if ex < 0 else "R"), Vector3(ex, 0.006, 0.008), Vector3(0.018, 0.050, 0.036), skin.darkened(0.12))
@@ -458,10 +459,10 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	_part(hp, "nose", Vector3(0, -0.006, -0.106), Vector3(0.030, 0.050, 0.028), skin.darkened(0.10))
 	_part(hp, "mouth", Vector3(0, -0.063, -0.101), Vector3(0.044, 0.013, 0.012), Color(0.46, 0.27, 0.26))
 	if cap_on:
-		_part(hp, "cap", Vector3(0, 0.152, 0), Vector3(0.243, 0.055, 0.233), cloth2)
-		_part(hp, "visor", Vector3(0, 0.130, -0.152), Vector3(0.233, 0.030, 0.108), cloth2)	# 躯干 + 衣服叠穿（坐标相对上半身枢轴）：内层领口 → 外层领子 → 前襟 → 下摆 → 腰带 → 口袋
+		_part(hp, "cap", Vector3(0, 0.152, 0), Vector3(0.243, 0.055, 0.233), cloth2, 0.0, false, Vector3.ZERO, false, 0.013)
+		_part(hp, "visor", Vector3(0, 0.130, -0.152), Vector3(0.233, 0.030, 0.108), cloth2, 0.0, false, Vector3.ZERO, false, 0.009)	# 躯干 + 衣服叠穿（坐标相对上半身枢轴）：内层领口 → 外层领子 → 前襟 → 下摆 → 腰带 → 口袋
 	_part(upper, "neck", Vector3(0, 0.492, 0), Vector3(0.118, 0.078, 0.118), skin)
-	_part(upper, "torso", Vector3(0, 0.265, 0), Vector3(0.40, 0.46, 0.24), cloth)
+	_part(upper, "torso", Vector3(0, 0.265, 0), Vector3(0.40, 0.46, 0.24), cloth, 0.0, false, Vector3.ZERO, false, 0.022)
 	_part(upper, "innerCollar", Vector3(0, 0.489, -0.008), Vector3(0.207, 0.054, 0.200), inner)
 	_part(upper, "innerV", Vector3(0, 0.412, -0.126), Vector3(0.112, 0.104, 0.020), inner)
 	_part(upper, "collar", Vector3(0, 0.471, -0.002), Vector3(0.312, 0.062, 0.224), cloth)
@@ -485,7 +486,7 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		_part(n, "leg" + sfx, Vector3(sgn * 0.105, 0.770, 0), Vector3(0.155, 0.45, 0.165), cloth2, 0.0, true)
 		_part(n, "shin" + sfx, Vector3(sgn * 0.105, 0.3175, 0), Vector3(0.140, 0.455, 0.150), cloth2, 0.0, true)
 		_part(n, "hemLeg" + sfx, Vector3(sgn * 0.105, 0.118, 0), Vector3(0.152, 0.032, 0.162), cloth2.darkened(0.35))
-		_part(n, "shoe" + sfx, Vector3(sgn * 0.105, 0.045, -0.035), Vector3(0.155, 0.09, 0.26), Color(0.07, 0.07, 0.08))
+		_part(n, "shoe" + sfx, Vector3(sgn * 0.105, 0.045, -0.035), Vector3(0.155, 0.09, 0.26), Color(0.07, 0.07, 0.08), 0.0, false, Vector3.ZERO, false, 0.014)
 		_part(upper, "shoulderCap" + sfx, Vector3(sgn * 0.225, 0.408, 0), Vector3(0.210, 0.190, 0.220), cloth, 0.0, false, Vector3.ZERO, true)
 		_part(upper, "armU" + sfx, Vector3(sgn * 0.238, 0.310, 0), Vector3(0.115, 0.33, 0.125), cloth, 0.0, true)
 		_part(upper, "armL" + sfx, Vector3(sgn * 0.250, -0.010, -0.030), Vector3(0.100, 0.31, 0.110), cloth, 0.0, true)
@@ -494,7 +495,7 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		_part(upper, "hand" + sfx, Vector3(sgn * 0.250, -0.196, -0.046), Vector3(0.088, 0.108, 0.096), skin)
 	# 及膝长大衣下摆（挂在躯干节点上；上沿顶到躯干底 1.03，下摆底 0.60，大腿在这个深度只摆 ±0.15，包得住）
 	if long_coat:
-		_part(upper, "coatSkirt", Vector3(0, -0.180, 0), Vector3(0.402, 0.430, 0.288), cloth)
+		_part(upper, "coatSkirt", Vector3(0, -0.180, 0), Vector3(0.402, 0.430, 0.288), cloth, 0.0, false, Vector3.ZERO, false, 0.024)
 		_part(upper, "coatHem", Vector3(0, -0.369, 0), Vector3(0.416, 0.054, 0.302), Color(0.30, 0.17, 0.10))
 		_part(upper, "coatSeam", Vector3(0, -0.180, -0.148), Vector3(0.024, 0.420, 0.014), cloth.darkened(0.45))
 		_part(upper, "coatBackSlit", Vector3(0, -0.240, 0.148), Vector3(0.30, 0.300, 0.012), Color(0.05, 0.05, 0.05))
@@ -543,10 +544,12 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		"upper": upper, "head": hp}
 
 func _part(parent: Node3D, nm: String, p: Vector3, size: Vector3, col: Color,
-		emis := 0.0, tube := false, rot := Vector3.ZERO, ball := false) -> MeshInstance3D:
+		emis := 0.0, tube := false, rot := Vector3.ZERO, ball := false, bev := 0.0) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.name = nm
-	if ball:
+	if bev > 0.0:
+		mi.mesh = CharBody.bev_box(size, bev)
+	elif ball:
 		var sm := SphereMesh.new()
 		sm.radius = 0.5
 		sm.height = 1.0
