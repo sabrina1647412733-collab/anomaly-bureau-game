@@ -470,3 +470,19 @@ python _tools/ref_measure.py <概念图.png> 4
 **标题 0.052 ≈ 11 cm / 正文 0.030 ~ 0.033 ≈ 7 cm**；`0.26 / 0.21` 是 NPC 头上名牌那一套（字高 0.46 ~ 0.57 m），
 抄到牌子上会大到卡片装不下。
 
+### 16 · 花费与额度（这轮工作是在花用户的 DeepSeek 余额）
+
+本机 Codex 的 provider 是 `custom` → `name = "deepseek"`（`https://api.deepseek.com`，模型 `deepseek-v4-flash`），
+**所以每一次工作的 API 费用都从用户 DeepSeek 账号的余额里扣**。
+
+- 查余额（只读，不打印密钥）：`python _tools/ds_balance.py`
+  它从 `~/.codex/config.toml` 读 key，调 `GET /user/balance`，只输出总额 / 赠送 / 充值三项。
+- 2026-10-17 基线：**总 84.73 元 = 赠送 35.76 + 充值 48.96**。
+- 用户的硬约束：**赠送余额不得低于 20 元** → 可用额度 ≈ **15.7 元**。
+- 因此每次工作前后都应各查一次余额，把本轮花费记进提交信息或本小节，接近下限就停下来，
+  并把这条心跳自动化置为 PAUSED（宁可少做，不可超支）。
+
+另注：当前模型 `deepseek-v4-flash` 的 `input_modalities` 只有 `text`，所以**模型看不到图像**——
+这是本项目所有"用探针/字符画代替看截图"的根因。模型目录里 `deepseek-v4-flash-vision-exp`
+带 `image` 输入，**换成它就能直接看渲染图**，是提升质量最省事的一步。
+
