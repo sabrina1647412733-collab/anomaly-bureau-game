@@ -106,7 +106,7 @@ var ITEM_DEFS := [
 	{"id":"tape", "short":"「三道有人，改四道」","name":"倒放广播","where":"广播台 · 磁带机","desc":"把站内广播倒过来听，里面有一句被埋掉的话：「三道有人，改四道。」","pos":Vector3(-16.30, 1.172, -13.0),"col":Color(0.35,0.62,0.83),"round":1},
 	{"id":"key", "short":"十七年前那把","name":"停用钥匙","where":"隧道 · 检修环线","desc":"十七年前那把停用钥匙。系统早换了，锁还认它。","pos":Vector3(10.80, -0.278, -60.50),"col":Color(0.88,0.64,0.29),"round":2},
 	{"id":"log", "short":"00:16:43 手动进路","name":"巡检簿","where":"站台 · 长椅上","desc":"巡检簿被撕掉的一页。上面记着 00:16:43 那道手动进路。","pos":Vector3(-14.72, 0.516, 17.00),"col":Color(0.72,0.82,0.95),"round":2},
-	{"id":"relay5", "short":"反馈慢了半拍","name":"五号继电器","where":"信号室 · 继电器柜","desc":"五号继电器的反馈慢半拍。隔离它，进路才锁得死。","pos":Vector3(-17.150, 2.082, 26.700),"col":Color(0.25,0.75,0.56),"round":3},
+	{"id":"relay5", "short":"反馈慢了半拍","name":"五号继电器","where":"信号室 · 继电器柜","desc":"五号继电器的反馈慢半拍。隔离它，进路才锁得死。","pos":Vector3(-17.150, 2.071, 26.700),"col":Color(0.25,0.75,0.56),"round":3},
 ]
 
 func _ready() -> void:
@@ -401,10 +401,14 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	# 配色直接取自选定的 A 方向概念图（_预览/角色概念/A_低多边形极简.png）：
 	# 皮肤 #e4b49c / 藏青制服 #24243c / 深灰长裤 #3c3c3c / 青蓝工作服 #24546c /
 	# 棕色大衣 #6c3c24 / 灰绿夹克 #305030 / 琥珀背心 #cc8424 + 亮黄条 #e4cc54
+	# 这一版按《僵尸毁灭工程》3D 角色的那套做法重排：零件模块化 + 衣服叠穿。
+	# 每件衣服都是独立零件（内层 / 外层 / 领子 / 前襟 / 袖口 / 下摆 / 口袋 / 扣子），
+	# 换人只换配色与零件组合，几何完全复用——这就是能「套用」过来的部分。
 	var skin := Color(0.90, 0.71, 0.60)
 	var cloth := Color(0.14, 0.14, 0.24)
 	var cloth2 := Color(0.24, 0.24, 0.24)
 	var hair := Color(0.05, 0.05, 0.06)
+	var inner := Color(0.70, 0.71, 0.72)
 	var cap_on := false
 	var long_coat := false
 	match nm:
@@ -412,16 +416,19 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 			cloth = Color(0.14, 0.33, 0.42)       # 青蓝工作服
 			cloth2 = Color(0.24, 0.24, 0.24)      # 灰长裤
 			hair = Color(0.05, 0.05, 0.14)
+			inner = Color(0.80, 0.83, 0.86)       # 外套里一件浅色工装衬衫
 			n.rotation.y = -PI * 0.5              # 站在信号室门口，面朝站台（+X）
 		"周砚":
 			cloth = Color(0.42, 0.24, 0.14)       # 棕色大衣
 			cloth2 = Color(0.06, 0.06, 0.06)      # 近黑长裤
+			inner = Color(0.50, 0.49, 0.47)       # 大衣里一件灰衬衫
 			long_coat = true                      # A 里他穿及膝长大衣
 			n.rotation.y = 0.0                    # 站台南头，面朝北（-Z）
 		"陈默":
 			cloth = Color(0.23, 0.26, 0.23)       # 灰绿夹克
 			cloth2 = Color(0.14, 0.14, 0.14)      # 近黑长裤
 			hair = Color(0.14, 0.24, 0.24)        # 帽子 / 发（青灰）
+			inner = Color(0.28, 0.31, 0.36)       # 夹克里一件深蓝内衬
 			cap_on = true
 			n.rotation.y = PI                     # 北隧道口，面朝站台（+Z）
 	# 上半身与头各挂一个枢轴：呼吸、转头、点头都作用在枢轴上（零件名不变，量测脚本照样认）
@@ -433,42 +440,68 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	hp.name = "headPivot"
 	hp.position = Vector3(0, 0.625, 0)          # 世界 y = 1.62（抬高 2cm 给脖子留位置）
 	upper.add_child(hp)
-	# 头 / 发 / 帽 / 眼（坐标相对头枢轴）
+	# 头 / 发 / 帽（坐标相对头枢轴）
 	_part(hp, "head", Vector3(0, 0, 0), Vector3(0.21, 0.23, 0.20), skin)
-	# 头发：盖住头顶 + 后脑（原来那条横在前额的"发际"看起来像蒙眼布）
 	_part(hp, "hairTop", Vector3(0, 0.118, 0.014), Vector3(0.222, 0.045, 0.222), hair)
 	_part(hp, "hairBack", Vector3(0, 0.012, 0.104), Vector3(0.212, 0.212, 0.044), hair)
 	for hx in [-0.104, 0.104]:
 		_part(hp, "hairSide" + ("L" if hx < 0 else "R"), Vector3(hx, 0.052, 0.004), Vector3(0.030, 0.132, 0.192), hair)
 	if nm == "林岚":
 		_part(hp, "ponytail", Vector3(0, -0.070, 0.128), Vector3(0.086, 0.185, 0.068), hair)
+	# 五官：脸不再是一块光板（眉 / 眼 / 鼻 / 嘴 / 耳），全部压在 z = -0.10 这条面上
+	for ex in [-0.106, 0.106]:
+		_part(hp, "ear" + ("L" if ex < 0 else "R"), Vector3(ex, 0.006, 0.008), Vector3(0.018, 0.050, 0.036), skin.darkened(0.12))
+	for bx in [-0.053, 0.053]:
+		_part(hp, "brow" + ("L" if bx < 0 else "R"), Vector3(bx, 0.064, -0.102), Vector3(0.054, 0.013, 0.014), hair.lightened(0.15))
+	for ex2 in [-0.055, 0.055]:
+		_part(hp, "eye" + ("L" if ex2 < 0 else "R"), Vector3(ex2, 0.024, -0.103), Vector3(0.038, 0.021, 0.018), Color(0.06, 0.06, 0.07))
+	_part(hp, "nose", Vector3(0, -0.006, -0.106), Vector3(0.030, 0.050, 0.028), skin.darkened(0.10))
+	_part(hp, "mouth", Vector3(0, -0.063, -0.101), Vector3(0.044, 0.013, 0.012), Color(0.46, 0.27, 0.26))
 	if cap_on:
 		_part(hp, "cap", Vector3(0, 0.152, 0), Vector3(0.243, 0.055, 0.233), cloth2)
-		_part(hp, "visor", Vector3(0, 0.130, -0.152), Vector3(0.233, 0.030, 0.108), cloth2)
-	for ex in [-0.055, 0.055]:
-		_part(hp, "eye", Vector3(ex, 0.022, -0.104), Vector3(0.045, 0.026, 0.020), Color(0.06, 0.06, 0.07))
-	# 躯干 / 领口 / 工牌（坐标相对上半身枢轴）
+		_part(hp, "visor", Vector3(0, 0.130, -0.152), Vector3(0.233, 0.030, 0.108), cloth2)	# 躯干 + 衣服叠穿（坐标相对上半身枢轴）：内层领口 → 外层领子 → 前襟 → 下摆 → 腰带 → 口袋
 	_part(upper, "neck", Vector3(0, 0.492, 0), Vector3(0.118, 0.078, 0.118), skin)
 	_part(upper, "torso", Vector3(0, 0.265, 0), Vector3(0.40, 0.46, 0.24), cloth)
-	_part(upper, "collar", Vector3(0, 0.475, 0), Vector3(0.30, 0.065, 0.215), cloth2)
+	_part(upper, "innerCollar", Vector3(0, 0.489, -0.008), Vector3(0.207, 0.054, 0.200), inner)
+	_part(upper, "innerV", Vector3(0, 0.412, -0.126), Vector3(0.112, 0.104, 0.020), inner)
+	_part(upper, "collar", Vector3(0, 0.471, -0.002), Vector3(0.312, 0.062, 0.224), cloth)
+	_part(upper, "placket", Vector3(0, 0.248, -0.126), Vector3(0.028, 0.400, 0.016), cloth.darkened(0.38))
+	_part(upper, "hem", Vector3(0, 0.042, 0), Vector3(0.408, 0.048, 0.250), cloth.darkened(0.24))
+	_part(upper, "belt", Vector3(0, 0.010, 0), Vector3(0.352, 0.062, 0.252), cloth2)
+	_part(upper, "buckle", Vector3(0, 0.010, -0.130), Vector3(0.046, 0.046, 0.014), Color(0.62, 0.60, 0.52))
 	_part(upper, "badge", Vector3(0.10, 0.350, -0.132), Vector3(0.055, 0.075, 0.016), accent, 1.6)
-	_part(upper, "belt", Vector3(0, 0.015, 0), Vector3(0.35, 0.065, 0.25), cloth2)
+	for px in [-0.108, 0.108]:
+		var psfx := "L" if px < 0 else "R"
+		_part(upper, "pocket" + psfx, Vector3(px, 0.150, -0.124), Vector3(0.116, 0.105, 0.014), cloth.darkened(0.18))
+		_part(upper, "pocketLip" + psfx, Vector3(px, 0.198, -0.129), Vector3(0.119, 0.016, 0.017), cloth.darkened(0.44))
+	if long_coat:
+		# 大衣领子：两片翻领，用旋转做出 V 字
+		for ls in [-1.0, 1.0]:
+			_part(upper, "lapel" + ("L" if ls < 0 else "R"), Vector3(ls * 0.086, 0.424, -0.126), Vector3(0.118, 0.158, 0.018), cloth.lightened(0.05), 0.0, false, Vector3(0, 0, ls * 0.40))
 	# 四肢：圆管（比方块更像人）
 	for sgn in [-1.0, 1.0]:
 		var sfx := "L" if sgn < 0 else "R"
 		# 腿分大小腿：髋 0.995 → 膝 0.545 → 脚踝 0.09 → 鞋底正好 0.00（原来鞋在 0.26，三个人是悬空的）
 		_part(n, "leg" + sfx, Vector3(sgn * 0.105, 0.770, 0), Vector3(0.155, 0.45, 0.165), cloth2, 0.0, true)
 		_part(n, "shin" + sfx, Vector3(sgn * 0.105, 0.3175, 0), Vector3(0.140, 0.455, 0.150), cloth2, 0.0, true)
+		_part(n, "hemLeg" + sfx, Vector3(sgn * 0.105, 0.118, 0), Vector3(0.152, 0.032, 0.162), cloth2.darkened(0.35))
 		_part(n, "shoe" + sfx, Vector3(sgn * 0.105, 0.045, -0.035), Vector3(0.155, 0.09, 0.26), Color(0.07, 0.07, 0.08))
-		_part(upper, "shoulderCap" + sfx, Vector3(sgn * 0.232, 0.432, 0), Vector3(0.140, 0.078, 0.160), cloth)
-		_part(upper, "armU" + sfx, Vector3(sgn * 0.245, 0.310, 0), Vector3(0.115, 0.33, 0.125), cloth, 0.0, true)
-		_part(upper, "armL" + sfx, Vector3(sgn * 0.255, -0.010, -0.030), Vector3(0.100, 0.31, 0.110), cloth, 0.0, true)
-		_part(upper, "hand" + sfx, Vector3(sgn * 0.255, -0.205, -0.050), Vector3(0.095, 0.120, 0.100), skin)
-	# 及膝长大衣下摆（挂在躯干节点上；下摆底 0.60，大腿在这个深度只摆 ±0.15，包得住）
+		_part(upper, "shoulderCap" + sfx, Vector3(sgn * 0.226, 0.428, 0), Vector3(0.126, 0.070, 0.150), cloth)
+		_part(upper, "armU" + sfx, Vector3(sgn * 0.238, 0.310, 0), Vector3(0.115, 0.33, 0.125), cloth, 0.0, true)
+		_part(upper, "armL" + sfx, Vector3(sgn * 0.250, -0.010, -0.030), Vector3(0.100, 0.31, 0.110), cloth, 0.0, true)
+		# 袖口：袖管压住手掌上沿 2cm，手不再是一块飘在袖子下面的浅色方块
+		_part(upper, "cuff" + sfx, Vector3(sgn * 0.250, -0.132, -0.030), Vector3(0.118, 0.058, 0.128), cloth.darkened(0.28), 0.0, true)
+		_part(upper, "hand" + sfx, Vector3(sgn * 0.250, -0.196, -0.046), Vector3(0.088, 0.108, 0.096), skin)
+	# 及膝长大衣下摆（挂在躯干节点上；上沿顶到躯干底 1.03，下摆底 0.60，大腿在这个深度只摆 ±0.15，包得住）
 	if long_coat:
-		_part(upper, "coatSkirt", Vector3(0, -0.260, 0), Vector3(0.46, 0.27, 0.30), cloth)
-		_part(upper, "coatHem", Vector3(0, -0.383, 0), Vector3(0.475, 0.055, 0.315), Color(0.30, 0.17, 0.10))
-		_part(upper, "coatBackSlit", Vector3(0, -0.275, 0.152), Vector3(0.30, 0.22, 0.012), Color(0.05, 0.05, 0.05))
+		_part(upper, "coatSkirt", Vector3(0, -0.180, 0), Vector3(0.402, 0.430, 0.288), cloth)
+		_part(upper, "coatHem", Vector3(0, -0.369, 0), Vector3(0.416, 0.054, 0.302), Color(0.30, 0.17, 0.10))
+		_part(upper, "coatSeam", Vector3(0, -0.180, -0.148), Vector3(0.024, 0.420, 0.014), cloth.darkened(0.45))
+		_part(upper, "coatBackSlit", Vector3(0, -0.240, 0.148), Vector3(0.30, 0.300, 0.012), Color(0.05, 0.05, 0.05))
+		_part(upper, "coatBtn1", Vector3(0.050, -0.120, -0.150), Vector3(0.030, 0.030, 0.014), Color(0.62, 0.60, 0.52))
+		_part(upper, "coatBtn2", Vector3(0.050, -0.215, -0.150), Vector3(0.030, 0.030, 0.014), Color(0.62, 0.60, 0.52))
+		for pp in [-0.108, 0.108]:
+			_part(upper, "coatPocket" + ("L" if pp < 0 else "R"), Vector3(pp, -0.232, -0.147), Vector3(0.108, 0.092, 0.014), cloth.darkened(0.22))
 	# 每人的随身物（区分剪影）
 	match nm:
 		"林岚":
@@ -478,10 +511,10 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 			_part(upper, "caseSeam", Vector3(-0.262, -0.300, -0.02), Vector3(0.256, 0.012, 0.346), Color(0.30, 0.20, 0.10))
 			_part(upper, "caseGrip", Vector3(-0.255, -0.222, -0.02), Vector3(0.036, 0.062, 0.036), Color(0.10, 0.10, 0.12))
 		"周砚":
-			# 监听耳机改成挂在脖子上：颈带 + 两个耳罩（原来是一块黑盒子贴在腰上）
+			# 监听耳机挂在脖子上：颈带 + 两个耳罩
 			_part(upper, "headband", Vector3(0, 0.498, 0.012), Vector3(0.300, 0.048, 0.250), Color(0.10, 0.10, 0.12))
-			for ex in [-0.128, 0.128]:
-				_part(upper, "muff" + ("L" if ex < 0 else "R"), Vector3(ex, 0.470, 0.010), Vector3(0.062, 0.105, 0.100), Color(0.10, 0.10, 0.12))
+			for ex3 in [-0.128, 0.128]:
+				_part(upper, "muff" + ("L" if ex3 < 0 else "R"), Vector3(ex3, 0.470, 0.010), Vector3(0.062, 0.105, 0.100), Color(0.10, 0.10, 0.12))
 		"陈默":
 			# 公文包挂在右手下方
 			_part(upper, "brief", Vector3(0.255, -0.365, -0.02), Vector3(0.22, 0.24, 0.10), Color(0.17, 0.13, 0.10))
@@ -510,7 +543,7 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		"upper": upper, "head": hp}
 
 func _part(parent: Node3D, nm: String, p: Vector3, size: Vector3, col: Color,
-		emis := 0.0, tube := false) -> MeshInstance3D:
+		emis := 0.0, tube := false, rot := Vector3.ZERO) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.name = nm
 	if tube:
@@ -533,6 +566,7 @@ func _part(parent: Node3D, nm: String, p: Vector3, size: Vector3, col: Color,
 		m.emission_energy_multiplier = emis
 	mi.material_override = m
 	mi.position = p
+	mi.rotation = rot
 	parent.add_child(mi)
 	return mi
 
@@ -1342,7 +1376,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				_on_resume()
 			else:
 				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-
 
 # ------------------------------------------------------------------ 音频
 func _set_sel(v: int) -> void:
