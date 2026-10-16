@@ -57,6 +57,9 @@ var buttons := []
 var spots := []
 var t_now := 0.0
 var prompt: Variant = null
+var prompt_ring: MeshInstance3D = null      # 交互目标脚下的「呼吸环」
+var prompt_ring_mat: StandardMaterial3D = null
+var ring_flash := 0.0                      # 按下 E 之后 1 秒的高亮
 var sub := ""
 var sub_cps := 26.0
 var sub_time := 0.0
@@ -123,6 +126,7 @@ func _ready() -> void:
 	_make_npcs()
 	_make_buttons()
 	_make_switch_signal()
+	_make_prompt_ring()
 	train = TrainScript.new(self)
 	train.reset()
 	spots = [
@@ -652,6 +656,7 @@ func _process(delta: float) -> void:
 	_animate_doors(delta)
 	_animate_items(delta)
 	_update_interaction()
+	_update_prompt_ring(delta)
 	_update_hud()
 	_update_map()
 	_update_sub(delta)
@@ -936,6 +941,8 @@ func _show_end(kind: String) -> void:
 
 # ------------------------------------------------------------------ 对话 / 交互
 func _interact() -> void:
+	if prompt != null:
+		ring_flash = 1.0      # 目标脚下那一圈闪一下，确认这一下按下去了
 	if state == "ending":
 		if choice != null:
 			if Input.is_physical_key_pressed(KEY_E):
@@ -1201,6 +1208,69 @@ func _update_interaction() -> void:
 	if prompt != null:
 		hud_prompt.text = "[E]  " + str(prompt["text"])
 
+## 交互目标脚下的「呼吸环」：以前只有 HUD 上一行 [E] 文字，世界里的东西不说话。
+## 现在给当前目标在地面投影一圈琥珀色光环（呼吸），按下 E 的一瞬间整圈高亮 1 秒。
+func _make_prompt_ring() -> void:
+	prompt_ring = MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.200
+	tm.outer_radius = 0.245
+	tm.rings = 28                # 绕一圈 28 段（少了会变成方框，第一版 rings=4 渲出来是个菱形）
+	tm.ring_segments = 4      # 截面 4 边：低多边形，跟站体的棱面感一致
+	prompt_ring.mesh = tm
+	prompt_ring_mat = StandardMaterial3D.new()
+	prompt_ring_mat.albedo_color = Color(0.95, 0.72, 0.34, 0.5)
+	prompt_ring_mat.emission_enabled = true
+	prompt_ring_mat.emission = Color(0.95, 0.72, 0.34)
+	prompt_ring_mat.emission_energy_multiplier = 0.75
+	prompt_ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	prompt_ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	prompt_ring.material_override = prompt_ring_mat
+	prompt_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	prompt_ring.visible = false
+	add_child(prompt_ring)
+
+func _update_prompt_ring(delta: float) -> void:
+	if prompt_ring == null:
+		return
+	ring_flash = maxf(0.0, ring_flash - delta)
+	var p := Vector3.ZERO
+	var ok := false
+	if prompt != null:
+		match String(prompt["kind"]):
+			"item":
+				p = prompt["it"]["node"].global_position
+				ok = true
+			"npc":
+				p = prompt["npc"]["node"].global_position
+				ok = true
+			"button":
+				p = buttons[int(prompt["idx"])]["node"].global_position
+				ok = true
+			"door":
+				p = prompt["door"]["spot"]
+				ok = true
+			"spot":
+				p = prompt["spot"]["pos"]
+				ok = true
+	if not ok:
+		prompt_ring.visible = false
+		return
+	# 环要贴在地板上：从目标往上一点往下打一条射线，用命中的那个面当"地面"
+	var fy := p.y
+	var q := PhysicsRayQueryParameters3D.create(p + Vector3(0, 1.4, 0), p + Vector3(0, -6.0, 0))
+	q.collide_with_areas = false
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+	if not hit.is_empty():
+		fy = float(hit["position"].y)
+	prompt_ring.visible = true
+	prompt_ring.global_position = Vector3(p.x, fy + 0.025, p.z)
+	var t := float(Time.get_ticks_msec()) * 0.001
+	var breathe := sin(t * 3.4)
+	var br := 1.0 + 0.055 * breathe + ring_flash * 0.30
+	prompt_ring.scale = Vector3(br, 1.0, br)
+	prompt_ring_mat.albedo_color.a = clampf(0.42 + 0.16 * breathe + ring_flash * 0.5, 0.0, 1.0)
+	prompt_ring_mat.emission_energy_multiplier = 0.75 + 0.30 * breathe + ring_flash * 1.5
 # ------------------------------------------------------------------ 动画
 func _animate_doors(delta: float) -> void:
 	var lv: MeshInstance3D = get_meta("lever")
