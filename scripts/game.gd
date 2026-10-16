@@ -483,15 +483,15 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	for sgn in [-1.0, 1.0]:
 		var sfx := "L" if sgn < 0 else "R"
 		# 腿分大小腿：髋 0.995 → 膝 0.545 → 脚踝 0.09 → 鞋底正好 0.00（原来鞋在 0.26，三个人是悬空的）
-		_part(n, "leg" + sfx, Vector3(sgn * 0.105, 0.770, 0), Vector3(0.155, 0.45, 0.165), cloth2, 0.0, true)
-		_part(n, "shin" + sfx, Vector3(sgn * 0.105, 0.3175, 0), Vector3(0.140, 0.455, 0.150), cloth2, 0.0, true)
-		_part(n, "hemLeg" + sfx, Vector3(sgn * 0.105, 0.118, 0), Vector3(0.152, 0.032, 0.162), cloth2.darkened(0.35))
+		_part(n, "leg" + sfx, Vector3(sgn * 0.105, 0.770, 0), Vector3(0.176, 0.45, 0.180), cloth2, 0.0, true, Vector3.ZERO, false, 0.0, 0.068)
+		_part(n, "shin" + sfx, Vector3(sgn * 0.105, 0.3175, 0), Vector3(0.152, 0.455, 0.156), cloth2, 0.0, true, Vector3.ZERO, false, 0.0, 0.052)
+		_part(n, "hemLeg" + sfx, Vector3(sgn * 0.105, 0.118, 0), Vector3(0.118, 0.030, 0.128), cloth2.darkened(0.35))
 		_part(n, "shoe" + sfx, Vector3(sgn * 0.105, 0.045, -0.035), Vector3(0.155, 0.09, 0.26), Color(0.07, 0.07, 0.08), 0.0, false, Vector3.ZERO, false, 0.014)
 		_part(upper, "shoulderCap" + sfx, Vector3(sgn * 0.225, 0.408, 0), Vector3(0.210, 0.190, 0.220), cloth, 0.0, false, Vector3.ZERO, true)
-		_part(upper, "armU" + sfx, Vector3(sgn * 0.238, 0.310, 0), Vector3(0.115, 0.33, 0.125), cloth, 0.0, true)
-		_part(upper, "armL" + sfx, Vector3(sgn * 0.250, -0.010, -0.030), Vector3(0.100, 0.31, 0.110), cloth, 0.0, true)
+		_part(upper, "armU" + sfx, Vector3(sgn * 0.238, 0.310, 0), Vector3(0.132, 0.33, 0.138), cloth, 0.0, true, Vector3.ZERO, false, 0.0, 0.054)
+		_part(upper, "armL" + sfx, Vector3(sgn * 0.250, -0.010, -0.030), Vector3(0.110, 0.31, 0.118), cloth, 0.0, true, Vector3.ZERO, false, 0.0, 0.044)
 		# 袖口：袖管压住手掌上沿 2cm，手不再是一块飘在袖子下面的浅色方块
-		_part(upper, "cuff" + sfx, Vector3(sgn * 0.250, -0.132, -0.030), Vector3(0.118, 0.058, 0.128), cloth.darkened(0.28), 0.0, true)
+		_part(upper, "cuff" + sfx, Vector3(sgn * 0.250, -0.132, -0.030), Vector3(0.104, 0.058, 0.112), cloth.darkened(0.28), 0.0, true)
 		_part(upper, "hand" + sfx, Vector3(sgn * 0.250, -0.196, -0.046), Vector3(0.088, 0.108, 0.096), skin)
 	# 及膝长大衣下摆（挂在躯干节点上；上沿顶到躯干底 1.03，下摆底 0.60，大腿在这个深度只摆 ±0.15，包得住）
 	if long_coat:
@@ -544,7 +544,8 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		"upper": upper, "head": hp}
 
 func _part(parent: Node3D, nm: String, p: Vector3, size: Vector3, col: Color,
-		emis := 0.0, tube := false, rot := Vector3.ZERO, ball := false, bev := 0.0) -> MeshInstance3D:
+		emis := 0.0, tube := false, rot := Vector3.ZERO, ball := false, bev := 0.0,
+		bot := 0.0) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.name = nm
 	if bev > 0.0:
@@ -560,7 +561,7 @@ func _part(parent: Node3D, nm: String, p: Vector3, size: Vector3, col: Color,
 	elif tube:
 		var cm := CylinderMesh.new()
 		cm.top_radius = size.x * 0.5
-		cm.bottom_radius = size.x * 0.5
+		cm.bottom_radius = size.x * 0.5 if bot <= 0.0 else bot
 		cm.height = size.y
 		cm.radial_segments = 8
 		mi.mesh = cm

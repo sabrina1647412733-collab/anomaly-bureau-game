@@ -112,11 +112,11 @@ func _mesh_box(size: Vector3, col: Color, off: Vector3, emis := 0.0) -> MeshInst
 	mi.position = off
 	return mi
 
-func _mesh_cyl(size: Vector3, col: Color, off: Vector3) -> MeshInstance3D:
+func _mesh_cyl(size: Vector3, col: Color, off: Vector3, bot := 0.0) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = size.x * 0.5
-	cm.bottom_radius = size.x * 0.5
+	cm.bottom_radius = size.x * 0.5 if bot <= 0.0 else bot
 	cm.height = size.y
 	cm.radial_segments = 10
 	mi.mesh = cm
@@ -226,17 +226,17 @@ func _build_body() -> void:
 	for sgn in [-1.0, 1.0]:
 		var sfx := "L" if sgn < 0 else "R"
 		var sh := _joint("shoulder" + sfx, body, Vector3(sgn * 0.25, 1.40, 0))
-		sh.add_child(_mesh_cyl(Vector3(0.125, 0.44, 0.125), coat, Vector3(0, -0.22, 0)))          # 上臂（圆管）
+		sh.add_child(_mesh_cyl(Vector3(0.140, 0.44, 0.140), coat, Vector3(0, -0.22, 0), 0.058))          # 上臂（圆管）
 		var el := _joint("elbow" + sfx, sh, Vector3(0, -0.42, 0))
-		el.add_child(_mesh_cyl(Vector3(0.115, 0.34, 0.115), coat, Vector3(0, -0.17, 0)))          # 小臂
-		el.add_child(_mesh_cyl(Vector3(0.119, 0.024, 0.119), shirt, Vector3(0, -0.268, 0)))        # 露出来的衬衫袖口
-		el.add_child(_mesh_cyl(Vector3(0.126, 0.060, 0.126), coat.darkened(0.30), Vector3(0, -0.302, 0)))  # 制服袖口
+		el.add_child(_mesh_cyl(Vector3(0.120, 0.34, 0.120), coat, Vector3(0, -0.17, 0), 0.044))          # 小臂
+		el.add_child(_mesh_cyl(Vector3(0.108, 0.024, 0.108), shirt, Vector3(0, -0.268, 0)))        # 露出来的衬衫袖口
+		el.add_child(_mesh_cyl(Vector3(0.116, 0.060, 0.116), coat.darkened(0.30), Vector3(0, -0.302, 0)))  # 制服袖口
 		el.add_child(_mesh_box(Vector3(0.086, 0.106, 0.094), skin, Vector3(0, -0.372, -0.008)))    # 手（缩小内收，被袖口压住上沿）
 		var hp := _joint("hip" + sfx, body, Vector3(sgn * 0.11, 0.84, 0))
-		hp.add_child(_mesh_cyl(Vector3(0.175, 0.40, 0.175), dark, Vector3(0, -0.20, 0)))          # 大腿
+		hp.add_child(_mesh_cyl(Vector3(0.192, 0.40, 0.192), dark, Vector3(0, -0.20, 0), 0.074))          # 大腿
 		var kn := _joint("knee" + sfx, hp, Vector3(0, -0.40, 0))
-		kn.add_child(_mesh_cyl(Vector3(0.155, 0.36, 0.155), dark, Vector3(0, -0.18, 0)))          # 小腿
-		kn.add_child(_mesh_box(Vector3(0.152, 0.032, 0.162), dark.darkened(0.35), Vector3(0, -0.330, 0)))  # 裤脚
+		kn.add_child(_mesh_cyl(Vector3(0.164, 0.36, 0.164), dark, Vector3(0, -0.18, 0), 0.055))          # 小腿
+		kn.add_child(_mesh_box(Vector3(0.124, 0.030, 0.134), dark.darkened(0.35), Vector3(0, -0.330, 0)))  # 裤脚
 		var ft := _joint("foot" + sfx, kn, Vector3(0, -0.36, 0))
 		ft.add_child(_mesh_bevbox(Vector3(0.15, 0.08, 0.28), Color(0.08, 0.09, 0.11), Vector3(0, -0.04, -0.05), 0.014))
 	body.visible = false
