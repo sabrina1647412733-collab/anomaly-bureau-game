@@ -79,6 +79,15 @@ func _run(nm: String, x: float, y: float, z: float, yaw: float, pitch: float,
 	if flags.has("items"):
 		for it in game.items:
 			it["node"].visible = true
+	if flags.has("clues"):
+		for it in game.items:
+			it["got"] = true
+		game.saw_lag = true
+		game._refresh_items_ui()
+		var vis := ""
+		for bc in game.board_cards:
+			vis += ("1" if bc["node"].visible else "0")
+		print("[BOARD] 卡片可见性（7 张，应全 1）= ", vis)
 	if flags.has("third"):
 		game.player.toggle_cam()
 	if flags.has("cctv"):

@@ -90,16 +90,21 @@ var sig_red: MeshInstance3D = null
 var sig_green: MeshInstance3D = null
 var sig_light: OmniLight3D = null
 var dv_said := false
-var saw_lag := false              # 在岔区机位看见了「红灯晚了半秒」
+var saw_lag := false
+var board_cards: Array = []
+var board_root: Node3D
+const BOARD_X := -17.94
+const BOARD_Z0 := -16.80
+const BOARD_DZ := 0.60              # 在岔区机位看见了「红灯晚了半秒」
 var _dv_s0 := 0.0
 var _dv_end_s := 0.0
 
 var ITEM_DEFS := [
-	{"id":"red","name":"红灯延迟记录","where":"控制台 · 旧继电器端口","desc":"旧继电器端口的打印条。红灯比它该亮的时间晚了半秒。","pos":Vector3(-16.60, 1.156, -13.60),"col":Color(0.83,0.34,0.31),"round":0},
-	{"id":"tape","name":"倒放广播","where":"广播台 · 磁带机","desc":"把站内广播倒过来听，里面有一句被埋掉的话：「三道有人，改四道。」","pos":Vector3(-16.30, 1.172, -13.0),"col":Color(0.35,0.62,0.83),"round":1},
-	{"id":"key","name":"停用钥匙","where":"隧道 · 检修环线","desc":"十七年前那把停用钥匙。系统早换了，锁还认它。","pos":Vector3(10.80, -0.278, -60.50),"col":Color(0.88,0.64,0.29),"round":2},
-	{"id":"log","name":"巡检簿","where":"站台 · 长椅上","desc":"巡检簿被撕掉的一页。上面记着 00:16:43 那道手动进路。","pos":Vector3(-14.72, 0.516, 17.00),"col":Color(0.72,0.82,0.95),"round":2},
-	{"id":"relay5","name":"五号继电器","where":"信号室 · 继电器柜","desc":"五号继电器的反馈慢半拍。隔离它，进路才锁得死。","pos":Vector3(-17.150, 2.082, 26.700),"col":Color(0.25,0.75,0.56),"round":3},
+	{"id":"red", "short":"00:16:43 · 旧继电器端口","name":"红灯延迟记录","where":"控制台 · 旧继电器端口","desc":"旧继电器端口的打印条。红灯比它该亮的时间晚了半秒。","pos":Vector3(-16.60, 1.156, -13.60),"col":Color(0.83,0.34,0.31),"round":0},
+	{"id":"tape", "short":"「三道有人，改四道」","name":"倒放广播","where":"广播台 · 磁带机","desc":"把站内广播倒过来听，里面有一句被埋掉的话：「三道有人，改四道。」","pos":Vector3(-16.30, 1.172, -13.0),"col":Color(0.35,0.62,0.83),"round":1},
+	{"id":"key", "short":"十七年前那把","name":"停用钥匙","where":"隧道 · 检修环线","desc":"十七年前那把停用钥匙。系统早换了，锁还认它。","pos":Vector3(10.80, -0.278, -60.50),"col":Color(0.88,0.64,0.29),"round":2},
+	{"id":"log", "short":"00:16:43 手动进路","name":"巡检簿","where":"站台 · 长椅上","desc":"巡检簿被撕掉的一页。上面记着 00:16:43 那道手动进路。","pos":Vector3(-14.72, 0.516, 17.00),"col":Color(0.72,0.82,0.95),"round":2},
+	{"id":"relay5", "short":"反馈慢了半拍","name":"五号继电器","where":"信号室 · 继电器柜","desc":"五号继电器的反馈慢半拍。隔离它，进路才锁得死。","pos":Vector3(-17.150, 2.082, 26.700),"col":Color(0.25,0.75,0.56),"round":3},
 ]
 
 func _ready() -> void:
@@ -110,6 +115,7 @@ func _ready() -> void:
 	_make_hud()
 	_make_items()
 	_make_doors()
+	_make_clue_board()
 	_make_npcs()
 	_make_buttons()
 	_make_switch_signal()
@@ -120,6 +126,7 @@ func _ready() -> void:
 		{"id":"console","pos":Vector3(-16.6, 1.2, -14.0),"r":2.6,"label":"查看调度台"},
 		{"id":"handle","pos":Vector3(-16.70, 1.35, 30.80),"r":2.7,"label":"总调度手柄"},
 		{"id":"divert","pos":Vector3(7.7, -0.25, -112.4),"r":3.2,"label":"改环线 · 扳动道岔 1"},
+		{"id":"board","pos":Vector3(-17.5, 2.15, -14.5),"r":3.2,"label":"看值班记录板"},
 	]
 	for s in builder.seats:
 		spots.append({"id":"seat", "pos": s["pos"] + Vector3(0, 0.55, 0), "r": 2.1, "label": "坐下", "seat": s})
@@ -1007,6 +1014,8 @@ func _act(id: String) -> void:
 			else:
 				handle = true
 				_say("调度台", "进路已锁。0017 次，二道停车。")
+		"board":
+			_read_board()
 		"divert":
 			if not (_has_clue(2) or _has_clue(3)):
 				_say("旁白", "道岔锁着。锁扣上刻着两个字：停用。得有那把钥匙，或者巡检簿上的记录。")
@@ -1321,6 +1330,7 @@ func _set_sel(v: int) -> void:
 		bag.sel = v
 
 func _refresh_items_ui() -> void:
+	_refresh_clue_board()
 	if hotbar != null:
 		hotbar.items = items
 		hotbar.sel = bag_sel
@@ -1691,3 +1701,87 @@ func _cctv_tip() -> void:
 		return
 	saw_lag = true
 	_say("旁白", "岔区机位 CAM 07：红灯亮了。\n可是比它该亮的时刻——晚了半秒。")
+
+## 值班记录板：钉在值班台后墙上，五件记录按时间轴依次钉上去；
+## 另有两张附加卡——站台的「值班记录」（一直在）与监控里那半秒（在岔区机位看见后才出现）
+func _make_clue_board() -> void:
+	board_root = Node3D.new()
+	board_root.name = "ClueBoard"
+	add_child(board_root)
+	var frame_m := StandardMaterial3D.new()
+	frame_m.albedo_color = Color(0.13, 0.14, 0.16); frame_m.roughness = 0.8
+	var cork_m := StandardMaterial3D.new()
+	cork_m.albedo_color = Color(0.19, 0.15, 0.11); cork_m.roughness = 0.95
+	var zc := BOARD_Z0 + BOARD_DZ * 3.0
+	_item_part(board_root, Vector3(0.06, 0.98, 4.70), Vector3(BOARD_X - 0.03, 2.30, zc), frame_m)
+	_item_part(board_root, Vector3(0.03, 0.88, 4.60), Vector3(BOARD_X + 0.01, 2.30, zc), cork_m)
+	_item_part(board_root, Vector3(0.02, 0.028, 4.30), Vector3(BOARD_X + 0.03, 2.02, zc), frame_m)
+	var t := Label3D.new()
+	t.font = font; t.text = "0017 · 值班记录板"; t.font_size = 96
+	t.pixel_size = 0.26 / 96.0 * 2.2
+	t.modulate = Color(0.92, 0.95, 1.0); t.outline_size = 8
+	t.position = Vector3(BOARD_X + 0.05, 2.60, zc)
+	t.rotation.y = PI * 0.5
+	board_root.add_child(t)
+	var card_m := StandardMaterial3D.new()
+	card_m.albedo_color = Color(0.80, 0.81, 0.83); card_m.roughness = 0.92
+	var empty_m := StandardMaterial3D.new()
+	empty_m.albedo_color = Color(0.06, 0.07, 0.08); empty_m.roughness = 0.95
+	# 7 个卡位：0..4 = 五件记录；5 = 站台值班记录；6 = 监控里那半秒
+	for i in range(7):
+		var c := Node3D.new()
+		c.position = Vector3(BOARD_X + 0.03, 2.30, BOARD_Z0 - BOARD_DZ * float(i))
+		board_root.add_child(c)
+		_item_part(c, Vector3(0.014, 0.46, 0.52), Vector3.ZERO, card_m)
+		var lab := Label3D.new()
+		lab.font = font; lab.font_size = 96
+		lab.pixel_size = 0.21 / 96.0 * 2.2
+		lab.modulate = Color(0.10, 0.11, 0.14); lab.outline_size = 0
+		lab.position = Vector3(0.02, 0.02, 0)
+		lab.rotation.y = PI * 0.5
+		c.add_child(lab)
+		var pin_m := StandardMaterial3D.new()
+		pin_m.albedo_color = Color(0.70, 0.20, 0.18)
+		pin_m.emission_enabled = true
+		pin_m.emission = Color(0.80, 0.26, 0.22)
+		pin_m.emission_energy_multiplier = 0.9
+		if i < 5:
+			pin_m.albedo_color = ITEM_DEFS[i]["col"]
+			pin_m.emission = ITEM_DEFS[i]["col"]
+		_item_part(c, Vector3(0.024, 0.024, 0.024), Vector3(0.02, 0.20, 0), pin_m)
+		var blank := Node3D.new()
+		blank.name = "blank"
+		c.add_child(blank)
+		board_cards.append({"node": c, "label": lab, "blank": blank})
+
+func _refresh_clue_board() -> void:
+	if board_cards.size() == 0:
+		return
+	for i in range(board_cards.size()):
+		var bc: Dictionary = board_cards[i]
+		var c: Node3D = bc["node"]
+		var lab: Label3D = bc["label"]
+		var show := false
+		if i < 5:
+			show = _has_clue(i)
+			if show:
+				lab.text = "%s\n%s" % [String(ITEM_DEFS[i]["name"]), String(ITEM_DEFS[i]["short"])]
+		elif i == 5:
+			show = true                                  # 站台上那块「值班记录」一直在
+			lab.text = "值班记录\n00:16:43 手动进路\n记录人 林远舟"
+		else:
+			show = saw_lag                               # 监控里那半秒
+			lab.text = "监控 CAM 07\n红灯 晚了半秒"
+		c.visible = show
+
+func _read_board() -> void:
+	var got_n := _got_count()
+	var txt := "值班记录板：已钉 %d / 5 条记录。" % got_n
+	for i in range(ITEM_DEFS.size()):
+		if _has_clue(i):
+			txt += "\n· " + String(ITEM_DEFS[i]["name"])
+	if saw_lag:
+		txt += "\n· 监控里那半秒（CAM 07 岔区）"
+	if got_n >= 5:
+		txt += "\n\n五条记录连起来：00:16:43 那道手动进路，本来就不该存在。"
+	_say("旁白", txt)
