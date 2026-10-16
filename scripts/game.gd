@@ -90,6 +90,7 @@ var sig_red: MeshInstance3D = null
 var sig_green: MeshInstance3D = null
 var sig_light: OmniLight3D = null
 var dv_said := false
+var saw_lag := false              # 在岔区机位看见了「红灯晚了半秒」
 var _dv_s0 := 0.0
 var _dv_end_s := 0.0
 
@@ -1212,6 +1213,8 @@ func _update_map() -> void:
 			obs.append({"text": "回信号室 · 拉下总调度手柄", "pos": Vector3(-16.7, 1.15, 30.8)})
 		elif _got_count() < 5:
 			obs.append({"text": "集齐五件记录", "pos": Vector3(-16.2, 1.5, 27.2)})
+	if saw_lag:
+		obs.append({"text": "监控里那半秒（CAM 07 岔区）", "pos": Vector3(8.0, 0.0, -112.0), "done": true})
 	hud_map.objectives = obs
 	hud_map.round_title = ROUND_NAMES[round + 1]
 	var cl := {}
@@ -1281,6 +1284,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			if player.cam_mode == 3:
 				player.next_cctv()
 				_say("旁白", "监视器 %s（%s）" % [player.cctv_tag(), player.cctv_name()])
+				_cctv_tip()
+		elif event.physical_keycode == KEY_M:
+			if state == "play":
+				_toggle_cctv_review()
 		elif event.physical_keycode == KEY_B:
 			_toggle_bag(not bag_open)
 		elif event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_5:
@@ -1661,3 +1668,26 @@ func _anim_npcs(delta: float) -> void:
 		if dialog_npc == np and hud_sub != null and hud_sub.visible:
 			nod = sin(t * 6.2) * 0.05
 		hd.rotation.x = lerpf(hd.rotation.x, nod, clampf(delta * 6.0, 0.0, 1.0))
+
+# ------------------------------------------------------------------ 值班台回看监控（M）
+## 站在值班台前按 M：接上站内监控；再按 M 退出。岔区那台机位能看见「红灯晚了半秒」
+func _toggle_cctv_review() -> void:
+	if player.cam_mode == 3:
+		player.exit_cctv()
+		_say("旁白", "断开监控，回到你自己的视角。")
+		return
+	var desk := Vector3(-16.95, 0.0, -13.85)          # 值班台（调度台）中心
+	if player.global_position.distance_to(desk) > 3.2:
+		_say("旁白", "要回看监控，得站在值班台前。")
+		return
+	player.enter_cctv()
+	_say("旁白", "接上站内监控。[N] 换机位　[M] 断开")
+	_cctv_tip()
+
+func _cctv_tip() -> void:
+	if player.cam_mode != 3 or saw_lag:
+		return
+	if player.cctv_i != 6:                            # CAM 07 = 岔区
+		return
+	saw_lag = true
+	_say("旁白", "岔区机位 CAM 07：红灯亮了。\n可是比它该亮的时刻——晚了半秒。")

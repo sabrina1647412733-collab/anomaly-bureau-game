@@ -760,6 +760,19 @@ func tunnel_detail() -> void:
         b.box("metalD", _v(bx - 0.30, by + 0.17, tz), _v(bx, by + 0.23, tz + 0.06), false)
         b.box("metalD", _v(bx + 0.00, by - 0.04, tz), _v(bx + 0.30, by + 0.02, tz + 0.06), false)
         tz += 3.5
+    # 洞口照明：原来拱圈外侧没有任何光源，实测那段画面亮度只有 16–32（做了等于没做）
+    for zi in [0, 1]:
+        var zp: float = ZS0 - 0.18 if zi == 0 else ZS1 + 0.18
+        var fz: String = "k" if zi == 0 else "f"
+        for xw in [0.95, 7.05]:
+            b.box("metalD", _v(xw - 0.16, 1.10, zp - 0.11), _v(xw + 0.16, 1.44, zp + 0.11), false)
+            b.box("lampC", _v(xw - 0.11, 1.18, zp + (-0.19 if zi == 0 else 0.19)),
+                  _v(xw + 0.11, 1.36, zp + (-0.27 if zi == 0 else 0.27)), false, fz)
+        b.box("metalD", _v(3.20, 4.48, zp - 0.16), _v(4.80, 4.62, zp + 0.16), false)
+        b.box("lamp", _v(3.34, 4.38, zp - 0.12), _v(4.66, 4.50, zp + 0.12), false, "b")
+        b.light(_v(4.0, 4.05, zp), Color(0.86, 0.88, 0.96), 3.4, 8.0, false)
+        b.light(_v(1.10, 1.55, zp), Color(0.60, 0.74, 0.94), 1.8, 5.5, false)
+        b.light(_v(6.90, 1.55, zp), Color(0.60, 0.74, 0.94), 1.8, 5.5, false)
     # 洞口附近的检修梯（圆管横档 + 圆管立杆）
     for i in range(8):
         var ly := TY + 0.32 + float(i) * 0.34
@@ -814,8 +827,8 @@ func branch_area() -> void:
         var zz := -60.0 + float(i) * 18.0
         b.box("conc", _v(13.8, TY - 0.01, zz), _v(17.2, TY + 0.03, zz + 0.26), false)
         b.box("lampC", _v(SX0 + 0.02, 3.30, zz), _v(SX0 + 0.22, 3.44, zz + 1.6), false, "p")
-        if i % 3 == 1:
-            b.light(_v(SX0 + 1.0, 3.1, zz + 0.8), Color(0.40, 0.60, 0.80), 1.4, 10.0, false)
+        if i % 2 == 1:
+            b.light(_v(SX0 + 1.0, 3.1, zz + 0.8), Color(0.42, 0.62, 0.84), 1.9, 12.0, false)
     # —— 侧线钢轨
     for rx in [BR_X1 - 0.72, BR_X1 + 0.72]:
         b.box("metal", _v(rx - 0.045, TY, BR_Z1), _v(rx + 0.045, TY + 0.16, SZ1 - 6.0), false)
@@ -858,6 +871,27 @@ func branch_area() -> void:
     b.light(_v(11.2, QY - 0.5, -118.0), Color(0.55, 0.68, 0.86), 2.0, 16.0, false)
     b.light(_v(11.2, QY - 0.5, -96.0), Color(0.55, 0.68, 0.86), 2.0, 16.0, false)
     b.light(_v(11.2, QY - 0.5, -74.0), Color(0.55, 0.68, 0.86), 2.0, 16.0, false)
+    b.light(_v(11.2, QY - 0.5, -108.0), Color(0.58, 0.70, 0.88), 2.2, 15.0, false)
+    b.light(_v(11.2, QY - 0.5, -85.0), Color(0.58, 0.70, 0.88), 2.2, 15.0, false)
+    b.light(_v(11.2, QY - 0.5, -68.0), Color(0.58, 0.70, 0.88), 2.0, 13.0, false)
+    # ---- 岔区里的检修东西：备用钢轨 / 电缆盘 / 工具箱 / 警示锥 / 应急灯 ----
+    for i in range(3):
+        b.box("metal", _v(15.4, TY + 0.10 + float(i) * 0.13, -116.0), _v(15.9, TY + 0.20 + float(i) * 0.13, -104.0), false)
+    b.box("woodD", _v(15.3, TY + 0.02, -117.4), _v(16.0, TY + 0.14, -112.8), false)
+    for dz in [-119.6, -101.5]:
+        b.cyl("rust", 14.10, dz, TY + 0.02, TY + 1.05, 0.52, 0.52, 14, false, false)
+        b.cyl("dark", 14.10, dz, TY + 1.05, TY + 1.12, 0.54, 0.54, 14, true, false)
+        b.cyl("metalD", 14.10, dz, TY + 0.30, TY + 0.36, 0.20, 0.20, 10, false, false)
+    b.box("hazard", _v(9.30, TY + 0.60, -112.0), _v(9.90, TY + 0.66, -112.6), false)
+    for cz in [-110.8, -111.9, -113.0]:
+        b.cyl("hazard", 9.60, cz, TY, TY + 0.42, 0.16, 0.05, 10, false, true)
+    b.box("metalD", _v(12.60, TY + 0.02, -120.0), _v(13.40, TY + 0.34, -119.3), false)
+    b.box("dark", _v(12.62, TY + 0.34, -119.96), _v(13.38, TY + 0.40, -119.34), false)
+    var fl: OmniLight3D = b.light(_v(12.9, TY + 1.30, -119.6), Color(0.90, 0.32, 0.26), 1.9, 8.0, false)
+    fl.set_meta("flicker", 3.0)
+    b.box("red", _v(12.80, TY + 0.95, -119.70), _v(13.20, TY + 1.06, -119.60), false, "p")
+    b.box("dark", _v(13.10, TY + 0.02, -100.0), _v(13.30, TY + 1.80, -99.90), false, "p")
+    b.plaque("检修环线 · 禁止单人进入", _v(13.12, TY + 1.45, -100.0), 1.5, 0.30, "x", -1, Color(0.95, 0.72, 0.42))
 
 func branch_pt(z: float) -> Vector3:
     var t := clampf((z - BR_Z0) / (BR_Z1 - BR_Z0), 0.0, 1.0)

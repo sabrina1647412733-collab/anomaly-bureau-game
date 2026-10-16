@@ -43,6 +43,7 @@ var allow_capture := true
 var cam_mode := 0          # 0 第一人称 / 1 第三人称 / 2 第二人称（正面看眼睛）/ 3 监视器
 var cctv_i := 0
 var _fov_before_cctv := 74.0
+var _cam_before_review := 0
 var crouching := false
 var crouch_k := 0.0
 var sitting := false
@@ -241,18 +242,43 @@ func toggle_cam() -> void:
 	cam_mode = (cam_mode + 1) % 4
 	if cam_mode == 3:
 		_fov_before_cctv = cam.fov
-		# 进入监视器视角时，自动挑离玩家最近的那台
-		var best := 0
-		var bd := 1e9
-		for i in range(CCTV.size()):
-			var d: float = (CCTV[i]["pos"] as Vector3).distance_to(global_position)
-			if d < bd:
-				bd = d
-				best = i
-		cctv_i = best
+		_pick_cctv()
 		cam.fov = CCTV_FOV
 	elif prev == 3:
 		cam.fov = _fov_before_cctv
+	body.visible = (cam_mode != 0)
+	if view_arm != null:
+		view_arm.visible = (cam_mode == 0 and not sitting)
+
+## 挑离玩家最近的那台监视器
+func _pick_cctv() -> void:
+	var best := 0
+	var bd := 1e9
+	for i in range(CCTV.size()):
+		var d: float = (CCTV[i]["pos"] as Vector3).distance_to(global_position)
+		if d < bd:
+			bd = d
+			best = i
+	cctv_i = best
+
+## 由值班台进入监视器视角（M 键）；退出时回到进入前的视角
+func enter_cctv() -> void:
+	if cam_mode == 3:
+		return
+	_cam_before_review = cam_mode
+	_fov_before_cctv = cam.fov
+	cam_mode = 3
+	_pick_cctv()
+	cam.fov = CCTV_FOV
+	body.visible = true
+	if view_arm != null:
+		view_arm.visible = false
+
+func exit_cctv() -> void:
+	if cam_mode != 3:
+		return
+	cam_mode = _cam_before_review
+	cam.fov = _fov_before_cctv
 	body.visible = (cam_mode != 0)
 	if view_arm != null:
 		view_arm.visible = (cam_mode == 0 and not sitting)
