@@ -1,0 +1,13 @@
+# Godot 编辑器缓存（可重新生成）
+.godot/
+
+# 渲染与截图中间产物（本地留档，不进库）
+_shot/
+_预览/
+
+# 本地工具与导出模板包（ffmpeg / cloudflared / export_templates.tpz）
+_tools/
+
+# 临时文件
+*.bak
+_test_save.json
