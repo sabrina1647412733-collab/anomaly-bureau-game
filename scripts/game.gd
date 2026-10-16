@@ -1718,7 +1718,7 @@ func _make_clue_board() -> void:
 	_item_part(board_root, Vector3(0.02, 0.028, 4.30), Vector3(BOARD_X + 0.03, 2.02, zc), frame_m)
 	var t := Label3D.new()
 	t.font = font; t.text = "0017 · 值班记录板"; t.font_size = 96
-	t.pixel_size = 0.26 / 96.0 * 2.2
+	t.pixel_size = 0.052 / 96.0 * 2.2
 	t.modulate = Color(0.92, 0.95, 1.0); t.outline_size = 8
 	t.position = Vector3(BOARD_X + 0.05, 2.60, zc)
 	t.rotation.y = PI * 0.5
@@ -1735,7 +1735,7 @@ func _make_clue_board() -> void:
 		_item_part(c, Vector3(0.014, 0.46, 0.52), Vector3.ZERO, card_m)
 		var lab := Label3D.new()
 		lab.font = font; lab.font_size = 96
-		lab.pixel_size = 0.21 / 96.0 * 2.2
+		lab.pixel_size = 0.030 / 96.0 * 2.2
 		lab.modulate = Color(0.10, 0.11, 0.14); lab.outline_size = 0
 		lab.position = Vector3(0.02, 0.02, 0)
 		lab.rotation.y = PI * 0.5
