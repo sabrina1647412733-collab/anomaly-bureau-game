@@ -11,7 +11,7 @@ const GRAV := 22.0
 const KEY_TURN := 1.9
 const EYE := 1.66
 const EYE_CROUCH := 1.02
-const EYE_SIT := 1.32
+const EYE_SIT := 1.30
 const COYOTE := 0.12
 const PITCH_MAX := 1.45
 const TP_DIST := 3.3
@@ -117,43 +117,46 @@ func _joint(nm: String, parent: Node3D, joint: Vector3) -> Node3D:
 	return n
 
 func _build_body() -> void:
-	var coat := Color(0.22, 0.28, 0.36)
-	var dark := Color(0.12, 0.14, 0.18)
-	var vest := Color(0.85, 0.62, 0.20)
+	# 配色取自选定的 A 方向概念图：藏青制服 + 琥珀反光背心 + 深灰长裤
+	var coat := Color(0.14, 0.14, 0.24)
+	var dark := Color(0.24, 0.24, 0.24)
+	var vest := Color(0.80, 0.52, 0.14)
 	body = Node3D.new()
 	body.name = "Body"
 	add_child(body)
 
 	var hip := _joint("hip", body, Vector3(0, 0.86, 0))
-	var skin := Color(0.70, 0.56, 0.47)
+	var skin := Color(0.90, 0.71, 0.60)
 	hip.add_child(_mesh_box(Vector3(0.36, 0.20, 0.24), dark, Vector3(0, 0.0125, 0)))
 	var torso := _joint("torso", body, Vector3(0, 0.94, 0))
 	torso.add_child(_mesh_box(Vector3(0.42, 0.50, 0.26), coat, Vector3(0, 0.25, 0)))
-	torso.add_child(_mesh_box(Vector3(0.46, 0.30, 0.29), vest, Vector3(0, 0.26, 0), 0.55))   # 反光背心
+	torso.add_child(_mesh_box(Vector3(0.44, 0.44, 0.275), vest, Vector3(0, 0.22, 0), 0.55))   # 反光背心（A 里是从胸到胯的长背心）
+	torso.add_child(_mesh_box(Vector3(0.45, 0.045, 0.285), Color(0.89, 0.80, 0.33), Vector3(0, 0.36, 0), 0.9))
+	torso.add_child(_mesh_box(Vector3(0.45, 0.045, 0.285), Color(0.89, 0.80, 0.33), Vector3(0, 0.13, 0), 0.9))
 	torso.add_child(_mesh_box(Vector3(0.44, 0.045, 0.27), dark, Vector3(0, 0.01, 0)))          # 腰带
 	torso.add_child(_mesh_box(Vector3(0.10, 0.14, 0.02), vest, Vector3(0.11, 0.34, -0.15), 0.9))  # 工牌
 	torso.add_child(_mesh_box(Vector3(0.38, 0.02, 0.02), dark, Vector3(0, 0.44, -0.13)))        # 挂绳
 	torso.add_child(_mesh_box(Vector3(0.12, 0.14, 0.07), Color(0.30, 0.26, 0.20), Vector3(-0.15, 0.06, 0.15)))  # 工具腰包
 	var head := _joint("head", body, Vector3(0, 1.44, 0))
-	head.add_child(_mesh_box(Vector3(0.22, 0.23, 0.22), skin, Vector3(0, 0.12, 0)))
-	head.add_child(_mesh_box(Vector3(0.235, 0.065, 0.235), Color(0.10, 0.09, 0.10), Vector3(0, 0.045, 0.008)))
+	head.add_child(_mesh_box(Vector3(0.205, 0.20, 0.205), skin, Vector3(0, 0.105, 0)))
+	head.add_child(_mesh_box(Vector3(0.215, 0.055, 0.215), Color(0.10, 0.09, 0.10), Vector3(0, 0.038, 0.007)))
 	for ex in [-0.055, 0.055]:
-		head.add_child(_mesh_box(Vector3(0.045, 0.026, 0.02), Color(0.06, 0.06, 0.07), Vector3(ex, 0.135, -0.105)))
-	head.add_child(_mesh_box(Vector3(0.24, 0.09, 0.24), dark, Vector3(0, 0.255, 0)))            # 帽子
-	head.add_child(_mesh_box(Vector3(0.26, 0.03, 0.10), dark, Vector3(0, 0.225, -0.13)))        # 帽檐
-	head.add_child(_mesh_box(Vector3(0.06, 0.03, 0.02), vest, Vector3(0, 0.20, -0.115), 0.6))   # 帽徽
+		head.add_child(_mesh_box(Vector3(0.042, 0.024, 0.02), Color(0.06, 0.06, 0.07), Vector3(ex, 0.118, -0.098)))
+	head.add_child(_mesh_box(Vector3(0.225, 0.075, 0.225), dark, Vector3(0, 0.235, 0)))            # 帽子
+	head.add_child(_mesh_box(Vector3(0.245, 0.028, 0.095), dark, Vector3(0, 0.208, -0.122)))        # 帽檐
+	head.add_child(_mesh_box(Vector3(0.058, 0.028, 0.02), vest, Vector3(0, 0.185, -0.108), 0.6))   # 帽徽
 	for sgn in [-1.0, 1.0]:
 		var sfx := "L" if sgn < 0 else "R"
-		var sh := _joint("shoulder" + sfx, body, Vector3(sgn * 0.27, 1.40, 0))
+		var sh := _joint("shoulder" + sfx, body, Vector3(sgn * 0.25, 1.40, 0))
 		sh.add_child(_mesh_cyl(Vector3(0.125, 0.44, 0.125), coat, Vector3(0, -0.22, 0)))        # 上臂（圆管）
 		var el := _joint("elbow" + sfx, sh, Vector3(0, -0.42, 0))
 		el.add_child(_mesh_cyl(Vector3(0.115, 0.34, 0.115), coat, Vector3(0, -0.17, 0)))        # 小臂
 		el.add_child(_mesh_box(Vector3(0.095, 0.11, 0.10), skin, Vector3(0, -0.38, 0)))          # 手
 		var hp := _joint("hip" + sfx, body, Vector3(sgn * 0.11, 0.84, 0))
-		hp.add_child(_mesh_cyl(Vector3(0.175, 0.46, 0.175), dark, Vector3(0, -0.23, 0)))        # 大腿
-		var kn := _joint("knee" + sfx, hp, Vector3(0, -0.44, 0))
-		kn.add_child(_mesh_cyl(Vector3(0.155, 0.42, 0.155), dark, Vector3(0, -0.21, 0)))        # 小腿
-		var ft := _joint("foot" + sfx, kn, Vector3(0, -0.42, 0))
+		hp.add_child(_mesh_cyl(Vector3(0.175, 0.40, 0.175), dark, Vector3(0, -0.20, 0)))        # 大腿
+		var kn := _joint("knee" + sfx, hp, Vector3(0, -0.40, 0))
+		kn.add_child(_mesh_cyl(Vector3(0.155, 0.36, 0.155), dark, Vector3(0, -0.18, 0)))        # 小腿
+		var ft := _joint("foot" + sfx, kn, Vector3(0, -0.36, 0))
 		ft.add_child(_mesh_box(Vector3(0.15, 0.08, 0.28), Color(0.08, 0.09, 0.11), Vector3(0, -0.04, -0.05)))
 	body.visible = false
 
@@ -163,9 +166,9 @@ func _build_viewarm() -> void:
 	view_arm.position = Vector3(0.26, -0.26, -0.42)
 	cam.add_child(view_arm)
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.24, 0.30, 0.38)
+	mat.albedo_color = Color(0.14, 0.14, 0.24)
 	mat.emission_enabled = true
-	mat.emission = Color(0.24, 0.30, 0.38)
+	mat.emission = Color(0.14, 0.14, 0.24)
 	mat.emission_energy_multiplier = 0.18
 	var gmat := StandardMaterial3D.new()
 	gmat.albedo_color = Color(0.17, 0.18, 0.21)
@@ -209,9 +212,9 @@ func _build_viewarm() -> void:
 	cuff.mesh = cb
 	cuff.position = Vector3(0.02, -0.05, -0.02)
 	var cm := StandardMaterial3D.new()
-	cm.albedo_color = Color(0.85, 0.62, 0.20)
+	cm.albedo_color = Color(0.80, 0.52, 0.14)
 	cm.emission_enabled = true
-	cm.emission = Color(0.85, 0.62, 0.20)
+	cm.emission = Color(0.80, 0.52, 0.14)
 	cm.emission_energy_multiplier = 0.30
 	cuff.material_override = cm
 	view_arm.add_child(cuff)
@@ -398,15 +401,15 @@ func _update_body(delta: float, planar: float) -> void:
 		# 第一人称坐姿必须藏掉自己的头：相机会正好落在头部方块内部，不藏就是穿模。
 		body.visible = true
 		parts["head"].visible = (cam_mode == 1)
-		parts["hip"].position = Vector3(0, 0.59, 0)
-		parts["torso"].position = Vector3(0, 0.67, 0)
-		parts["head"].position = Vector3(0, 1.17, 0)
+		parts["hip"].position = Vector3(0, 0.575, 0)
+		parts["torso"].position = Vector3(0, 0.655, 0)
+		parts["head"].position = Vector3(0, 1.155, 0)
 		for sgn in ["L", "R"]:
-			parts["shoulder" + sgn].position = Vector3((-0.27 if sgn == "L" else 0.27), 1.13, 0)
+			parts["shoulder" + sgn].position = Vector3((-0.25 if sgn == "L" else 0.25), 1.115, 0)
 			parts["shoulder" + sgn].rotation = Vector3(0.35, 0, 0)
-			parts["hip" + sgn].position = Vector3((-0.11 if sgn == "L" else 0.11), 0.59, 0)
-			parts["hip" + sgn].rotation = Vector3(1.3649, 0, 0)
-			parts["knee" + sgn].rotation = Vector3(-1.3649, 0, 0)
+			parts["hip" + sgn].position = Vector3((-0.11 if sgn == "L" else 0.11), 0.575, 0)
+			parts["hip" + sgn].rotation = Vector3(1.279, 0, 0)
+			parts["knee" + sgn].rotation = Vector3(-1.279, 0, 0)
 			parts["elbow" + sgn].rotation = Vector3(0.45, 0, 0)
 		return
 	body.visible = (cam_mode == 1)

@@ -323,26 +323,32 @@ func _make_npcs() -> void:
 func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionary:
 	var n := Node3D.new()
 	n.position = pos
-	var skin := Color(0.68, 0.55, 0.46)
-	var cloth := Color(0.26, 0.34, 0.44)
-	var cloth2 := Color(0.15, 0.18, 0.23)
-	var hair := Color(0.10, 0.09, 0.10)
+	# 配色直接取自选定的 A 方向概念图（_预览/角色概念/A_低多边形极简.png）：
+	# 皮肤 #e4b49c / 藏青制服 #24243c / 深灰长裤 #3c3c3c / 青蓝工作服 #24546c /
+	# 棕色大衣 #6c3c24 / 灰绿夹克 #305030 / 琥珀背心 #cc8424 + 亮黄条 #e4cc54
+	var skin := Color(0.90, 0.71, 0.60)
+	var cloth := Color(0.14, 0.14, 0.24)
+	var cloth2 := Color(0.24, 0.24, 0.24)
+	var hair := Color(0.05, 0.05, 0.06)
 	var cap_on := false
+	var long_coat := false
 	match nm:
 		"林岚":
-			cloth = Color(0.20, 0.36, 0.50)
-			cloth2 = Color(0.13, 0.17, 0.23)
-			n.rotation.y = -PI * 0.5          # 站在信号室门口，面朝站台（+X）
+			cloth = Color(0.14, 0.33, 0.42)       # 青蓝工作服
+			cloth2 = Color(0.24, 0.24, 0.24)      # 灰长裤
+			hair = Color(0.05, 0.05, 0.14)
+			n.rotation.y = -PI * 0.5              # 站在信号室门口，面朝站台（+X）
 		"周砚":
-			cloth = Color(0.42, 0.31, 0.20)
-			cloth2 = Color(0.16, 0.14, 0.16)
-			n.rotation.y = 0.0                # 站台南头，面朝北（-Z）
+			cloth = Color(0.42, 0.24, 0.14)       # 棕色大衣
+			cloth2 = Color(0.06, 0.06, 0.06)      # 近黑长裤
+			long_coat = true                      # A 里他穿及膝长大衣
+			n.rotation.y = 0.0                    # 站台南头，面朝北（-Z）
 		"陈默":
-			cloth = Color(0.22, 0.25, 0.23)
-			cloth2 = Color(0.12, 0.13, 0.14)
-			hair = Color(0.56, 0.56, 0.57)
+			cloth = Color(0.23, 0.26, 0.23)       # 灰绿夹克
+			cloth2 = Color(0.14, 0.14, 0.14)      # 近黑长裤
+			hair = Color(0.14, 0.24, 0.24)        # 帽子 / 发（青灰）
 			cap_on = true
-			n.rotation.y = PI                 # 北隧道口，面朝站台（+Z）
+			n.rotation.y = PI                     # 北隧道口，面朝站台（+Z）
 	# 头 / 发 / 帽 / 眼
 	_part(n, "head", Vector3(0, 1.60, 0), Vector3(0.21, 0.23, 0.20), skin)
 	_part(n, "hair", Vector3(0, 1.705, -0.01), Vector3(0.235, 0.075, 0.225), hair)
@@ -361,11 +367,18 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	# 四肢：圆管（比方块更像人）
 	for sgn in [-1.0, 1.0]:
 		var sfx := "L" if sgn < 0 else "R"
-		_part(n, "leg" + sfx, Vector3(sgn * 0.105, 0.665, 0), Vector3(0.155, 0.66, 0.165), cloth2, 0.0, true)
-		_part(n, "shoe" + sfx, Vector3(sgn * 0.105, 0.300, -0.035), Vector3(0.155, 0.085, 0.26), Color(0.07, 0.07, 0.08))
+		# 腿分大小腿：髋 0.995 → 膝 0.545 → 脚踝 0.09 → 鞋底正好 0.00（原来鞋在 0.26，三个人是悬空的）
+		_part(n, "leg" + sfx, Vector3(sgn * 0.105, 0.770, 0), Vector3(0.155, 0.45, 0.165), cloth2, 0.0, true)
+		_part(n, "shin" + sfx, Vector3(sgn * 0.105, 0.3175, 0), Vector3(0.140, 0.455, 0.150), cloth2, 0.0, true)
+		_part(n, "shoe" + sfx, Vector3(sgn * 0.105, 0.045, -0.035), Vector3(0.155, 0.09, 0.26), Color(0.07, 0.07, 0.08))
 		_part(n, "armU" + sfx, Vector3(sgn * 0.245, 1.305, 0), Vector3(0.115, 0.33, 0.125), cloth, 0.0, true)
 		_part(n, "armL" + sfx, Vector3(sgn * 0.255, 0.985, -0.030), Vector3(0.100, 0.31, 0.110), cloth, 0.0, true)
 		_part(n, "hand" + sfx, Vector3(sgn * 0.255, 0.790, -0.050), Vector3(0.095, 0.120, 0.100), skin)
+	# 及膝长大衣下摆（挂在躯干节点上；下摆底 0.60，大腿在这个深度只摆 ±0.15，包得住）
+	if long_coat:
+		_part(n, "coatSkirt", Vector3(0, 0.735, 0), Vector3(0.46, 0.27, 0.30), cloth)
+		_part(n, "coatHem", Vector3(0, 0.612, 0), Vector3(0.475, 0.055, 0.315), Color(0.30, 0.17, 0.10))
+		_part(n, "coatBackSlit", Vector3(0, 0.72, 0.152), Vector3(0.30, 0.22, 0.012), Color(0.05, 0.05, 0.05))
 	# 每人的随身物（区分剪影）
 	match nm:
 		"林岚":
