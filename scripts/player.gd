@@ -148,6 +148,9 @@ func _build_body() -> void:
 	hip.add_child(_mesh_box(Vector3(0.36, 0.20, 0.24), dark, Vector3(0, 0.0125, 0)))
 	var torso := _joint("torso", body, Vector3(0, 0.94, 0))
 	torso.add_child(_mesh_box(Vector3(0.42, 0.50, 0.26), coat, Vector3(0, 0.25, 0)))
+	torso.add_child(_mesh_box(Vector3(0.115, 0.080, 0.115), skin, Vector3(0, 0.470, 0)))
+	for sc in [-1.0, 1.0]:
+		torso.add_child(_mesh_box(Vector3(0.140, 0.080, 0.160), coat, Vector3(sc * 0.232, 0.455, 0)))
 	torso.add_child(_mesh_box(Vector3(0.44, 0.44, 0.275), vest, Vector3(0, 0.22, 0), 0.55))   # 反光背心（A 里是从胸到胯的长背心）
 	torso.add_child(_mesh_box(Vector3(0.45, 0.045, 0.285), Color(0.89, 0.80, 0.33), Vector3(0, 0.36, 0), 0.9))
 	torso.add_child(_mesh_box(Vector3(0.45, 0.045, 0.285), Color(0.89, 0.80, 0.33), Vector3(0, 0.13, 0), 0.9))
@@ -157,7 +160,10 @@ func _build_body() -> void:
 	torso.add_child(_mesh_box(Vector3(0.12, 0.14, 0.07), Color(0.30, 0.26, 0.20), Vector3(-0.15, 0.06, 0.15)))  # 工具腰包
 	var head := _joint("head", body, Vector3(0, 1.44, 0))
 	head.add_child(_mesh_box(Vector3(0.205, 0.20, 0.205), skin, Vector3(0, 0.105, 0)))
-	head.add_child(_mesh_box(Vector3(0.215, 0.055, 0.215), Color(0.10, 0.09, 0.10), Vector3(0, 0.038, 0.007)))
+	head.add_child(_mesh_box(Vector3(0.208, 0.040, 0.208), Color(0.10, 0.09, 0.10), Vector3(0, 0.210, 0.012)))
+	head.add_child(_mesh_box(Vector3(0.196, 0.180, 0.038), Color(0.10, 0.09, 0.10), Vector3(0, 0.108, 0.100)))
+	for hx in [-0.101, 0.101]:
+		head.add_child(_mesh_box(Vector3(0.028, 0.120, 0.186), Color(0.10, 0.09, 0.10), Vector3(hx, 0.148, 0.004)))
 	for ex in [-0.055, 0.055]:
 		head.add_child(_mesh_box(Vector3(0.042, 0.024, 0.02), Color(0.06, 0.06, 0.07), Vector3(ex, 0.118, -0.098)))
 	head.add_child(_mesh_box(Vector3(0.225, 0.075, 0.225), dark, Vector3(0, 0.235, 0)))            # 帽子
@@ -181,7 +187,7 @@ func _build_body() -> void:
 func _build_viewarm() -> void:
 	view_arm = Node3D.new()
 	view_arm.name = "ViewArm"
-	view_arm.position = Vector3(0.26, -0.26, -0.42)
+	view_arm.position = Vector3(0.30, -0.30, -0.62)
 	cam.add_child(view_arm)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.14, 0.14, 0.24)
@@ -196,39 +202,46 @@ func _build_viewarm() -> void:
 	gmat.emission_energy_multiplier = 0.10
 	var fore := MeshInstance3D.new()
 	var fm := CylinderMesh.new()
-	fm.top_radius = 0.052
-	fm.bottom_radius = 0.062
-	fm.height = 0.40
+	fm.top_radius = 0.056
+	fm.bottom_radius = 0.066
+	fm.height = 0.30
 	fm.radial_segments = 10
 	fore.mesh = fm
-	fore.position = Vector3(0.02, -0.05, -0.22)
+	fore.position = Vector3(0.010, -0.020, -0.10)
 	fore.rotation.x = PI * 0.5
 	fore.material_override = mat
 	view_arm.add_child(fore)
 	var hand := MeshInstance3D.new()
-	var hm := CylinderMesh.new()
-	hm.top_radius = 0.048
-	hm.bottom_radius = 0.054
-	hm.height = 0.16
-	hm.radial_segments = 8
+	var hm := BoxMesh.new()
+	hm.size = Vector3(0.115, 0.105, 0.150)
 	hand.mesh = hm
-	hand.position = Vector3(0.016, -0.062, -0.49)
-	hand.rotation.x = PI * 0.5
+	hand.position = Vector3(0.012, -0.045, -0.42)
 	hand.material_override = gmat
 	view_arm.add_child(hand)
+	var thumb := MeshInstance3D.new()
+	var tm := BoxMesh.new()
+	tm.size = Vector3(0.045, 0.050, 0.072)
+	thumb.mesh = tm
+	thumb.position = Vector3(-0.048, -0.030, -0.395)
+	thumb.material_override = gmat
+	view_arm.add_child(thumb)
 	for fx in [-0.026, 0.0, 0.026]:
 		var fg := MeshInstance3D.new()
 		var ff := BoxMesh.new()
-		ff.size = Vector3(0.021, 0.032, 0.075)
+		ff.size = Vector3(0.024, 0.034, 0.070)
 		fg.mesh = ff
-		fg.position = Vector3(0.016 + fx, -0.062, -0.60)
+		fg.position = Vector3(0.012 + fx, -0.048, -0.515)
 		fg.material_override = gmat
 		view_arm.add_child(fg)
 	var cuff := MeshInstance3D.new()
-	var cb := BoxMesh.new()
-	cb.size = Vector3(0.15, 0.15, 0.08)
-	cuff.mesh = cb
-	cuff.position = Vector3(0.02, -0.05, -0.02)
+	var cc := CylinderMesh.new()
+	cc.top_radius = 0.072
+	cc.bottom_radius = 0.072
+	cc.height = 0.055
+	cc.radial_segments = 10
+	cuff.mesh = cc
+	cuff.position = Vector3(0.010, -0.024, -0.262)
+	cuff.rotation.x = PI * 0.5
 	var cm := StandardMaterial3D.new()
 	cm.albedo_color = Color(0.80, 0.52, 0.14)
 	cm.emission_enabled = true

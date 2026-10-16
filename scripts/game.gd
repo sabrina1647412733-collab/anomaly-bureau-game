@@ -428,19 +428,24 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	n.add_child(upper)
 	var hp := Node3D.new()
 	hp.name = "headPivot"
-	hp.position = Vector3(0, 0.605, 0)          # 世界 y = 1.60
+	hp.position = Vector3(0, 0.625, 0)          # 世界 y = 1.62（抬高 2cm 给脖子留位置）
 	upper.add_child(hp)
 	# 头 / 发 / 帽 / 眼（坐标相对头枢轴）
 	_part(hp, "head", Vector3(0, 0, 0), Vector3(0.21, 0.23, 0.20), skin)
-	_part(hp, "hair", Vector3(0, 0.105, -0.01), Vector3(0.235, 0.075, 0.225), hair)
+	# 头发：盖住头顶 + 后脑（原来那条横在前额的"发际"看起来像蒙眼布）
+	_part(hp, "hairTop", Vector3(0, 0.118, 0.014), Vector3(0.222, 0.045, 0.222), hair)
+	_part(hp, "hairBack", Vector3(0, 0.012, 0.104), Vector3(0.212, 0.212, 0.044), hair)
+	for hx in [-0.104, 0.104]:
+		_part(hp, "hairSide" + ("L" if hx < 0 else "R"), Vector3(hx, 0.052, 0.004), Vector3(0.030, 0.132, 0.192), hair)
+	if nm == "林岚":
+		_part(hp, "ponytail", Vector3(0, -0.070, 0.128), Vector3(0.086, 0.185, 0.068), hair)
 	if cap_on:
-		_part(hp, "cap", Vector3(0, 0.140, 0), Vector3(0.245, 0.055, 0.235), cloth2)
-		_part(hp, "visor", Vector3(0, 0.118, -0.155), Vector3(0.235, 0.030, 0.110), cloth2)
-	else:
-		_part(hp, "hairback", Vector3(0, -0.025, 0.098), Vector3(0.215, 0.215, 0.045), hair)
+		_part(hp, "cap", Vector3(0, 0.152, 0), Vector3(0.243, 0.055, 0.233), cloth2)
+		_part(hp, "visor", Vector3(0, 0.130, -0.152), Vector3(0.233, 0.030, 0.108), cloth2)
 	for ex in [-0.055, 0.055]:
-		_part(hp, "eye", Vector3(ex, 0.017, -0.104), Vector3(0.045, 0.026, 0.020), Color(0.06, 0.06, 0.07))
+		_part(hp, "eye", Vector3(ex, 0.022, -0.104), Vector3(0.045, 0.026, 0.020), Color(0.06, 0.06, 0.07))
 	# 躯干 / 领口 / 工牌（坐标相对上半身枢轴）
+	_part(upper, "neck", Vector3(0, 0.492, 0), Vector3(0.118, 0.078, 0.118), skin)
 	_part(upper, "torso", Vector3(0, 0.265, 0), Vector3(0.40, 0.46, 0.24), cloth)
 	_part(upper, "collar", Vector3(0, 0.475, 0), Vector3(0.30, 0.065, 0.215), cloth2)
 	_part(upper, "badge", Vector3(0.10, 0.350, -0.132), Vector3(0.055, 0.075, 0.016), accent, 1.6)
@@ -452,6 +457,7 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		_part(n, "leg" + sfx, Vector3(sgn * 0.105, 0.770, 0), Vector3(0.155, 0.45, 0.165), cloth2, 0.0, true)
 		_part(n, "shin" + sfx, Vector3(sgn * 0.105, 0.3175, 0), Vector3(0.140, 0.455, 0.150), cloth2, 0.0, true)
 		_part(n, "shoe" + sfx, Vector3(sgn * 0.105, 0.045, -0.035), Vector3(0.155, 0.09, 0.26), Color(0.07, 0.07, 0.08))
+		_part(upper, "shoulderCap" + sfx, Vector3(sgn * 0.232, 0.432, 0), Vector3(0.140, 0.078, 0.160), cloth)
 		_part(upper, "armU" + sfx, Vector3(sgn * 0.245, 0.310, 0), Vector3(0.115, 0.33, 0.125), cloth, 0.0, true)
 		_part(upper, "armL" + sfx, Vector3(sgn * 0.255, -0.010, -0.030), Vector3(0.100, 0.31, 0.110), cloth, 0.0, true)
 		_part(upper, "hand" + sfx, Vector3(sgn * 0.255, -0.205, -0.050), Vector3(0.095, 0.120, 0.100), skin)
@@ -463,14 +469,21 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	# 每人的随身物（区分剪影）
 	match nm:
 		"林岚":
-			_part(upper, "case", Vector3(-0.345, -0.255, -0.02), Vector3(0.20, 0.16, 0.34), Color(0.55, 0.34, 0.16))
-			_part(upper, "caseLid", Vector3(-0.345, -0.165, -0.02), Vector3(0.17, 0.03, 0.30), Color(0.30, 0.32, 0.34))
+			# 工具盒挂在左手下方，手正好在提手上（原来悬在胯边、手碰不到）
+			_part(upper, "case", Vector3(-0.262, -0.360, -0.02), Vector3(0.25, 0.19, 0.34), Color(0.55, 0.34, 0.16))
+			_part(upper, "caseLid", Vector3(-0.262, -0.258, -0.02), Vector3(0.22, 0.032, 0.30), Color(0.30, 0.32, 0.34))
+			_part(upper, "caseSeam", Vector3(-0.262, -0.300, -0.02), Vector3(0.256, 0.012, 0.346), Color(0.30, 0.20, 0.10))
+			_part(upper, "caseGrip", Vector3(-0.255, -0.222, -0.02), Vector3(0.036, 0.062, 0.036), Color(0.10, 0.10, 0.12))
 		"周砚":
-			_part(upper, "muff", Vector3(-0.310, 0.025, -0.02), Vector3(0.19, 0.16, 0.24), Color(0.10, 0.10, 0.12))
-			_part(upper, "headband", Vector3(0, 0.460, 0.010), Vector3(0.345, 0.045, 0.255), Color(0.10, 0.10, 0.12))
+			# 监听耳机改成挂在脖子上：颈带 + 两个耳罩（原来是一块黑盒子贴在腰上）
+			_part(upper, "headband", Vector3(0, 0.498, 0.012), Vector3(0.300, 0.048, 0.250), Color(0.10, 0.10, 0.12))
+			for ex in [-0.128, 0.128]:
+				_part(upper, "muff" + ("L" if ex < 0 else "R"), Vector3(ex, 0.470, 0.010), Vector3(0.062, 0.105, 0.100), Color(0.10, 0.10, 0.12))
 		"陈默":
-			_part(upper, "brief", Vector3(-0.335, -0.295, -0.02), Vector3(0.22, 0.24, 0.10), Color(0.17, 0.13, 0.10))
-			_part(upper, "briefLid", Vector3(-0.335, -0.165, -0.02), Vector3(0.19, 0.03, 0.06), Color(0.35, 0.30, 0.20))
+			# 公文包挂在右手下方
+			_part(upper, "brief", Vector3(0.255, -0.365, -0.02), Vector3(0.22, 0.24, 0.10), Color(0.17, 0.13, 0.10))
+			_part(upper, "briefLid", Vector3(0.255, -0.250, -0.02), Vector3(0.19, 0.03, 0.06), Color(0.35, 0.30, 0.20))
+			_part(upper, "briefGrip", Vector3(0.255, -0.215, -0.02), Vector3(0.036, 0.060, 0.036), Color(0.30, 0.26, 0.18))
 	var key := OmniLight3D.new()
 	key.position = Vector3(0.5, 1.5, 0.6)
 	key.light_color = Color(0.75, 0.82, 0.95)
