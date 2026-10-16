@@ -457,9 +457,13 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	for ex in [-0.106, 0.106]:
 		_part(hp, "ear" + ("L" if ex < 0 else "R"), Vector3(ex, 0.006, 0.008), Vector3(0.018, 0.050, 0.036), skin.darkened(0.12))
 	for bx in [-0.053, 0.053]:
-		_part(hp, "brow" + ("L" if bx < 0 else "R"), Vector3(bx, 0.064, -0.102), Vector3(0.054, 0.013, 0.014), hair.lightened(0.15))
+		_part(hp, "brow" + ("L" if bx < 0 else "R"), Vector3(bx, 0.066, -0.102), Vector3(0.054, 0.011, 0.014), hair.lightened(0.35))
 	for ex2 in [-0.055, 0.055]:
-		_part(hp, "eye" + ("L" if ex2 < 0 else "R"), Vector3(ex2, 0.024, -0.103), Vector3(0.038, 0.021, 0.018), Color(0.06, 0.06, 0.07))
+		var esfx := "L" if ex2 < 0 else "R"
+		_part(hp, "eye" + esfx, Vector3(ex2, 0.024, -0.1005), Vector3(0.038, 0.021, 0.010), Color(0.10, 0.10, 0.12))
+		_part(hp, "eyeW" + esfx, Vector3(ex2, 0.024, -0.1085), Vector3(0.030, 0.015, 0.006), Color(0.90, 0.91, 0.92))
+		_part(hp, "eyeP" + esfx, Vector3(ex2, 0.0235, -0.1125), Vector3(0.016, 0.014, 0.005), Color(0.09, 0.09, 0.12))
+		_part(hp, "eyeH" + esfx, Vector3(ex2 - 0.0035, 0.0265, -0.1145), Vector3(0.0035, 0.0035, 0.004), Color(0.98, 0.98, 1.0), 1.2)
 	_part(hp, "nose", Vector3(0, -0.006, -0.106), Vector3(0.030, 0.050, 0.028), skin.darkened(0.10))
 	_part(hp, "mouth", Vector3(0, -0.063, -0.101), Vector3(0.044, 0.013, 0.012), Color(0.46, 0.27, 0.26))
 	if cap_on:

@@ -215,9 +215,14 @@ func _build_body() -> void:
 	for ex in [-0.104, 0.104]:
 		head.add_child(_mesh_box(Vector3(0.018, 0.048, 0.034), skin.darkened(0.12), Vector3(ex, 0.100, 0.008)))
 	for bx in [-0.052, 0.052]:
-		head.add_child(_mesh_box(Vector3(0.054, 0.013, 0.014), Color(0.14, 0.13, 0.14), Vector3(bx, 0.148, -0.100)))
+		head.add_child(_mesh_box(Vector3(0.054, 0.011, 0.014), Color(0.26, 0.20, 0.16), Vector3(bx, 0.150, -0.100)))
 	for eye_x in [-0.055, 0.055]:
-		head.add_child(_mesh_box(Vector3(0.038, 0.021, 0.02), Color(0.06, 0.06, 0.07), Vector3(eye_x, 0.117, -0.101)))
+		# 眼睛四层（暗框当睫毛 → 眼白 → 瞳 → 高光），每层只差 2~3 mm：
+		# 原来是一块 3.8x2.1cm 的纯黑方块，在脸上读起来像蒙了眼罩、没有活气。
+		head.add_child(_mesh_box(Vector3(0.038, 0.021, 0.010), Color(0.10, 0.10, 0.12), Vector3(eye_x, 0.117, -0.0985)))
+		head.add_child(_mesh_box(Vector3(0.030, 0.015, 0.006), Color(0.90, 0.91, 0.92), Vector3(eye_x, 0.117, -0.1065)))
+		head.add_child(_mesh_box(Vector3(0.016, 0.014, 0.005), Color(0.09, 0.09, 0.12), Vector3(eye_x, 0.1165, -0.1105)))
+		head.add_child(_mesh_box(Vector3(0.0035, 0.0035, 0.004), Color(0.98, 0.98, 1.0), Vector3(eye_x - 0.0035, 0.1195, -0.1125), 1.2))
 	head.add_child(_mesh_box(Vector3(0.030, 0.050, 0.028), skin.darkened(0.10), Vector3(0, 0.094, -0.104)))
 	head.add_child(_mesh_box(Vector3(0.042, 0.013, 0.012), Color(0.46, 0.27, 0.26), Vector3(0, 0.062, -0.100)))
 	head.add_child(_mesh_bevbox(Vector3(0.225, 0.075, 0.225), dark, Vector3(0, 0.235, 0), 0.014))          # 帽子

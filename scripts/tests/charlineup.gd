@@ -87,6 +87,16 @@ func _run() -> void:
 	var img2: Image = root.get_texture().get_image()
 	img2.save_png("res://_预览/look/charlineup_脸.png")
 	print("[LINEUP] 玩家特写 ", img2.get_width(), "x", img2.get_height())
+	# 再来一张"只拍脸"的极近景：检查眼睛 / 眉 / 鼻 / 嘴 / 耳这些 2~6cm 的零件
+	c.position = Vector3(0.0, 1.552, 0.52)
+	c.fov = 30.0
+	c.look_at(Vector3(0.0, 1.545, 0.0), Vector3.UP)
+	for i in range(12):
+		await process_frame
+	await RenderingServer.frame_post_draw
+	var img3: Image = root.get_texture().get_image()
+	img3.save_png("res://_预览/look/charlineup_眼.png")
+	print("[LINEUP] 只拍脸 ", img3.get_width(), "x", img3.get_height())
 	quit()
 
 func _find_we(n: Node) -> WorldEnvironment:
