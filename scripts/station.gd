@@ -430,20 +430,25 @@ func plaque(text: String, c: Vector3, w: float, h: float, axis: String, sgn: int
             color := Color(0.80, 0.88, 0.98), mat := "metalD") -> void:
     var t := 0.03
     var ln := 0.018
+    # 字号要同时受「牌高」和「牌宽」约束：一排全角字的总宽 ≈ 字数 × 字高。
+    # 以前只按 h 算（字高 = h*0.58*2.2 = 1.28h），字比牌子还高、还长出一大截——
+    # 五号继电器铭牌 5 个字排出来 1.2 m 宽，牌子只有 0.72 m。
+    var nch := float(maxi(text.length(), 1))
+    var sz := minf(h * 0.62, w * 0.92 / (nch * 1.15)) / 2.2
     if axis == "x":
         if sgn > 0:
             box(mat, Vector3(c.x, c.y - h * 0.5, c.z - w * 0.5), Vector3(c.x + t, c.y + h * 0.5, c.z + w * 0.5), false)
-            label3d(text, Vector3(c.x + t + ln, c.y, c.z), h * 0.58, color, PI * 0.5)
+            label3d(text, Vector3(c.x + t + ln, c.y, c.z), sz, color, PI * 0.5)
         else:
             box(mat, Vector3(c.x - t, c.y - h * 0.5, c.z - w * 0.5), Vector3(c.x, c.y + h * 0.5, c.z + w * 0.5), false)
-            label3d(text, Vector3(c.x - t - ln, c.y, c.z), h * 0.58, color, -PI * 0.5)
+            label3d(text, Vector3(c.x - t - ln, c.y, c.z), sz, color, -PI * 0.5)
     else:
         if sgn > 0:
             box(mat, Vector3(c.x - w * 0.5, c.y - h * 0.5, c.z), Vector3(c.x + w * 0.5, c.y + h * 0.5, c.z + t), false)
-            label3d(text, Vector3(c.x, c.y, c.z + t + ln), h * 0.58, color, 0.0)
+            label3d(text, Vector3(c.x, c.y, c.z + t + ln), sz, color, 0.0)
         else:
             box(mat, Vector3(c.x - w * 0.5, c.y - h * 0.5, c.z - t), Vector3(c.x + w * 0.5, c.y + h * 0.5, c.z), false)
-            label3d(text, Vector3(c.x, c.y, c.z - t - ln), h * 0.58, color, PI)
+            label3d(text, Vector3(c.x, c.y, c.z - t - ln), sz, color, PI)
 
 func commit() -> void:
     for k in _keys:

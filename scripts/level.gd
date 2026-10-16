@@ -431,10 +431,10 @@ func relay_cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void
         b.box("dark", _v(x1 + 0.014, ry - 0.062, zw0 + 0.06), _v(x1 + 0.105, ry + 0.062, zw1 - 0.06), false)
         for k in range(10):
             var rz := zw0 + 0.10 + float(k) * rstep
-            b.box("metal", _v(x1 + 0.105, ry - 0.046, rz), _v(x1 + 0.140, ry + 0.046, rz + 0.34), false)
+            b.box("metalD", _v(x1 + 0.105, ry - 0.046, rz), _v(x1 + 0.140, ry + 0.046, rz + 0.34), false)
         b.box("red" if i == 4 else "lampC", _v(x1 + 0.140, ry - 0.058, zw0 + 0.10),
             _v(x1 + 0.157, ry - 0.030, zw1 - 0.10), false, "p")
-        b.label3d(str(i + 1), _v(x1 + 0.145, ry + 0.028, zw0 + 0.045), 0.115,
+        b.label3d(str(i + 1), _v(x1 + 0.145, ry + 0.028, zw0 + 0.045), 0.058,
                 Color(0.98, 0.42, 0.36) if i == 4 else Color(0.86, 0.90, 0.96), PI * 0.5)
     b.box("lamp", _v(x1 + 0.100, yw1 - 0.045, zw0 + 0.15), _v(x1 + 0.140, yw1 - 0.010, zw1 - 0.15), false)
     # ---- 下腔：端子排（14 组）----
@@ -442,7 +442,7 @@ func relay_cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void
     b.box("dark", _v(x1 + 0.014, 0.50, zw0 + 0.05), _v(x1 + 0.085, 0.76, zw1 - 0.05), false)
     for k in range(14):
         var tz := zw0 + 0.16 + float(k) * tstep
-        b.box("metal", _v(x1 + 0.085, 0.53, tz), _v(x1 + 0.128, 0.73, tz + 0.30), false)
+        b.box("metalD", _v(x1 + 0.085, 0.53, tz), _v(x1 + 0.128, 0.73, tz + 0.30), false)
         b.box("dark", _v(x1 + 0.128, 0.595, tz + 0.05), _v(x1 + 0.140, 0.665, tz + 0.25), false, "p")
     b.box("lamp", _v(x1 + 0.085, 0.775, zw0 + 0.15), _v(x1 + 0.125, 0.812, zw1 - 0.15), false)
     # ---- 柜顶托板：五号继电器线索摆在这上面（柜内每排导轨占满，放不下，改到顶面）----
@@ -476,7 +476,7 @@ func relay_cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void
         b.box("metalD", _v(xd - 0.145, FY + 0.175, bz), _v(xd + 0.030, FY + 0.198, bz + 0.06), false)
     # ---- 柜内照明：三盏小灯（把五排继电器和端子排照出来）----
     for lz in [z0 + 1.9, zc, z1 - 1.9]:
-        b.light(_v(x1 + 0.09, 1.52, lz), Color(0.95, 0.88, 0.74), 1.9, 2.8, false)
+        b.light(_v(x1 + 0.09, 1.52, lz), Color(0.95, 0.88, 0.74), 1.45, 2.6, false)
 func bench(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
     # 长椅：木条坐板 + 木条靠背 + 圆管腿 / 圆管横撑
     var ySeat := base + 0.44
