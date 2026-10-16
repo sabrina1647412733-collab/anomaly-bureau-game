@@ -376,62 +376,12 @@ func small_room(x1: float, z0: float, z1: float, h: float, dz0: float, dz1: floa
         b.box("lampC", _v(x1 - 0.20, 2.35, dz1 + 0.8), _v(x1 - 0.10, 2.44, z1 - 0.5), false, "p")
 
 func dispatch_console(x0: float, z0: float, x1: float, z1: float) -> void:
-    var h := 0.74
-    var zb := z0 + 0.06
-    var zf := z1 - 0.06
-    # 柜体 + 踢脚
-    b.box("metalD", _v(x0, FY + 0.14, z0), _v(x1, h, z1), true, "all", 0.030)
-    b.box("dark", _v(x0 + 0.08, FY, z0 + 0.08), _v(x1 - 0.08, FY + 0.14, z1 - 0.08), true)
-    # 斜面操作台（靠墙侧高）
-    var yb := h + 0.34
-    b.quad("metalD", _v(x0 + 0.05, yb, zb), _v(x0 + 0.05, yb, zf), _v(x1 - 0.06, h, zf), _v(x1 - 0.06, h, zb), Vector3(0, 1, 0))
-    b.quad("dark", _v(x0 + 0.05, yb - 0.05, zb), _v(x0 + 0.05, yb, zb), _v(x1 - 0.06, h, zb), _v(x1 - 0.06, h - 0.05, zb), Vector3(0, 0, -1))
-    b.quad("dark", _v(x1 - 0.06, h, zf), _v(x0 + 0.05, yb, zf), _v(x0 + 0.05, yb - 0.05, zf), _v(x1 - 0.06, h - 0.05, zf), Vector3(0, 0, 1))
-    b.quad("dark", _v(x1 - 0.06, h - 0.05, zb), _v(x1 - 0.06, h, zb), _v(x1 - 0.06, h, zf), _v(x1 - 0.06, h - 0.05, zf), Vector3(1, 0, 0))
-    b.add_collider(_v(x0, FY, z0), _v(x1, yb + 0.02, z1))
-    # 背面立板 + 三块屏
-    b.box("metalD", _v(x0 + 0.05, yb, z0 + 0.06), _v(x0 + 0.20, yb + 0.62, z1 - 0.06), true)
-    var n := 3
-    for i in range(n):
-        var zc := zb + (zf - zb) * (float(i) + 0.5) / float(n)
-        var w := (zf - zb) / float(n) * 0.72
-        b.box("dark", _v(x0 + 0.19, yb + 0.16, zc - w * 0.5), _v(x0 + 0.26, yb + 0.56, zc + w * 0.5), false)
-        b.box("lampC", _v(x0 + 0.26, yb + 0.20, zc - w * 0.45), _v(x0 + 0.285, yb + 0.52, zc + w * 0.45), false, "p")
-    # 斜面上一排按钮 + 指示灯
-    for i in range(8):
-        var zc2 := zb + (zf - zb) * (float(i) + 0.5) / 8.0
-        var mat := "lampC" if i % 3 == 1 else "dark"
-        if i == 5:
-            mat = "red"
-        b.box(mat, _v(x0 + 1.30, h + 0.10, zc2 - 0.07), _v(x0 + 1.38, h + 0.14, zc2 + 0.07), false, "p")
-    for i in range(6):
-        var zc3 := zb + (zf - zb) * (float(i) + 0.5) / 6.0
-        var col := Color(1.0, 0.5, 0.2) if i % 2 == 0 else Color(0.35, 0.62, 0.83)
-        b.box("lamp", _v(x0 + 0.28, yb + 0.60, zc3 - 0.05), _v(x0 + 0.34, yb + 0.66, zc3 + 0.05), false, "p")
-    # 键盘 + 鼠标 + 电话
-    b.box("dark", _v(x0 + 1.05, h + 0.16, zb + 0.35), _v(x0 + 1.95, h + 0.21, zb + 1.35), false)
-    b.box("dark", _v(x0 + 1.75, h + 0.14, zb + 1.55), _v(x0 + 1.92, h + 0.20, zb + 1.72), false)
-    b.box("dark", _v(x0 + 0.55, h + 0.02, zf - 0.75), _v(x0 + 1.15, h + 0.10, zf - 0.15), false)
-    b.box("dark", _v(x0 + 0.50, h + 0.10, zf - 0.78), _v(x0 + 1.20, h + 0.20, zf - 0.66), false)
-    # 抽屉 + 拉手
-    b.box("metalD", _v(x1 - 0.05, 0.30, zb + 0.25), _v(x1 - 0.02, h - 0.06, zf - 0.25), false)
-    b.box("lampC", _v(x1 - 0.02, 0.48, zb + 0.55), _v(x1 + 0.02, 0.54, zf - 0.55), false, "p")
-    # 桌下走线槽
-    b.box("dark", _v(x0 + 0.30, 0.24, zb), _v(x0 + 0.60, 0.38, zf), false)
-    # 精修：主控拨杆（剧情里那根推到底的手柄）
-    b.box("metalD", _v(x0 + 0.62, h + 0.10, zf - 0.62), _v(x0 + 0.92, h + 0.20, zf - 0.32), true)
-    b.box("metalD", _v(x0 + 0.74, h + 0.20, zf - 0.50), _v(x0 + 0.80, h + 0.62, zf - 0.44), false)
-    b.box("red", _v(x0 + 0.69, h + 0.62, zf - 0.55), _v(x0 + 0.85, h + 0.78, zf - 0.39), false)
-    # 精修：指示灯阵列（两排 x 六个）
-    for li in range(12):
-        var lxx := x0 + 0.42 + float(li % 6) * 0.155
-        var lzz := zb + 0.24 + float(li / 6) * 0.18
-        var lcol := "red" if li % 5 == 3 else "lampC"
-        b.box(lcol, _v(lxx, h + 0.10, lzz), _v(lxx + 0.07, h + 0.155, lzz + 0.07), false, "p")
-    # 顶灯 + 铭牌
-    b.box("lamp", _v(x0 + 0.30, 3.30, zb + 0.5), _v(x0 + 0.95, 3.40, zf - 0.5), false, "b")
-    b.light(_v(x0 + 0.8, 3.1, (zb + zf) * 0.5), Color(0.85, 0.90, 1.0), 3.4, 9.0, false)
-    b.plaque("夜班调度席", _v(x1 + 0.01, yb + 0.26, (zb + zf) * 0.5), 0.72, 0.19, "x", 1, Color(0.45, 0.72, 0.95))
+    # Blender 生成的低多边形调度台（assets/props/console.glb）
+    # 模型 4.20 长 × 1.89 深 × 1.77 高，正面朝 +Y → 导入 Godot 后朝 -Z，转 -90° 让正面朝 +X
+    var c := Vector3((x0 + x1) * 0.5, FY, (z0 + z1) * 0.5)
+    b.prop("res://assets/props/console.glb", c, -PI * 0.5)
+    b.add_collider(Vector3(x0, FY, z0), Vector3(x1, 1.15, z1))
+    b.light(_v(x0 + 0.8, 3.1, (z0 + z1) * 0.5), Color(0.85, 0.90, 1.0), 3.4, 9.0, false)   # 夜班调度席灯
 
 func relay_cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
     b.box("metalD", _v(x0, FY + 0.10, z0), _v(x1, h, z1), true, "all", 0.035)

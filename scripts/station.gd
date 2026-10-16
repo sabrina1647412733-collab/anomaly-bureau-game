@@ -56,6 +56,7 @@ var _st := {}
 var _keys: Array = []
 var _mats := {}
 var tri_count := 0
+var prop_tris := 0
 var col_count := 0
 var seats: Array = []
 var lights: Array = []
@@ -255,6 +256,53 @@ func cyl_z(key: String, cx: float, cy: float, z0: float, z1: float, r: float, se
         if cap:
             tri(key, Vector3(cx, cy, z0), Vector3(p1.x, p1.y, z0), Vector3(p0.x, p0.y, z0), Vector3(0, 0, -1))
             tri(key, Vector3(cx, cy, z1), Vector3(p0.x, p0.y, z1), Vector3(p1.x, p1.y, z1), Vector3(0, 0, 1))
+
+## 载入 Blender 生成的 .glb 道具：按材质名换回本工程的 surface.gdshader 材质
+func prop(path: String, pos: Vector3, yaw := 0.0, sc := 1.0) -> Node3D:
+    var ps: PackedScene = load(path)
+    if ps == null:
+        push_warning("[prop] 载入失败: " + path)
+        return null
+    var n: Node3D = ps.instantiate()
+    n.name = path.get_file().get_basename()
+    n.position = pos
+    n.rotation.y = yaw
+    n.scale = Vector3(sc, sc, sc)
+    body.add_child(n)
+    var mapped := ""
+    for mi in _all_mesh_instances(n):
+        var m: Mesh = mi.mesh
+        if m == null:
+            continue
+        for si in range(m.get_surface_count()):
+            var src: Material = m.surface_get_material(si)
+            var nm := src.resource_name if src != null else ""
+            if MATS.has(nm):
+                mi.set_surface_override_material(si, _mat(nm))
+                mapped += nm + " "
+        prop_tris += int(m.get_faces().size() / 3.0)
+    var ab := AABB()
+    var first := true
+    for mi2 in _all_mesh_instances(n):
+        if mi2.mesh == null:
+            continue
+        var b2: AABB = mi2.global_transform * mi2.mesh.get_aabb()
+        ab = b2 if first else ab.merge(b2)
+        first = false
+    print("[prop] ", n.name, " 三角=", prop_tris, " 材质映射: ", mapped)
+    print("[prop] 世界包围盒 x %.2f..%.2f  y %.2f..%.2f  z %.2f..%.2f" % [ab.position.x, ab.end.x, ab.position.y, ab.end.y, ab.position.z, ab.end.z])
+    return n
+
+func _all_mesh_instances(root: Node) -> Array:
+    var out := []
+    var stack := [root]
+    while stack.size() > 0:
+        var nd = stack.pop_back()
+        if nd is MeshInstance3D:
+            out.append(nd)
+        for c in nd.get_children():
+            stack.append(c)
+    return out
 
 func box(key: String, mn: Vector3, mx: Vector3, solid := false, faces := "all", bev := 0.0) -> void:
     if bev > 0.004 and faces == "all":
