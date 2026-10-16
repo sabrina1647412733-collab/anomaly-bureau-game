@@ -138,20 +138,41 @@ func _make_font() -> void:
 	font = sf
 
 func _make_env() -> void:
+	# —— 观感可调参数：改这两个数就能整体调亮暗 / 调泛光强度 ——
+	const LOOK_EXPOSURE := 0.90      # 曝光：0.8 更暗更夜，1.2 更亮
+	const LOOK_GLOW := 0.32          # 泛光强度：只让灯本身发光，不做梦幻感
 	var e := Environment.new()
 	e.background_mode = Environment.BG_COLOR
 	e.background_color = Color(0.027, 0.043, 0.063)
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	e.ambient_light_color = Color(0.45, 0.55, 0.70)
-	e.ambient_light_energy = 0.45
+	e.ambient_light_color = Color(0.52, 0.62, 0.78)
+	e.ambient_light_energy = 0.55
 	e.fog_enabled = false
-	e.tonemap_mode = Environment.TONE_MAPPER_LINEAR
-	e.tonemap_exposure = 0.62
-	e.glow_enabled = false
-	e.ssao_enabled = false
+	# —— 电影感调色（2026-10-16 观感升级）：ACES 色调映射让高光有滚降、泛光让灯带真的发光、SSAO 补角落接触阴影 ——
+	e.tonemap_mode = Environment.TONE_MAPPER_ACES
+	e.tonemap_exposure = LOOK_EXPOSURE
+	e.tonemap_white = 6.0
+	e.glow_enabled = true
+	e.glow_intensity = LOOK_GLOW
+	e.glow_strength = 1.0
+	e.glow_bloom = 0.04
+	e.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
+	e.glow_hdr_threshold = 1.10
+	e.glow_hdr_scale = 2.0
+	e.set("glow_levels/1", 0.0)
+	e.set("glow_levels/2", 0.25)
+	e.set("glow_levels/3", 0.45)
+	e.set("glow_levels/4", 0.60)
+	var has_rd := RenderingServer.get_rendering_device() != null      # Compatibility(GLES3) 渲染器没有 SSAO
+	e.ssao_enabled = has_rd
+	if has_rd:
+		e.ssao_radius = 0.8
+		e.ssao_intensity = 1.1
+		e.ssao_power = 1.4
+		e.ssao_light_affect = 0.12
 	e.adjustment_enabled = true
-	e.adjustment_contrast = 1.08
-	e.adjustment_saturation = 1.02
+	e.adjustment_contrast = 1.04
+	e.adjustment_saturation = 1.25
 	var we := WorldEnvironment.new()
 	we.environment = e
 	add_child(we)

@@ -92,14 +92,14 @@ func columns_and_lights() -> void:
         b.light(_v(4.0, CH - 0.9, z), Color(0.35, 0.62, 0.83), 2.6, 13.0, false)
     # 广告灯箱（站台主要光源）
     var adz := [-27.0, -22.0, -10.0, 2.0, 17.5, 46.0]
-    var adtint := ["glow|5aa8ff", "glow|ff5d9e", "glow|ffb347", "glow|5dffa8"]
+    var adtint := ["glow|5aa8ff", "glow|ffc98a", "glow|dfefff"]
     for i in range(adz.size()):
         var az: float = adz[i]
         b.box("metalD", _v(PX0, 1.15, az - 1.35), _v(PX0 + 0.24, 2.85, az + 1.35), false)
         b.box(adtint[i % adtint.size()], _v(PX0 + 0.25, 1.32, az - 1.16), _v(PX0 + 0.33, 2.68, az + 1.16), false, "p")
         b.box(adtint[(i + 1) % adtint.size()], _v(PX0 + 0.34, 1.60, az - 0.85), _v(PX0 + 0.38, 2.40, az + 0.85), false, "p")
         b.box("lamp", _v(PX0 + 0.02, 1.25, az - 1.2), _v(PX0 + 0.10, 2.75, az + 1.2), false)
-        b.light(_v(PX0 + 1.8, 2.0, az), [Color(1.0, 0.87, 0.62), Color(0.62, 0.80, 1.0), Color(1.0, 0.66, 0.86), Color(0.66, 1.0, 0.86)][i % 4], 9.0, 17.0, i % 3 == 1)
+        b.light(_v(PX0 + 1.8, 2.0, az), [Color(1.0, 0.87, 0.66), Color(0.86, 0.92, 1.0)][i % 2], 9.0, 17.0, i % 3 == 1)
 
 # ------------------------------------------------------------------ 轨道
 func track() -> void:
@@ -219,11 +219,11 @@ func props() -> void:
         b.box("exit", _v(-3.0, FY + 0.02, mz), _v(-2.5, FY + 0.035, mz + 9.0), false, "t")
         b.box("exit", _v(-3.0, FY + 0.02, mz), _v(-1.2, FY + 0.035, mz + 0.5), false, "t")
         b.box("exit", _v(-3.0, FY + 0.02, mz + 8.5), _v(-1.2, FY + 0.035, mz + 9.0), false, "t")
-    var boardCol := ["glow|5aa8ff", "glow|ff5d9e", "glow|ffb347", "glow|5dffa8"]
+    var boardCol := ["glow|5aa8ff", "glow|ffc98a", "glow|dfefff"]
     for i in range(6):
         var bz := -46.0 + float(i) * 15.0
         b.box("metalD", _v(PX0, 1.55, bz), _v(PX0 + 0.10, 2.35, bz + 1.30), false)
-        b.box(boardCol[i % 4], _v(PX0 + 0.10, 1.62, bz + 0.08), _v(PX0 + 0.14, 2.28, bz + 1.22), false, "p")
+        b.box(boardCol[i % boardCol.size()], _v(PX0 + 0.10, 1.62, bz + 0.08), _v(PX0 + 0.14, 2.28, bz + 1.22), false, "p")
     # 长椅 / 售货机 / 垃圾箱（精修版）
     for bz in [Vector2(15.2, 19.2), Vector2(-8.0, -4.0)]:
         bench(-15.10, bz.x, -13.90, bz.y)
@@ -294,7 +294,7 @@ func rooms() -> void:
     b.box("metalD", _v(PX0, FY - 0.18, rz0), _v(rx1, FY + 0.02, rz1), false, "t")
     relay_cabinet(PX0 + 0.15, rz0 + 0.55, PX0 + 1.05, rz1 - 0.55, 2.05)
     b.box("lamp", _v(rx1 - 2.6, rh - 0.15, 26.0), _v(rx1 - 0.5, rh - 0.04, 26.45), false, "b")
-    b.light(_v(-16.2, 2.4, 26.2), Color(0.25, 0.75, 0.56), 2.8, 9.0, true)
+    b.light(_v(-16.2, 2.4, 26.2), Color(0.90, 0.70, 0.45), 2.8, 9.0, true)
     # 值班室 / 广播台（带门洞，门由 game.gd 装）
     small_room(-11.00, 2.5, 14.5, 3.5, 7.6, 9.6, "值班室", "duty")
     small_room(-11.50, 33.0, 45.0, 3.3, 37.6, 39.6, "广播台", "studio")
@@ -339,7 +339,7 @@ func dispatch_console(x0: float, z0: float, x1: float, z1: float) -> void:
     var zb := z0 + 0.06
     var zf := z1 - 0.06
     # 柜体 + 踢脚
-    b.box("metalD", _v(x0, FY + 0.14, z0), _v(x1, h, z1), true)
+    b.box("metalD", _v(x0, FY + 0.14, z0), _v(x1, h, z1), true, "all", 0.030)
     b.box("dark", _v(x0 + 0.08, FY, z0 + 0.08), _v(x1 - 0.08, FY + 0.14, z1 - 0.08), true)
     # 斜面操作台（靠墙侧高）
     var yb := h + 0.34
@@ -383,10 +383,10 @@ func dispatch_console(x0: float, z0: float, x1: float, z1: float) -> void:
     b.plaque("夜班调度席", _v(x1 + 0.01, yb + 0.26, (zb + zf) * 0.5), 0.72, 0.19, "x", 1, Color(0.45, 0.72, 0.95))
 
 func relay_cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
-    b.box("metalD", _v(x0, FY + 0.10, z0), _v(x1, h, z1), true)
+    b.box("metalD", _v(x0, FY + 0.10, z0), _v(x1, h, z1), true, "all", 0.035)
     b.box("dark", _v(x0 + 0.04, FY, z0 + 0.04), _v(x1 - 0.04, FY + 0.10, z1 - 0.04), true)
     # 柜门
-    b.box("metalD", _v(x1, FY + 0.06, z0 + 0.06), _v(x1 + 0.035, h - 0.06, z1 - 0.06), false)
+    b.box("metalD", _v(x1, FY + 0.06, z0 + 0.06), _v(x1 + 0.035, h - 0.06, z1 - 0.06), false, "all", 0.014)
     # 玻璃观察窗
     b.box("glass", _v(x1 + 0.01, h * 0.42, z0 + 0.30), _v(x1 + 0.06, h * 0.84, z1 - 0.30), false, "p")
     b.box("dark", _v(x1 + 0.01, h * 0.42, z0 + 0.30), _v(x1 + 0.07, h * 0.46, z1 - 0.30), false)
@@ -431,7 +431,7 @@ func bench(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
 
 func vending(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
     var h := base + 1.95
-    b.box("metalD", _v(x0, base, z0), _v(x1, h, z1), true)
+    b.box("metalD", _v(x0, base, z0), _v(x1, h, z1), true, "all", 0.050)
     b.box("dark", _v(x0 + 0.03, base + 0.12, z0 + 0.03), _v(x1 - 0.03, h - 0.12, z1 - 0.03), false)
     # 展示橱窗 + 里面的饮料
     b.box("glass", _v(x1 - 0.02, base + 0.55, z0 + 0.14), _v(x1 + 0.02, h - 0.32, z1 - 0.14), false, "p")
@@ -448,7 +448,7 @@ func vending(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
     b.plaque("自动售货", _v(x1 - 0.005, base + 1.70, (z0 + z1) * 0.5), 0.62, 0.18, "x", 1, Color(0.55, 0.78, 1.0))
 
 func bin(cx: float, cz: float, base := FY) -> void:
-    b.box("metalD", _v(cx - 0.22, base, cz - 0.22), _v(cx + 0.22, base + 0.76, cz + 0.22), true)
+    b.box("metalD", _v(cx - 0.22, base, cz - 0.22), _v(cx + 0.22, base + 0.76, cz + 0.22), true, "all", 0.050)
     b.box("dark", _v(cx - 0.25, base + 0.76, cz - 0.25), _v(cx + 0.25, base + 0.86, cz + 0.25), false)
     b.box("dark", _v(cx - 0.11, base + 0.86, cz - 0.17), _v(cx + 0.11, base + 0.90, cz + 0.17), false)
     b.box("metalD", _v(cx - 0.205, base + 0.18, cz - 0.205), _v(cx + 0.205, base + 0.23, cz + 0.205), false)
@@ -456,9 +456,9 @@ func bin(cx: float, cz: float, base := FY) -> void:
 
 func turnstile(cx: float, cz: float, base := FY) -> void:
     var h := base + 1.02
-    b.box("metalD", _v(cx - 0.20, base, cz - 0.78), _v(cx + 0.20, h, cz + 0.78), true)
+    b.box("metalD", _v(cx - 0.20, base, cz - 0.78), _v(cx + 0.20, h, cz + 0.78), true, "all", 0.035)
     b.box("dark", _v(cx - 0.17, base + 0.14, cz - 0.75), _v(cx + 0.17, h - 0.10, cz + 0.75), false)
-    b.box("metalD", _v(cx - 0.23, h, cz - 0.62), _v(cx + 0.23, h + 0.06, cz + 0.62), true)
+    b.box("metalD", _v(cx - 0.23, h, cz - 0.62), _v(cx + 0.23, h + 0.06, cz + 0.62), true, "all", 0.025)
     b.box("dark", _v(cx - 0.17, h + 0.06, cz - 0.34), _v(cx + 0.17, h + 0.09, cz + 0.06), false)
     b.box("lampC", _v(cx - 0.05, h + 0.09, cz - 0.02), _v(cx + 0.05, h + 0.12, cz + 0.08), false, "p")
     b.box("red", _v(cx - 0.05, h + 0.09, cz + 0.20), _v(cx + 0.05, h + 0.12, cz + 0.30), false, "p")
@@ -469,7 +469,7 @@ func turnstile(cx: float, cz: float, base := FY) -> void:
                   Vector3(0.06, 0.06, 0.64), PI * 0.5 - a, false)
 
 func cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
-    b.box("metalD", _v(x0, FY, z0), _v(x1, h, z1), true)
+    b.box("metalD", _v(x0, FY, z0), _v(x1, h, z1), true, "all", 0.030)
     b.box("dark", _v(x0, h * 0.42, z0 - 0.01), _v(x1, h * 0.46, z1 + 0.01), false)
     var n := int(maxf(1.0, (z1 - z0) / 0.55))
     for i in range(n):
@@ -478,7 +478,7 @@ func cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
         b.box("lampC", _v(x1 + 0.01, h * 0.55, zz - 0.05), _v(x1 + 0.04, h * 0.55 + 0.04, zz + 0.05), false, "p")
 
 func locker(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
-    b.box("metalD", _v(x0, FY, z0), _v(x1, h, z1), true)
+    b.box("metalD", _v(x0, FY, z0), _v(x1, h, z1), true, "all", 0.030)
     for i in range(3):
         var zz := z0 + (z1 - z0) * (float(i) + 0.5) / 3.0
         b.box("dark", _v(x1 - 0.02, 0.06, zz - 0.02), _v(x1 + 0.01, h - 0.06, zz + 0.02), false)
