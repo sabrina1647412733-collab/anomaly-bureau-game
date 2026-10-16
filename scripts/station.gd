@@ -32,7 +32,7 @@ const MATS := {
     "colTile":{"color":Color(0.13,0.31,0.39), "rough":0.28, "metal":0.05},                                   # 柱子：主题青蓝瓷砖
     "colAmber":{"color":Color(0.55,0.40,0.14), "emission":Color(0.95,0.68,0.28), "energy":0.65, "rough":0.4, "metal":0},
     "woodD":  {"color":Color(0.24,0.15,0.08), "rough":0.6, "metal":0},
-    "glass":  {"color":Color(0.14,0.20,0.24), "rough":0.08, "metal":0.1},
+    "glass":  {"color":Color(0.12,0.18,0.22), "rough":0.06, "metal":0.06, "spec":0.8, "alpha":0.34},   # 玻璃：半透明，走 glass_panel.gdshader
     "dark":   {"color":Color(0.12,0.13,0.15), "rough":0.75, "metal":0},
     "rust":   {"color":Color(0.31,0.29,0.27), "rough":0.9, "metal":0},
     "lamp":   {"color":Color(0.85,0.72,0.42), "emission":Color(0.95,0.72,0.34), "energy":1.35, "rough":0.45, "metal":0},
@@ -90,9 +90,10 @@ func _mat(key: String) -> Material:
     var tint := Color.WHITE
     if parts.size() > 1:
         tint = Color(parts[1])
-    var m := ShaderMaterial.new()
-    m.shader = load("res://shaders/surface.gdshader")
     var d: Dictionary = MATS[name]
+    var transparent: bool = d.has("alpha")
+    var m := ShaderMaterial.new()
+    m.shader = load("res://shaders/glass_panel.gdshader" if transparent else "res://shaders/surface.gdshader")
     var base: Color = d.get("color", Color(0.5, 0.5, 0.5))
     m.set_shader_parameter("albedo", Vector3(base.r, base.g, base.b))
     m.set_shader_parameter("tint", Vector3(tint.r, tint.g, tint.b))
@@ -100,6 +101,8 @@ func _mat(key: String) -> Material:
     m.set_shader_parameter("roughness", float(d.get("rough", 0.75)))
     m.set_shader_parameter("metallic", float(d.get("metal", 0.0)))
     m.set_shader_parameter("specular", float(d.get("spec", 0.5)))
+    if transparent:
+        m.set_shader_parameter("alpha", float(d["alpha"]))
     if d.has("emission"):
         var e: Color = d["emission"]
         m.set_shader_parameter("emission_color", Vector3(e.r, e.g, e.b))

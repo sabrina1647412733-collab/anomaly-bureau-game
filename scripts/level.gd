@@ -336,6 +336,9 @@ func rooms() -> void:
     relay_cabinet(PX0 + 0.15, rz0 + 0.55, PX0 + 1.05, rz1 - 0.55, 2.05)
     b.box("lamp", _v(rx1 - 2.6, rh - 0.15, 26.0), _v(rx1 - 0.5, rh - 0.04, 26.45), false, "b")
     b.light(_v(-16.2, 2.4, 26.2), Color(0.90, 0.70, 0.45), 2.8, 9.0, true)
+    # 南半间的第二盏顶灯：继电器柜全长 7.4 m，一盏灯照不到南端
+    b.box("lamp", _v(rx1 - 2.6, rh - 0.15, 29.9), _v(rx1 - 0.5, rh - 0.04, 30.35), false, "b")
+    b.light(_v(-16.2, 2.4, 30.15), Color(0.90, 0.70, 0.45), 2.6, 9.0, false)
     # 值班室 / 广播台（带门洞，门由 game.gd 装）
     small_room(-11.00, 2.5, 14.5, 3.5, 7.6, 9.6, "值班室", "duty")
     small_room(-11.50, 33.0, 45.0, 3.3, 37.6, 39.6, "广播台", "studio")
@@ -384,40 +387,82 @@ func dispatch_console(x0: float, z0: float, x1: float, z1: float) -> void:
     b.light(_v(x0 + 0.8, 3.1, (z0 + z1) * 0.5), Color(0.85, 0.90, 1.0), 3.4, 9.0, false)   # 夜班调度席灯
 
 func relay_cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
-    b.box("metalD", _v(x0, FY + 0.10, z0), _v(x1, h, z1), true, "all", 0.035)
-    b.box("dark", _v(x0 + 0.04, FY, z0 + 0.04), _v(x1 - 0.04, FY + 0.10, z1 - 0.04), true)
-    # 柜门
-    b.box("metalD", _v(x1, FY + 0.06, z0 + 0.06), _v(x1 + 0.035, h - 0.06, z1 - 0.06), false, "all", 0.014)
-    # 玻璃观察窗
-    b.box("glass", _v(x1 + 0.01, h * 0.42, z0 + 0.30), _v(x1 + 0.06, h * 0.84, z1 - 0.30), false, "p")
-    b.box("dark", _v(x1 + 0.01, h * 0.42, z0 + 0.30), _v(x1 + 0.07, h * 0.46, z1 - 0.30), false)
-    b.box("dark", _v(x1 + 0.01, h * 0.80, z0 + 0.30), _v(x1 + 0.07, h * 0.84, z1 - 0.30), false)
-    # 五排继电器 + 指示灯（第五排是红的）
-    var n := 5
-    for i in range(n):
-        var zz := z0 + 0.62 + (z1 - z0 - 1.24) * float(i) / float(n - 1)
-        b.box("dark", _v(x1 - 0.34, h * 0.50, zz - 0.16), _v(x1 - 0.02, h * 0.76, zz + 0.16), false)
-        for k in range(3):
-            b.box("metalD", _v(x1 - 0.30 + float(k) * 0.09, h * 0.54, zz - 0.12), _v(x1 - 0.27 + float(k) * 0.09, h * 0.72, zz + 0.12), false)
-        b.box("red" if i == 4 else "lampC", _v(x1 - 0.06, h * 0.62, zz - 0.13), _v(x1 - 0.02, h * 0.68, zz + 0.13), false, "p")
-        b.box("dark", _v(x1 - 0.35, h * 0.47, zz), _v(x1 - 0.02, h * 0.50, zz + 0.02), false)
-    # 精修：底部端子排（12 组）
-    for ti in range(12):
-        var tz := z0 + 0.45 + (z1 - z0 - 0.90) * float(ti) / 11.0
-        b.box("dark", _v(x1 - 0.32, h * 0.22, tz - 0.11), _v(x1 - 0.04, h * 0.36, tz + 0.11), false)
-        b.box("metalD", _v(x1 - 0.28, h * 0.25, tz - 0.07), _v(x1 - 0.08, h * 0.33, tz + 0.07), false)
-    b.box("dark", _v(x1 - 0.34, h * 0.20, z0 + 0.30), _v(x1 - 0.02, h * 0.22, z1 - 0.30), false)
-    # 把手 / 铰链 / 铭牌 / 顶部指示灯
-    b.box("lampC", _v(x1 + 0.035, h * 0.52, z1 - 0.34), _v(x1 + 0.08, h * 0.60, z1 - 0.28), false, "p")
-    for hz in [z0 + 0.10, z1 - 0.10]:
-        b.box("metalD", _v(x1 - 0.01, h * 0.25, hz - 0.05), _v(x1 + 0.05, h * 0.30, hz + 0.05), false)
-        b.box("metalD", _v(x1 - 0.01, h * 0.70, hz - 0.05), _v(x1 + 0.05, h * 0.75, hz + 0.05), false)
-    b.box("lamp", _v(x1 + 0.02, h * 0.90, z0 + 0.55), _v(x1 + 0.07, h * 0.96, z0 + 0.85), false, "p")
-    b.box("red", _v(x1 + 0.02, h * 0.90, z1 - 0.85), _v(x1 + 0.07, h * 0.96, z1 - 0.55), false, "p")
-    b.plaque("五号继电器", _v(x1 + 0.035, h - 0.16, (z0 + z1) * 0.5), 0.70, 0.18, "x", 1, Color(0.90, 0.45, 0.40))
-    # 底部电缆槽
-    b.box("dark", _v(x1 + 0.02, FY + 0.02, z0 + 0.10), _v(x1 + 0.10, FY + 0.16, z1 - 0.10), false)
-
+    # 五号继电器柜（7.40 m 长）：
+    #   踢脚 → 圆角柜体 → 门框与三副铰链 → 玻璃观察窗（上腔五排继电器 / 下腔端子排）
+    #   → 铭牌 → 柜内灯带 → 柜顶指示灯 → 底部电缆槽
+    var zc := (z0 + z1) * 0.5
+    var xd := x1 + 0.17                      # 柜门面（玻璃 / 门框）所在的 x
+    var yD0 := FY + 0.20                     # 门体下沿
+    var yD1 := h - 0.05                      # 门体上沿
+    var yw0 := FY + 0.46                     # 观察窗下沿
+    var yw1 := 1.78                          # 观察窗上沿
+    var zw0 := z0 + 0.34                     # 观察窗北沿
+    var zw1 := z1 - 0.28                     # 观察窗南沿
+    var ymid := 0.88                         # 上下两腔的分界横档
+    # ---- 踢脚 + 圆角柜体（正面留给柜门，故单独加一个整柜碰撞盒）----
+    b.box("dark", _v(x0 + 0.05, FY, z0 + 0.05), _v(x1 - 0.05, FY + 0.10, z1 - 0.05), false)
+    b.box("metalD", _v(x0, FY + 0.10, z0), _v(x1, h, z1), false, "all", 0.045)
+    b.add_collider(_v(x0, FY, z0), _v(xd + 0.06, h, z1))
+    # ---- 柜门内衬：浅色背板，让继电器和端子排读得出来 ----
+    b.box("panel", _v(x1, FY + 0.16, zw0 - 0.04), _v(x1 + 0.014, yw1 + 0.04, zw1 + 0.04), false, "p")
+    # ---- 门框：上 / 下 / 北 / 南 四条压条 ----
+    for bar in [[yD0, yw0, z0 + 0.06, z1 - 0.06], [yw1, yD1, z0 + 0.06, z1 - 0.06],
+                [yw0, yw1, z0 + 0.06, zw0], [yw0, yw1, zw1, z1 - 0.06]]:
+        b.box("metalD", _v(xd - 0.014, bar[0], bar[2]), _v(xd + 0.014, bar[1], bar[3]), false, "all", 0.010)
+    # ---- 玻璃观察窗 + 上下腔分界横档 + 下腔小铭牌 ----
+    b.box("glass", _v(xd - 0.007, yw0, zw0), _v(xd + 0.007, yw1, zw1), false)
+    b.box("metalD", _v(xd - 0.017, ymid - 0.045, zw0), _v(xd + 0.017, ymid + 0.045, zw1), false, "all", 0.010)
+    b.plaque("端子排", _v(xd + 0.016, yw0 - 0.085, zc), 0.38, 0.12, "x", 1, Color(0.62, 0.78, 0.95))
+    # ---- 上腔：五排继电器（第 5 排是坏的那一排，指示灯转红）----
+    var rstep := (zw1 - 0.10 - (zw0 + 0.10) - 0.34) / 9.0
+    for i in range(5):
+        var ry := 1.02 + float(i) * 0.17
+        b.box("dark", _v(x1 + 0.014, ry - 0.062, zw0 + 0.06), _v(x1 + 0.105, ry + 0.062, zw1 - 0.06), false)
+        for k in range(10):
+            var rz := zw0 + 0.10 + float(k) * rstep
+            b.box("metal", _v(x1 + 0.105, ry - 0.046, rz), _v(x1 + 0.140, ry + 0.046, rz + 0.34), false)
+        b.box("red" if i == 4 else "lampC", _v(x1 + 0.140, ry - 0.058, zw0 + 0.10),
+            _v(x1 + 0.157, ry - 0.030, zw1 - 0.10), false, "p")
+        b.label3d(str(i + 1), _v(x1 + 0.145, ry + 0.028, zw0 + 0.045), 0.115,
+                Color(0.98, 0.42, 0.36) if i == 4 else Color(0.86, 0.90, 0.96), PI * 0.5)
+    b.box("lamp", _v(x1 + 0.100, yw1 - 0.045, zw0 + 0.15), _v(x1 + 0.140, yw1 - 0.010, zw1 - 0.15), false)
+    # ---- 下腔：端子排（14 组）----
+    var tstep := (zw1 - 0.16 - (zw0 + 0.16) - 0.30) / 13.0
+    b.box("dark", _v(x1 + 0.014, 0.50, zw0 + 0.05), _v(x1 + 0.085, 0.76, zw1 - 0.05), false)
+    for k in range(14):
+        var tz := zw0 + 0.16 + float(k) * tstep
+        b.box("metal", _v(x1 + 0.085, 0.53, tz), _v(x1 + 0.128, 0.73, tz + 0.30), false)
+        b.box("dark", _v(x1 + 0.128, 0.595, tz + 0.05), _v(x1 + 0.140, 0.665, tz + 0.25), false, "p")
+    b.box("lamp", _v(x1 + 0.085, 0.775, zw0 + 0.15), _v(x1 + 0.125, 0.812, zw1 - 0.15), false)
+    # ---- 三副铰链（北端）----
+    for hy in [0.52, 1.16, 1.72]:
+        b.cyl("metal", xd + 0.010, z0 + 0.15, hy - 0.10, hy + 0.10, 0.026, 0.026, 8, true, true)
+        b.box("dark", _v(xd - 0.014, hy - 0.035, z0 + 0.09), _v(xd + 0.012, hy + 0.035, z0 + 0.21), false)
+    # ---- 把手 + 锁（南端）----
+    b.box("metal", _v(xd + 0.014, 0.98, z1 - 0.20), _v(xd + 0.048, 1.30, z1 - 0.14), false)
+    for hy2 in [1.02, 1.26]:
+        b.box("metalD", _v(xd, hy2, z1 - 0.20), _v(xd + 0.020, hy2 + 0.04, z1 - 0.14), false)
+    b.box("dark", _v(xd + 0.014, 0.84, z1 - 0.21), _v(xd + 0.028, 0.94, z1 - 0.13), false)
+    # ---- 铭牌（带四颗螺钉）+ 柜顶指示灯 ----
+    b.plaque("五号继电器", _v(xd + 0.014, 1.90, zc), 0.72, 0.19, "x", 1, Color(0.94, 0.52, 0.46))
+    for sx in [-0.30, 0.30]:
+        b.box("metal", _v(xd + 0.014, 1.852, zc + sx - 0.012), _v(xd + 0.030, 1.948, zc + sx + 0.012), false, "p")
+    for lp in [[zw0 + 0.24, "lamp"], [zw1 - 0.62, "red"]]:
+        var lz0: float = lp[0]
+        b.box("dark", _v(xd + 0.006, 1.820, lz0), _v(xd + 0.030, 1.960, lz0 + 0.38), false)
+        b.box(lp[1], _v(xd + 0.026, 1.836, lz0 + 0.04), _v(xd + 0.062, 1.944, lz0 + 0.34), false, "all", 0.010)
+    # ---- 底部电缆槽：槽体 + 两根电缆 + 六副支架 ----
+    b.box("dark", _v(xd - 0.13, FY + 0.02, z0 + 0.10), _v(xd + 0.02, FY + 0.055, z1 - 0.10), false)
+    for wx in [xd - 0.13, xd - 0.005]:
+        b.box("metalD", _v(wx, FY + 0.055, z0 + 0.10), _v(wx + 0.025, FY + 0.175, z1 - 0.10), false)
+    for cy in [0.100, 0.132]:
+        b.cyl_z("dark", xd - 0.070, FY + cy, z0 + 0.16, z1 - 0.16, 0.021, 8, true)
+    for k in range(6):
+        var bz := z0 + 0.55 + float(k) * 1.26
+        b.box("metalD", _v(xd - 0.145, FY + 0.175, bz), _v(xd + 0.030, FY + 0.198, bz + 0.06), false)
+    # ---- 柜内照明：三盏小灯（把五排继电器和端子排照出来）----
+    for lz in [z0 + 1.9, zc, z1 - 1.9]:
+        b.light(_v(x1 + 0.09, 1.52, lz), Color(0.95, 0.88, 0.74), 1.9, 2.8, false)
 func bench(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
     for i in range(3):
         var xx := x0 + 0.05 + float(i) * 0.30

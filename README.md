@@ -30,8 +30,8 @@
 | 路径 | 内容 |
 |---|---|
 | `scenes/` | `main.tscn` 主场景、`poster.tscn` 海报场景 |
-| `scripts/` | 玩法脚本 11 个（约 3664 行），`scripts/tests/` 是开发期测试脚本 35 个 |
-| `shaders/` | `surface.gdshader` |
+| `scripts/` | 玩法脚本 11 个（约 3664 行），`scripts/tests/` 是开发期测试脚本 36 个 |
+| `shaders/` | `surface.gdshader`（所有不透明材质）、`glass_panel.gdshader`（玻璃/亚克力：带 ALPHA，掠射角自动变实） |
 | `assets/` | 主菜单海报贴图——**唯一的外部贴图**，其余几何、图标、物品、音频全部由代码生成 |
 | `_预览/` | 31 张开发过程预览图（本地留档，未纳入版本控制） |
 | （已清理） | `_shot/` 渲染中间产物 296 MB 已于 2026-10-16 删除；其中有价值的工具脚本与 `game.gd` 历史快照已挪到工作区 `_tools\game_history\` |
@@ -56,6 +56,32 @@ $G = "C:\Users\Sabrina\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.Godot
 
 产物是 `deploy\game\` 下的 `index.html / index.js / index.wasm / index.pck`，再由工作区根目录打包成 `0017-网页版.zip`。
 
+## 逐件精修与自查（开发用）
+
+站体是一件一件做的，每件都走同一套循环：**生成 → 载入自检 → 0 错误 → 截图对比 → 提交**。
+
+```powershell
+$G = "C:\Users\Sabrina\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_win64_console.exe"
+# 1) 载入自检：必须 exit 0 且没有 SCRIPT ERROR（末尾那条 ObjectDB 泄漏警告无害）
+& $G --headless --path . --quit-after 90
+
+# 2) 六个固定机位对比图 → _预览/look/<tag>_NN_名字.png
+& $G --path . --script res://scripts/tests/look_shots.gd -- <tag>
+
+# 3) 单个构件的定点近景 → _预览/look/<名>.png
+& $G --path . --script res://scripts/tests/closeup.gd -- <名> <x> <y> <z> <yaw> <pitch> [fov]
+```
+
+**注意**：截图**不能**加 `--headless` —— 无头模式下 `root.get_texture()` 拿不到帧，脚本会一直挂着。
+
+没有显示器时用工作区 `_tools/` 里的三个小工具把画面「读」出来（Pillow）：
+
+| 工具 | 用途 |
+|---|---|
+| `python _tools/asc.py <png> [宽] [高] [crop] [gamma]` | 把截图降采样成字符画（默认 gamma 0.62 提亮，暗场景也看得清结构） |
+| `python _tools/probe.py <png> <cx> <cy> <cz> <yaw> <pitch> <fov> "标签:x,y,z" …` | 把世界点投影到像素并报出该处的 RGB / 亮度，用来核对「这个构件在画面里到底有没有读出来」 |
+| `python _tools/aim.py <cx> <cy> <cz> <tx> <ty> <tz> [目标高度]` | 由机位和目标点反算 yaw / pitch / 该用多大 fov |
+
 ## 录屏
 
 工作区根目录 `录制-岚桥站0017.bat`（Godot 内部逐帧录制 → 自动用 `_tools\ffmpeg.exe` 转 mp4），
@@ -78,3 +104,39 @@ $G = "C:\Users\Sabrina\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.Godot
   日志里唯一的报错是 `A user gesture is required to request Pointer Lock` —— 无头浏览器没有点击，属正常现象；
   真人打开时点一下画面即可（导出壳里 `focusCanvas: true`）。
 - **托管环境**：上面这轮验证跑在没有任何 COOP/COEP 头的普通静态服务上，说明单线程版可以直接丢到任意静态托管。
+
+## 逐件精修记录
+
+### 1 · 五号继电器柜（7.40 m · 信号室 z 24.55–31.95）
+
+**原状**：柜体、柜门、玻璃窗、五排继电器、端子排、铭牌、电缆槽的几何都在，但**一条都读不出来**——
+信号室只有一盏顶灯，柜门面亮度只有 15/255；玻璃用的是不透明着色器，把柜内**整片挡死**（端子排与继电器排根本看不见，
+之前量到的「端子排 29」其实是柜门自己的颜色）；铰链、把手、指示灯亮度 9–32。
+
+**改动**：
+
+- 新增 `shaders/glass_panel.gdshader`（在 `surface.gdshader` 上加 `ALPHA` + 掠射角 Fresnel），
+  `station.gd` 的 `_mat()` 按材质里有没有 `alpha` 键选着色器，`glass` 材质设为 `alpha 0.34`。
+  三处玻璃（继电器柜观察窗、售货机橱窗、广播台观察窗）一并变成真半透明。
+- `level.gd` 的 `relay_cabinet()` 重做：踢脚 → 圆角柜体（倒角 0.045，整柜一个碰撞盒）→ 门框四压条 →
+  玻璃观察窗（上腔五排继电器 / 下腔 14 组端子排，中间一条分界横档）→ 北端三副圆柱铰链 + 南端把手与锁 →
+  铭牌（带四颗螺钉）+ 两盏柜顶指示灯（琥珀 / 红，各带灯罩底座）→ 底部电缆槽（槽体 + 两根电缆 + 六副支架）→ 柜内三盏小灯。
+  第 5 排继电器用红色指示灯，对得上「五号继电器反馈慢半拍」的剧情。
+- 信号室加第二盏顶灯：一盏灯照不到 7.4 m 的南半段。
+
+**结果**（同一批机位逐点量亮度，0–255）：
+
+| 构件 | 改前 | 改后 |
+|---|---|---|
+| 柜门面 | 15 | 40 |
+| 玻璃后面的继电器排 | 读不到（被不透明玻璃挡死） | 107 |
+| 端子排 | 读不到 | 84 |
+| 第 1 排指示灯 | 23 | 190 |
+| 铰链（中 / 上） | 16 / 196 | 160 / 165 |
+| 把手 | 9 | 69 |
+| 铭牌 | 145 | 169 |
+| 柜顶指示灯（琥珀 / 红） | 32 / 31 | 54 / 51 |
+
+信号室视角平均亮度 53.5 → 101.3；**其余五个固定机位与改前逐像素完全一致**（平均绝对差 0.00），没有波及其他地方。
+三角面 11994 → 12866，碰撞体 116 → 115，灯 47 → 51。对比图：`_预览/look/_对比_继电器柜.png`。
+
