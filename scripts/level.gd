@@ -377,6 +377,16 @@ func dispatch_console(x0: float, z0: float, x1: float, z1: float) -> void:
     b.box("lampC", _v(x1 - 0.02, 0.48, zb + 0.55), _v(x1 + 0.02, 0.54, zf - 0.55), false, "p")
     # 桌下走线槽
     b.box("dark", _v(x0 + 0.30, 0.24, zb), _v(x0 + 0.60, 0.38, zf), false)
+    # 精修：主控拨杆（剧情里那根推到底的手柄）
+    b.box("metalD", _v(x0 + 0.62, h + 0.10, zf - 0.62), _v(x0 + 0.92, h + 0.20, zf - 0.32), true)
+    b.box("metalD", _v(x0 + 0.74, h + 0.20, zf - 0.50), _v(x0 + 0.80, h + 0.62, zf - 0.44), false)
+    b.box("red", _v(x0 + 0.69, h + 0.62, zf - 0.55), _v(x0 + 0.85, h + 0.78, zf - 0.39), false)
+    # 精修：指示灯阵列（两排 x 六个）
+    for li in range(12):
+        var lxx := x0 + 0.42 + float(li % 6) * 0.155
+        var lzz := zb + 0.24 + float(li / 6) * 0.18
+        var lcol := "red" if li % 5 == 3 else "lampC"
+        b.box(lcol, _v(lxx, h + 0.10, lzz), _v(lxx + 0.07, h + 0.155, lzz + 0.07), false, "p")
     # 顶灯 + 铭牌
     b.box("lamp", _v(x0 + 0.30, 3.30, zb + 0.5), _v(x0 + 0.95, 3.40, zf - 0.5), false, "b")
     b.light(_v(x0 + 0.8, 3.1, (zb + zf) * 0.5), Color(0.85, 0.90, 1.0), 3.4, 9.0, false)
@@ -400,6 +410,12 @@ func relay_cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void
             b.box("metalD", _v(x1 - 0.30 + float(k) * 0.09, h * 0.54, zz - 0.12), _v(x1 - 0.27 + float(k) * 0.09, h * 0.72, zz + 0.12), false)
         b.box("red" if i == 4 else "lampC", _v(x1 - 0.06, h * 0.62, zz - 0.13), _v(x1 - 0.02, h * 0.68, zz + 0.13), false, "p")
         b.box("dark", _v(x1 - 0.35, h * 0.47, zz), _v(x1 - 0.02, h * 0.50, zz + 0.02), false)
+    # 精修：底部端子排（12 组）
+    for ti in range(12):
+        var tz := z0 + 0.45 + (z1 - z0 - 0.90) * float(ti) / 11.0
+        b.box("dark", _v(x1 - 0.32, h * 0.22, tz - 0.11), _v(x1 - 0.04, h * 0.36, tz + 0.11), false)
+        b.box("metalD", _v(x1 - 0.28, h * 0.25, tz - 0.07), _v(x1 - 0.08, h * 0.33, tz + 0.07), false)
+    b.box("dark", _v(x1 - 0.34, h * 0.20, z0 + 0.30), _v(x1 - 0.02, h * 0.22, z1 - 0.30), false)
     # 把手 / 铰链 / 铭牌 / 顶部指示灯
     b.box("lampC", _v(x1 + 0.035, h * 0.52, z1 - 0.34), _v(x1 + 0.08, h * 0.60, z1 - 0.28), false, "p")
     for hz in [z0 + 0.10, z1 - 0.10]:
@@ -414,11 +430,11 @@ func relay_cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void
 func bench(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
     for i in range(3):
         var xx := x0 + 0.05 + float(i) * 0.30
-        b.box("wood", _v(xx, base + 0.44, z0), _v(xx + 0.24, base + 0.49, z1), false)
+        b.box("wood", _v(xx, base + 0.44, z0), _v(xx + 0.24, base + 0.49, z1), false, "all", 0.015)
     for i in range(2):
         var y := base + 0.62 + float(i) * 0.20
         var xx2 := x0 + 0.02 - float(i) * 0.045
-        b.box("woodD", _v(xx2, y, z0), _v(xx2 + 0.15, y + 0.14, z1), false)
+        b.box("woodD", _v(xx2, y, z0), _v(xx2 + 0.15, y + 0.14, z1), false, "all", 0.020)
     for zz in [z0 + 0.05, z1 - 0.15]:
         b.box("dark", _v(x0 + 0.02, base, zz), _v(x1 - 0.02, base + 0.44, zz + 0.10), false)
         b.box("dark", _v(x0 + 0.02, base + 0.44, zz), _v(x0 + 0.09, base + 0.95, zz + 0.10), false)
@@ -445,11 +461,18 @@ func vending(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
         b.box("dark", _v(x1 - 0.07, base + 1.16 + float(i % 3) * 0.12, z1 - 0.72 + float(i / 3) * 0.16), _v(x1 - 0.03, base + 1.24 + float(i % 3) * 0.12, z1 - 0.66 + float(i / 3) * 0.16), false)
     b.box("metalD", _v(x1 - 0.10, base + 0.02, z0 + 0.10), _v(x1 - 0.02, base + 0.16, z1 - 0.10), false)
     b.light(_v(x1 + 0.55, base + 1.35, (z0 + z1) * 0.5), Color(0.45, 0.70, 0.95), 2.2, 8.0, false)
+    # 精修：货道隔板 / 价签条 / 退币口
+    for si in range(3):
+        var sy := base + 0.60 + float(si) * 0.34
+        b.box("metalD", _v(x1 - 0.12, sy, z0 + 0.16), _v(x1 - 0.05, sy + 0.025, z1 - 0.16), false)
+        b.box("lampC", _v(x1 - 0.09, sy + 0.03, z0 + 0.18), _v(x1 - 0.06, sy + 0.075, z1 - 0.18), false, "p")
+    b.box("dark", _v(x1 - 0.10, base + 0.30, z1 - 0.62), _v(x1 - 0.02, base + 0.42, z1 - 0.44), false)
+    b.box("metalD", _v(x1 - 0.04, base + 0.33, z1 - 0.58), _v(x1 + 0.01, base + 0.355, z1 - 0.48), false, "p")
     b.plaque("自动售货", _v(x1 - 0.005, base + 1.70, (z0 + z1) * 0.5), 0.62, 0.18, "x", 1, Color(0.55, 0.78, 1.0))
 
 func bin(cx: float, cz: float, base := FY) -> void:
     b.box("metalD", _v(cx - 0.22, base, cz - 0.22), _v(cx + 0.22, base + 0.76, cz + 0.22), true, "all", 0.050)
-    b.box("dark", _v(cx - 0.25, base + 0.76, cz - 0.25), _v(cx + 0.25, base + 0.86, cz + 0.25), false)
+    b.box("dark", _v(cx - 0.25, base + 0.76, cz - 0.25), _v(cx + 0.25, base + 0.86, cz + 0.25), false, "all", 0.020)
     b.box("dark", _v(cx - 0.11, base + 0.86, cz - 0.17), _v(cx + 0.11, base + 0.90, cz + 0.17), false)
     b.box("metalD", _v(cx - 0.205, base + 0.18, cz - 0.205), _v(cx + 0.205, base + 0.23, cz + 0.205), false)
     b.box("metalD", _v(cx - 0.205, base + 0.52, cz - 0.205), _v(cx + 0.205, base + 0.57, cz + 0.205), false)
@@ -486,11 +509,11 @@ func locker(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
     b.box("dark", _v(x0, h - 0.06, z0), _v(x1, h, z1), false)
 
 func desk(x0: float, z0: float, x1: float, z1: float, h := 0.76, base := FY) -> void:
-    b.box("metalD", _v(x0, h - 0.05, z0), _v(x1, h, z1), false)                   # 台面
+    b.box("metalD", _v(x0, h - 0.05, z0), _v(x1, h, z1), false, "all", 0.022)     # 台面（圆角）
     b.add_collider(_v(x0, base, z0), _v(x1, h, z1))                               # 整张桌子算实体
     b.box("dark", _v(x0 + 0.04, base + 0.08, z0 + 0.04), _v(x1 - 0.04, h - 0.05, z0 + 0.10), false)   # 侧板
     b.box("dark", _v(x0 + 0.04, base + 0.08, z1 - 0.10), _v(x1 - 0.04, h - 0.05, z1 - 0.04), false)
-    b.box("metalD", _v(x1 - 0.55, 0.42, z0 + 0.06), _v(x1 - 0.06, h - 0.05, z1 - 0.06), true)       # 抽屉箱
+    b.box("metalD", _v(x1 - 0.55, 0.42, z0 + 0.06), _v(x1 - 0.06, h - 0.05, z1 - 0.06), true, "all", 0.020)  # 抽屉箱（圆角）
     b.box("dark", _v(x1 - 0.53, 0.52, z0 + 0.05), _v(x1 - 0.08, 0.58, z1 - 0.05), false)
     b.box("lampC", _v(x1 - 0.30, 0.585, z0 + 0.10), _v(x1 - 0.26, 0.615, z1 - 0.10), false, "p")    # 拉手
     b.box("dark", _v(x0 + 0.10, 0.20, z0 + 0.12), _v(x1 - 0.60, 0.24, z1 - 0.12), false)            # 横撑
