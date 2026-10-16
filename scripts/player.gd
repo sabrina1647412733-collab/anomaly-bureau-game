@@ -28,7 +28,7 @@ const CCTV := [
 ]
 const CCTV_FOV := 46.0
 ## 第二人称（对脸视角）：镜头在角色正前方看着他的眼睛
-const FACE_DIST := 1.15
+const FACE_DIST := 3.10
 const FACE_LOOK_UP := -0.02
 const TP_UP := 0.55
 

@@ -346,7 +346,7 @@ func rooms() -> void:
     small_room(-11.00, 2.5, 14.5, 3.5, 7.6, 9.6, "值班室", "duty")
     small_room(-11.50, 33.0, 45.0, 3.3, 37.6, 39.6, "广播台", "studio")
     # 总调度手柄底座
-    b.box("metalD", _v(-16.96, FY, 30.42), _v(-16.44, 1.02, 31.18), true)
+    b.box("metalD", _v(-16.66, FY, 30.42), _v(-16.14, 1.02, 31.18), true)
 
 func small_room(x1: float, z0: float, z1: float, h: float, dz0: float, dz1: float, nm: String, kind := "duty") -> void:
     # ---- 墙体 ----
@@ -364,8 +364,8 @@ func small_room(x1: float, z0: float, z1: float, h: float, dz0: float, dz1: floa
     # ---- 家具：全部贴墙，门前 x1-2.4 之内留空 ----
     cabinet(PX0 + 0.15, z0 + 0.5, PX0 + 0.95, z1 - 0.5, 1.05)          # 后墙一排矮柜
     if kind == "duty":
-        desk(x1 - 6.2, z0 + 0.28, x1 - 4.2, z0 + 2.48)                # 靠北墙办公桌
-        chair(x1 - 5.4, z0 + 1.45, FY, PI * 0.5)
+        desk(x1 - 5.9, z0 + 0.28, x1 - 3.7, z0 + 1.08)                # 靠北墙办公桌
+        chair(x1 - 4.8, z0 + 1.75, FY, 0.0)
         locker(PX0 + 1.05, z1 - 2.7, PX0 + 1.95, z1 - 0.45, 1.9)      # 立式更衣柜
         desk(x1 - 4.4, z1 - 3.7, x1 - 2.6, z1 - 1.3)                  # 南侧会议桌
         chair(x1 - 4.85, z1 - 2.5, FY, -PI * 0.5)
@@ -381,7 +381,7 @@ func small_room(x1: float, z0: float, z1: float, h: float, dz0: float, dz1: floa
         b.cyl("glass|dcefff", PX0 + 2.475, z1 - 0.75, 1.44, 1.50, 0.155, 0.095, 12, true, false)
     else:
         desk(x1 - 5.6, z0 + 0.30, x1 - 3.6, z0 + 2.00, 0.92)          # 调音台
-        chair(x1 - 4.25, z0 + 1.30, FY, PI * 0.5)
+        chair(x1 - 2.9, z0 + 1.55, FY, PI * 0.5)
         cabinet(PX0 + 1.05, z1 - 3.5, PX0 + 2.00, z1 - 0.5, 1.8)      # 磁带架
         for i in range(4):
             b.box("dark", _v(PX0 + 1.10, 0.25 + float(i) * 0.36, z1 - 3.45), _v(PX0 + 1.95, 0.33 + float(i) * 0.36, z1 - 0.55), false)
@@ -444,6 +444,9 @@ func relay_cabinet(x0: float, z0: float, x1: float, z1: float, h: float) -> void
         b.box("metal", _v(x1 + 0.085, 0.53, tz), _v(x1 + 0.128, 0.73, tz + 0.30), false)
         b.box("dark", _v(x1 + 0.128, 0.595, tz + 0.05), _v(x1 + 0.140, 0.665, tz + 0.25), false, "p")
     b.box("lamp", _v(x1 + 0.085, 0.775, zw0 + 0.15), _v(x1 + 0.125, 0.812, zw1 - 0.15), false)
+    # ---- 柜顶托板：五号继电器线索摆在这上面（柜内每排导轨占满，放不下，改到顶面）----
+    b.box("metalD", _v(x1 - 0.28, h, 26.30), _v(x1 + 0.06, h + 0.022, 27.10), false, "t")
+    b.box("dark", _v(x1 - 0.26, h + 0.022, 26.34), _v(x1 + 0.04, h + 0.032, 27.06), false, "t")
     # ---- 三副铰链（北端）----
     for hy in [0.52, 1.16, 1.72]:
         b.cyl("metal", xd + 0.010, z0 + 0.15, hy - 0.10, hy + 0.10, 0.026, 0.026, 8, true, true)
@@ -477,24 +480,24 @@ func bench(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
     # 长椅：木条坐板 + 木条靠背 + 圆管腿 / 圆管横撑
     var ySeat := base + 0.44
     var zc := (z0 + z1) * 0.5
-    for i in range(3):
-        var xx := x0 + 0.05 + float(i) * 0.30
-        b.box("wood", _v(xx, ySeat, z0), _v(xx + 0.24, ySeat + 0.05, z1), false, "all", 0.015)
+    for i in range(2):
+        var xx := x0 + 0.05 + float(i) * 0.27
+        b.box("wood", _v(xx, ySeat, z0), _v(xx + 0.25, ySeat + 0.05, z1), false, "all", 0.015)
     for i in range(2):
         var y := base + 0.62 + float(i) * 0.20
         var xx2 := x0 + 0.02 - float(i) * 0.045
         b.box("wood", _v(xx2, y, z0), _v(xx2 + 0.15, y + 0.14, z1), false, "all", 0.020)
     for zz in [z0 + 0.22, zc, z1 - 0.22]:
-        for xx3 in [x0 + 0.10, x1 - 0.10]:
+        for xx3 in [x0 + 0.10, x0 + 0.50]:
             b.cyl("metalD", xx3, zz, base, ySeat, 0.032, 0.032, 8, false, false)
-        b.box("metalD", _v(x0 + 0.03, ySeat - 0.05, zz - 0.03), _v(x1 - 0.03, ySeat, zz + 0.03), false)
+        b.box("metalD", _v(x0 + 0.03, ySeat - 0.05, zz - 0.03), _v(x0 + 0.60, ySeat, zz + 0.03), false)
         b.cyl("metalD", x0 + 0.04, zz, ySeat, base + 1.00, 0.030, 0.030, 8, false, false)
-    for xx4 in [x0 + 0.10, x1 - 0.10]:
+    for xx4 in [x0 + 0.10, x0 + 0.50]:
         b.cyl_z("metalD", xx4, base + 0.36, z0 + 0.16, z1 - 0.16, 0.026, 8, true)
-    b.add_collider(_v(x0, base, z0), _v(x1, base + 0.50, z1))
-    b.light(_v(x0 + 0.50, base + 1.42, zc), Color(0.92, 0.86, 0.76), 3.2, 3.8, false)
-    b.seats.append({"pos": Vector3(x0 + 0.62, base, z0 + (z1 - z0) * 0.30), "yaw": -PI * 0.5})
-    b.seats.append({"pos": Vector3(x0 + 0.62, base, z0 + (z1 - z0) * 0.70), "yaw": -PI * 0.5})
+    b.add_collider(_v(x0, base, z0), _v(x0 + 0.66, base + 0.50, z1))
+    b.light(_v(x0 + 0.42, base + 1.42, zc), Color(0.92, 0.86, 0.76), 3.2, 3.8, false)
+    b.seats.append({"pos": Vector3(x0 + 0.28, base, z0 + (z1 - z0) * 0.30), "yaw": -PI * 0.5})
+    b.seats.append({"pos": Vector3(x0 + 0.28, base, z0 + (z1 - z0) * 0.70), "yaw": -PI * 0.5})
 
 func vending(x0: float, z0: float, x1: float, z1: float, base := FY) -> void:
     # 自动售货机：圆角外壳 → 玻璃橱窗（三层货道 / 商品 / 价签）→ 取货口 → 面板与退币口 → 顶部灯箱
@@ -572,7 +575,7 @@ func turnstile(cx: float, cz: float, base := FY) -> void:
     b.box("metalD", _v(cx - 0.16, base + 0.84, cz - 0.20), _v(cx + 0.16, base + 0.88, cz - 0.14), false, "t")
     # 三辊：三根圆管绕立柱 120 度分布
     for i in range(3):
-        var a := TAU * float(i) / 3.0 + 0.35
+        var a := TAU * float(i) / 3.0 + PI * 0.5
         b.cyl_dir("metal", Vector3(cx + cos(a) * 0.40, base + 0.90, cz + sin(a) * 0.40),
                   a, 0.62, 0.030, 8, true)
 
@@ -634,11 +637,11 @@ func sign_board(z: float, w: float, title: String, lines: Array, accent: Color) 
     b.add_collider(_v(x, y0 - 0.06, z - w * 0.5 - 0.06), _v(x + 0.12, y1 + 0.06, z + w * 0.5 + 0.06))
     var fx := x + 0.12
     b.box("sign", _v(fx, y1 - 0.30, z - w * 0.44), _v(fx + 0.012, y1 - 0.07, z + w * 0.44), false, "p")
-    b.label3d(title, _v(fx + 0.03, y1 - 0.185, z), 0.135, Color(0.95, 0.98, 1.0), PI * 0.5)
+    b.label3d(title, _v(fx + 0.03, y1 - 0.185, z), 0.052, Color(0.95, 0.98, 1.0), PI * 0.5)
     var n := maxi(lines.size(), 1)
     for i in range(lines.size()):
-        var ry := y1 - 0.58 - float(i) * (1.16 / float(n))
-        b.label3d(String(lines[i]), _v(fx + 0.03, ry, z), 0.12, accent, PI * 0.5)
+        var ry := y1 - 0.54 - float(i) * (1.22 / float(maxi(n, 6)))
+        b.label3d(String(lines[i]), _v(fx + 0.03, ry, z), 0.033, accent, PI * 0.5)
     b.light(_v(x + 0.75, 2.10, z), Color(0.88, 0.92, 1.0), 1.0, 3.8, false)
 
 ## 五块牌子：位置都避开了广告灯箱、售货机与三间房间（后墙可用的空段是 z -56..2.5 / 14.5..24 / 45..50）

@@ -94,11 +94,11 @@ var _dv_s0 := 0.0
 var _dv_end_s := 0.0
 
 var ITEM_DEFS := [
-	{"id":"red","name":"红灯延迟记录","where":"控制台 · 旧继电器端口","desc":"旧继电器端口的打印条。红灯比它该亮的时间晚了半秒。","pos":Vector3(-16.60, 1.30, -13.60),"col":Color(0.83,0.34,0.31),"round":0},
-	{"id":"tape","name":"倒放广播","where":"广播台 · 磁带机","desc":"把站内广播倒过来听，里面有一句被埋掉的话：「三道有人，改四道。」","pos":Vector3(-16.30, 1.30, -13.0),"col":Color(0.35,0.62,0.83),"round":1},
-	{"id":"key","name":"停用钥匙","where":"隧道 · 检修环线","desc":"十七年前那把停用钥匙。系统早换了，锁还认它。","pos":Vector3(10.80, -0.10, -60.50),"col":Color(0.88,0.64,0.29),"round":2},
-	{"id":"log","name":"巡检簿","where":"站台 · 长椅上","desc":"巡检簿被撕掉的一页。上面记着 00:16:43 那道手动进路。","pos":Vector3(-14.30, 1.02, 17.00),"col":Color(0.72,0.82,0.95),"round":2},
-	{"id":"relay5","name":"五号继电器","where":"信号室 · 继电器柜","desc":"五号继电器的反馈慢半拍。隔离它，进路才锁得死。","pos":Vector3(-16.20, 1.50, 27.20),"col":Color(0.25,0.75,0.56),"round":3},
+	{"id":"red","name":"红灯延迟记录","where":"控制台 · 旧继电器端口","desc":"旧继电器端口的打印条。红灯比它该亮的时间晚了半秒。","pos":Vector3(-16.60, 1.156, -13.60),"col":Color(0.83,0.34,0.31),"round":0},
+	{"id":"tape","name":"倒放广播","where":"广播台 · 磁带机","desc":"把站内广播倒过来听，里面有一句被埋掉的话：「三道有人，改四道。」","pos":Vector3(-16.30, 1.172, -13.0),"col":Color(0.35,0.62,0.83),"round":1},
+	{"id":"key","name":"停用钥匙","where":"隧道 · 检修环线","desc":"十七年前那把停用钥匙。系统早换了，锁还认它。","pos":Vector3(10.80, -0.278, -60.50),"col":Color(0.88,0.64,0.29),"round":2},
+	{"id":"log","name":"巡检簿","where":"站台 · 长椅上","desc":"巡检簿被撕掉的一页。上面记着 00:16:43 那道手动进路。","pos":Vector3(-14.72, 0.516, 17.00),"col":Color(0.72,0.82,0.95),"round":2},
+	{"id":"relay5","name":"五号继电器","where":"信号室 · 继电器柜","desc":"五号继电器的反馈慢半拍。隔离它，进路才锁得死。","pos":Vector3(-17.150, 2.082, 26.700),"col":Color(0.25,0.75,0.56),"round":3},
 ]
 
 func _ready() -> void:
@@ -261,25 +261,85 @@ func _label(parent: Control, preset: int, pos: Vector2, size: Vector2, fs: int, 
 
 func _make_items() -> void:
 	for d in ITEM_DEFS:
-		var n := Node3D.new()
+		var n := _make_item_model(d)
 		n.position = d["pos"]
-		var mi := MeshInstance3D.new()
-		var sm := SphereMesh.new()
-		sm.radius = 0.18; sm.height = 0.36; sm.radial_segments = 4; sm.rings = 2
-		mi.mesh = sm
-		var m := StandardMaterial3D.new()
-		m.albedo_color = d["col"]
-		m.emission_enabled = true
-		m.emission = d["col"]
-		m.emission_energy_multiplier = 2.2
-		mi.material_override = m
-		n.add_child(mi)
 		var ol := OmniLight3D.new()
-		ol.light_color = d["col"]; ol.light_energy = 1.2; ol.omni_range = 4.5; ol.shadow_enabled = false
+		ol.light_color = d["col"]; ol.light_energy = 1.0; ol.omni_range = 3.4; ol.shadow_enabled = false
 		n.add_child(ol)
 		add_child(n)
 		n.visible = false
-		items.append({"def": d, "node": n, "mesh": mi, "got": false})
+		items.append({"def": d, "node": n, "mesh": n, "got": false})
+
+## 每件线索都做成实物小模型（原来是一个飘在空中的发光球），原点在底面，方便直接摆在平面上
+func _make_item_model(d: Dictionary) -> Node3D:
+	var root := Node3D.new()
+	root.name = String(d["id"])
+	var col: Color = d["col"]
+	var body := StandardMaterial3D.new()
+	body.albedo_color = col
+	body.roughness = 0.60
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.10, 0.11, 0.13)
+	dark.roughness = 0.85
+	var paper := StandardMaterial3D.new()
+	paper.albedo_color = Color(0.86, 0.87, 0.84)
+	paper.roughness = 0.90
+	var metal := StandardMaterial3D.new()
+	metal.albedo_color = Color(0.62, 0.64, 0.66)
+	metal.roughness = 0.35
+	metal.metallic = 0.5
+	var lit := StandardMaterial3D.new()
+	lit.albedo_color = col
+	lit.emission_enabled = true
+	lit.emission = col
+	lit.emission_energy_multiplier = 1.6
+	match String(d["id"]):
+		"red":      # 红灯延迟记录：一条打印条 + 红灯 + 卡子
+			_item_part(root, Vector3(0.22, 0.005, 0.09), Vector3(0, 0.0025, 0), paper)
+			_item_part(root, Vector3(0.19, 0.002, 0.012), Vector3(0, 0.006, 0.018), dark)
+			_item_part(root, Vector3(0.024, 0.016, 0.024), Vector3(0.086, 0.013, 0.026), lit)
+			_item_part(root, Vector3(0.030, 0.020, 0.020), Vector3(-0.090, 0.012, 0), dark)
+		"tape":     # 倒放广播：磁带
+			_item_part(root, Vector3(0.130, 0.034, 0.092), Vector3(0, 0.018, 0), dark)
+			for rx in [-0.030, 0.030]:
+				_item_part(root, Vector3(0.044, 0.010, 0.044), Vector3(rx, 0.031, 0), metal, true)
+			_item_part(root, Vector3(0.110, 0.012, 0.030), Vector3(0, 0.030, -0.030), lit)
+			_item_part(root, Vector3(0.104, 0.006, 0.070), Vector3(0, 0.036, 0), paper)
+		"key":      # 停用钥匙
+			_item_part(root, Vector3(0.050, 0.008, 0.032), Vector3(0, 0.006, -0.042), body)
+			_item_part(root, Vector3(0.036, 0.006, 0.014), Vector3(0, 0.007, -0.058), body)
+			_item_part(root, Vector3(0.012, 0.008, 0.086), Vector3(0, 0.006, 0.020), body)
+			for k in range(3):
+				_item_part(root, Vector3(0.010, 0.008, 0.014), Vector3(0.011, 0.006, 0.036 + float(k) * 0.018), body)
+		"log":      # 巡检簿：封面 + 内页 + 书签 + 撕口
+			_item_part(root, Vector3(0.170, 0.030, 0.240), Vector3(0, 0.016, 0), dark)
+			_item_part(root, Vector3(0.158, 0.022, 0.228), Vector3(0.006, 0.032, 0), paper)
+			_item_part(root, Vector3(0.006, 0.034, 0.240), Vector3(-0.084, 0.017, 0), body)
+			_item_part(root, Vector3(0.030, 0.006, 0.070), Vector3(0.030, 0.044, 0.070), lit)
+		"relay5":   # 五号继电器：外壳 + 顶板 + 三个脚 + 红灯
+			_item_part(root, Vector3(0.098, 0.062, 0.096), Vector3(0, 0.052, 0), body)
+			_item_part(root, Vector3(0.106, 0.008, 0.104), Vector3(0, 0.087, 0), dark)
+			for px in [-0.028, 0.0, 0.028]:
+				_item_part(root, Vector3(0.014, 0.022, 0.014), Vector3(px, 0.011, 0), metal)
+			_item_part(root, Vector3(0.020, 0.014, 0.006), Vector3(0.026, 0.062, -0.050), lit)
+	return root
+
+func _item_part(parent: Node3D, size: Vector3, off: Vector3, mat: Material, cyl := false) -> void:
+	var mi := MeshInstance3D.new()
+	if cyl:
+		var cm := CylinderMesh.new()
+		cm.top_radius = size.x * 0.5
+		cm.bottom_radius = size.x * 0.5
+		cm.height = size.y
+		cm.radial_segments = 10
+		mi.mesh = cm
+	else:
+		var bm := BoxMesh.new()
+		bm.size = size
+		mi.mesh = bm
+	mi.material_override = mat
+	mi.position = off
+	parent.add_child(mi)
 
 func _make_doors() -> void:
 	doors.clear()

@@ -76,6 +76,9 @@ func _run(nm: String, x: float, y: float, z: float, yaw: float, pitch: float,
 	if seat_idx < 0:
 		game.player.global_position = Vector3(x, y, z)
 		game.player.rotation.y = yaw
+	if flags.has("items"):
+		for it in game.items:
+			it["node"].visible = true
 	if flags.has("third"):
 		game.player.toggle_cam()
 	if flags.has("cctv"):
