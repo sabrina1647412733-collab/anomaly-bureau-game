@@ -126,6 +126,21 @@ func _mesh_cyl(size: Vector3, col: Color, off: Vector3) -> MeshInstance3D:
 	mi.position = off
 	return mi
 
+func _mesh_sphere(size: Vector3, col: Color, off: Vector3) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.5               # 单位球，靠 mi.scale 拉成椭球
+	sm.height = 1.0
+	sm.radial_segments = 8        # 8 段保持低多边形的棱面感，同时把直角磨掉
+	sm.rings = 4
+	mi.mesh = sm
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = 0.80
+	mi.material_override = m
+	mi.position = off
+	mi.scale = size
+	return mi
 func _joint(nm: String, parent: Node3D, joint: Vector3) -> Node3D:
 	var n := Node3D.new()
 	n.name = nm
@@ -157,8 +172,10 @@ func _build_body() -> void:
 	torso.add_child(_mesh_box(Vector3(0.062, 0.078, 0.022), shirt, Vector3(0, 0.428, -0.128)))
 	torso.add_child(_mesh_box(Vector3(0.115, 0.085, 0.115), skin, Vector3(0, 0.472, 0)))
 	torso.add_child(_mesh_box(Vector3(0.300, 0.062, 0.246), coat, Vector3(0, 0.452, 0)))
+	# 肩：以前是一块 0.14x0.08x0.16 的方盒子顶在肩角上，外面鼓出一块直角（很反人类）。
+	# 现在换成 8 段低多边形椭球（三角肌），肩线从躯干顶自然滚下来接住上臂圆管。
 	for sc in [-1.0, 1.0]:
-		torso.add_child(_mesh_box(Vector3(0.140, 0.080, 0.160), coat, Vector3(sc * 0.232, 0.455, 0)))
+		torso.add_child(_mesh_sphere(Vector3(0.186, 0.176, 0.210), coat, Vector3(sc * 0.235, 0.425, 0)))
 	torso.add_child(_mesh_box(Vector3(0.44, 0.44, 0.275), vest, Vector3(0, 0.22, 0), 0.55))   # 反光背心（A 里是从胸到胯的长背心）
 	torso.add_child(_mesh_box(Vector3(0.45, 0.045, 0.285), Color(0.89, 0.80, 0.33), Vector3(0, 0.36, 0), 0.9))
 	torso.add_child(_mesh_box(Vector3(0.45, 0.045, 0.285), Color(0.89, 0.80, 0.33), Vector3(0, 0.13, 0), 0.9))

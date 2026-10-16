@@ -486,7 +486,7 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		_part(n, "shin" + sfx, Vector3(sgn * 0.105, 0.3175, 0), Vector3(0.140, 0.455, 0.150), cloth2, 0.0, true)
 		_part(n, "hemLeg" + sfx, Vector3(sgn * 0.105, 0.118, 0), Vector3(0.152, 0.032, 0.162), cloth2.darkened(0.35))
 		_part(n, "shoe" + sfx, Vector3(sgn * 0.105, 0.045, -0.035), Vector3(0.155, 0.09, 0.26), Color(0.07, 0.07, 0.08))
-		_part(upper, "shoulderCap" + sfx, Vector3(sgn * 0.226, 0.428, 0), Vector3(0.126, 0.070, 0.150), cloth)
+		_part(upper, "shoulderCap" + sfx, Vector3(sgn * 0.225, 0.408, 0), Vector3(0.210, 0.190, 0.220), cloth, 0.0, false, Vector3.ZERO, true)
 		_part(upper, "armU" + sfx, Vector3(sgn * 0.238, 0.310, 0), Vector3(0.115, 0.33, 0.125), cloth, 0.0, true)
 		_part(upper, "armL" + sfx, Vector3(sgn * 0.250, -0.010, -0.030), Vector3(0.100, 0.31, 0.110), cloth, 0.0, true)
 		# 袖口：袖管压住手掌上沿 2cm，手不再是一块飘在袖子下面的浅色方块
@@ -543,10 +543,18 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		"upper": upper, "head": hp}
 
 func _part(parent: Node3D, nm: String, p: Vector3, size: Vector3, col: Color,
-		emis := 0.0, tube := false, rot := Vector3.ZERO) -> MeshInstance3D:
+		emis := 0.0, tube := false, rot := Vector3.ZERO, ball := false) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.name = nm
-	if tube:
+	if ball:
+		var sm := SphereMesh.new()
+		sm.radius = 0.5
+		sm.height = 1.0
+		sm.radial_segments = 8
+		sm.rings = 4
+		mi.mesh = sm
+		mi.scale = size
+	elif tube:
 		var cm := CylinderMesh.new()
 		cm.top_radius = size.x * 0.5
 		cm.bottom_radius = size.x * 0.5
