@@ -585,6 +585,8 @@ func _update_body(delta: float, planar: float) -> void:
 	parts["head"].position = Vector3(0, 1.44 - 0.36 * k, 0)
 	var sw := sin(walk_phase) * clampf(planar / SPEED_WALK, 0.0, 1.4) * 0.62
 	walk_phase += delta * (planar * 2.7 + 0.6)
+	# 走路时整个人上下起伏 1.2cm（两步一个周期），配合肩胯摆动 —— 原来只有手臂在摆，躯干是平移过去的
+	body.position.y = sin(walk_phase * 2.0) * 0.012 * clampf(planar / SPEED_WALK, 0.0, 1.2)
 	for sgn in ["L", "R"]:
 		var dir := 1.0 if sgn == "L" else -1.0
 		parts["shoulder" + sgn].position = Vector3(dir * 0.27, 1.40 - 0.36 * k, 0)
