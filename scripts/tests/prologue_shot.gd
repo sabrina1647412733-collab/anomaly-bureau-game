@@ -15,6 +15,14 @@ func _run() -> void:
 	game.menu.start_game.emit()
 	for i in range(20): await process_frame
 	await _shot("prologue_room")
+	game.player.position = Vector3(-0.55, 12.1, 0.72)
+	game.player.rotation.y = 0.92
+	game.player.pitch = -0.24
+	for i in range(10): await process_frame
+	await _shot("prologue_bed")
+	game.player.position = Vector3(0, 12.1, 324.0)
+	game.player.rotation.y = PI
+	game.player.pitch = 0.0
 	game._prologue_act("phone")
 	game._prologue_act("box")
 	game._prologue_act("door")

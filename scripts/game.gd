@@ -513,6 +513,14 @@ func _pro_box(parent: Node3D, pos: Vector3, size: Vector3, col: Color, collide :
 		parent.add_child(body)
 	return mi
 
+func _pro_bev(parent: Node3D, pos: Vector3, size: Vector3, col: Color, bev := 0.04, emit := 0.0) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = CharBody.bev_box(size, bev)
+	mi.position = pos
+	mi.material_override = _pro_mat(col, emit)
+	parent.add_child(mi)
+	return mi
+
 func _pro_light(parent: Node3D, pos: Vector3, col: Color, energy: float, rng: float) -> void:
 	var l := OmniLight3D.new()
 	l.position = pos
@@ -563,12 +571,31 @@ func _build_pro_room(root: Node3D) -> void:
 	_pro_box(root, Vector3(-1.62, 1.65, 2.38), Vector3(0.18, 1.55, 0.08), Color(0.22, 0.25, 0.30), false)
 	_pro_box(root, Vector3(1.62, 1.65, 2.38), Vector3(0.18, 1.55, 0.08), Color(0.22, 0.25, 0.30), false)
 	_pro_box(root, Vector3(0, 0.38, 2.36), Vector3(1.8, 0.46, 0.16), Color(0.32, 0.32, 0.31), false)
-	# 床
-	_pro_box(root, Vector3(-1.9, 0.28, -1.15), Vector3(1.9, 0.55, 1.25), Color(0.20, 0.25, 0.32))
-	_pro_box(root, Vector3(-1.9, 0.58, -1.15), Vector3(1.8, 0.12, 1.15), Color(0.34, 0.37, 0.42))
-	_pro_box(root, Vector3(-1.9, 0.70, -1.62), Vector3(0.76, 0.14, 0.34), Color(0.72, 0.70, 0.64))
-	_pro_box(root, Vector3(-1.9, 0.68, -0.72), Vector3(1.55, 0.10, 0.55), Color(0.26, 0.31, 0.39))
-	_pro_box(root, Vector3(-2.65, 0.18, -1.15), Vector3(0.12, 0.36, 1.3), Color(0.18, 0.18, 0.19))
+	# 床：单人床架 + 床垫 + 床单 + 被子 + 枕头 + 床头板 + 床下收纳
+	for lx in [-2.88, -1.82]:
+		for lz in [-2.04, -0.16]:
+			_pro_box(root, Vector3(lx, 0.14, lz), Vector3(0.08, 0.28, 0.08), Color(0.12, 0.12, 0.13))
+	_pro_box(root, Vector3(-2.88, 0.28, -1.10), Vector3(0.07, 0.12, 2.0), Color(0.16, 0.16, 0.17))
+	_pro_box(root, Vector3(-1.82, 0.28, -1.10), Vector3(0.07, 0.12, 2.0), Color(0.16, 0.16, 0.17))
+	_pro_box(root, Vector3(-2.35, 0.28, -2.10), Vector3(1.20, 0.12, 0.07), Color(0.16, 0.16, 0.17))
+	_pro_box(root, Vector3(-2.35, 0.28, -0.10), Vector3(1.20, 0.12, 0.07), Color(0.16, 0.16, 0.17))
+	_pro_bev(root, Vector3(-2.35, 0.50, -1.10), Vector3(1.02, 0.22, 1.90), Color(0.74, 0.72, 0.66), 0.07)
+	_pro_bev(root, Vector3(-2.35, 0.64, -0.92), Vector3(1.04, 0.045, 1.28), Color(0.46, 0.54, 0.62), 0.025)
+	_pro_bev(root, Vector3(-2.35, 0.71, -0.62), Vector3(1.06, 0.13, 1.06), Color(0.25, 0.31, 0.39), 0.06)
+	_pro_bev(root, Vector3(-2.35, 0.78, -1.12), Vector3(1.06, 0.08, 0.30), Color(0.38, 0.45, 0.54), 0.045)
+	_pro_bev(root, Vector3(-2.35, 0.68, -1.68), Vector3(0.66, 0.14, 0.36), Color(0.80, 0.79, 0.73), 0.06)
+	_pro_box(root, Vector3(-2.35, 0.92, -2.14), Vector3(1.18, 0.98, 0.08), Color(0.24, 0.18, 0.14))
+	for hx in [-2.82, -2.58, -2.34, -2.10, -1.86]:
+		_pro_box(root, Vector3(hx, 0.92, -2.09), Vector3(0.035, 0.86, 0.05), Color(0.18, 0.13, 0.10), false)
+	_pro_box(root, Vector3(-2.35, 0.55, -0.06), Vector3(1.18, 0.46, 0.06), Color(0.24, 0.18, 0.14))
+	_pro_box(root, Vector3(-2.35, 0.14, -1.55), Vector3(0.86, 0.22, 0.62), Color(0.30, 0.24, 0.18))
+	_pro_box(root, Vector3(-2.35, 0.14, -0.78), Vector3(0.86, 0.22, 0.62), Color(0.26, 0.22, 0.18))
+	_pro_box(root, Vector3(-1.50, 0.26, -1.88), Vector3(0.46, 0.52, 0.46), Color(0.34, 0.28, 0.21))
+	_pro_box(root, Vector3(-1.50, 0.58, -1.88), Vector3(0.40, 0.60, 0.40), Color(0.92, 0.86, 0.70), false, 0.65)
+	_pro_box(root, Vector3(-1.50, 0.86, -1.88), Vector3(0.10, 0.16, 0.10), Color(0.20, 0.18, 0.16), false)
+	_pro_box(root, Vector3(-1.72, 0.015, 0.42), Vector3(1.45, 0.012, 1.0), Color(0.28, 0.20, 0.20), false)
+	_pro_box(root, Vector3(-1.62, 0.06, 0.18), Vector3(0.24, 0.10, 0.36), Color(0.18, 0.19, 0.21), false)
+	_pro_box(root, Vector3(-1.30, 0.06, 0.18), Vector3(0.24, 0.10, 0.36), Color(0.18, 0.19, 0.21), false)
 	# 书桌 / 椅子 / 台灯 / 电话
 	_pro_box(root, Vector3(1.8, 0.74, 0.70), Vector3(1.7, 0.08, 0.82), Color(0.40, 0.28, 0.18))
 	for lx in [-0.70, 0.70]:
@@ -581,8 +608,10 @@ func _build_pro_room(root: Node3D) -> void:
 	_pro_box(root, Vector3(1.55, 1.14, 0.55), Vector3(0.28, 0.22, 0.22), Color(0.95, 0.78, 0.48), false, 1.6)
 	_pro_box(root, Vector3(1.95, 0.82, 0.72), Vector3(0.26, 0.08, 0.16), Color(0.05, 0.05, 0.06), false)
 	# 衣柜 / 厨房台面 / 纸箱
-	_pro_box(root, Vector3(-2.55, 1.0, -2.18), Vector3(0.85, 2.0, 0.55), Color(0.30, 0.25, 0.20))
-	_pro_box(root, Vector3(-2.55, 1.0, -1.89), Vector3(0.04, 1.9, 0.04), Color(0.60, 0.50, 0.35), false)
+	_pro_box(root, Vector3(2.68, 1.05, -0.85), Vector3(0.55, 2.1, 1.10), Color(0.30, 0.24, 0.19))
+	_pro_box(root, Vector3(2.39, 1.05, -0.85), Vector3(0.03, 1.92, 0.04), Color(0.58, 0.46, 0.30), false)
+	for wz in [-1.20, -0.50]:
+		_pro_box(root, Vector3(2.38, 1.10, wz), Vector3(0.04, 0.03, 0.22), Color(0.70, 0.58, 0.38), false)
 	_pro_box(root, Vector3(2.55, 0.82, -2.18), Vector3(0.82, 0.10, 0.68), Color(0.46, 0.43, 0.38))
 	_pro_box(root, Vector3(2.55, 0.40, -2.18), Vector3(0.76, 0.74, 0.62), Color(0.30, 0.28, 0.25))
 	_pro_box(root, Vector3(2.55, 0.90, -2.18), Vector3(0.42, 0.04, 0.32), Color(0.12, 0.13, 0.14), false)
