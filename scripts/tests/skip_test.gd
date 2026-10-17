@@ -14,9 +14,9 @@ func _process(_d: float) -> bool:
         print("[S] 跳过前 phase=", game.cut_phase)
         game._skip_cutscene()
     elif f == 105:
-        print("[S] 第一下跳过 → phase=", game.cut_phase, "（应到 end）")
+        print("[S] 第一下跳过 → phase=", game.cut_phase, "（out 已跳过，进入下一轮预览）")
     elif f == 160:
-        print("[S] 现在 phase=", game.cut_phase, "（应到 preview，正在环绕）")
+        print("[S] 现在 phase=", game.cut_phase, "（preview，正在环绕）")
         game._skip_cutscene()
     elif f == 180:
         print("[S] 第二下跳过 → phase=", game.cut_phase)

@@ -1,50 +1,51 @@
 extends SceneTree
-## 无头驱动：菜单 → 开始 → 序章 → 过场 → 下一轮，并测存读档
+## 无头驱动：菜单 → 开始 → 按钮/存读档 → 过场（跳过）→ 预览结算卡 → 下一轮。
+## 用时间/状态等待，不再依赖固定帧数。
 var game
-var frames := 0
-var step := 0
 
 func _initialize() -> void:
-    var scn = load("res://scenes/main.tscn").instantiate()
-    root.add_child(scn)
-    game = scn
+	game = load("res://scenes/main.tscn").instantiate()
+	root.add_child(game)
+	_run()
 
-func _process(_delta: float) -> bool:
-    frames += 1
-    if frames == 20:
-        print("[T] 菜单状态 state=", game.state, " round=", game.round, " 有存档=", game.game_has_save())
-        game._on_start()
-    elif frames == 40:
-        print("[T] 开始后 state=", game.state, " round=", game.round, " 钟=", game.clock_min)
-        print("[T] 人物可见: ", _npcs())
-        print("[T] 物品可见: ", _items())
-        game._press_button(0)
-        print("[T] 按下第一个钮 → 钟=", "%.2f" % game.clock_min)
-    elif frames == 60:
-        print("[T] 存档: ", game.game_save(0), " 文件存在=", game.game_has_save())
-        game.clock_min = 1456.95
-    elif frames == 100:
-        print("[T] 到点后 state=", game.state, " (应为 cutscene)")
-    elif frames == 700:
-        print("[T] 过场结束 → state=", game.state, " round=", game.round, " (应进入第 1 轮=0)")
-        print("[T] 人物可见: ", _npcs())
-        game.clock_min = 1456.95
-    elif frames == 1000:
-        print("[T] 第二轮开始 round=", game.round, " 人物: ", _npcs())
-        print("[T] 读档测试: ", game.game_load(0), " → round=", game.round)
-        return true
-    return false
-
-func _npcs() -> String:
-    var s := []
-    for np in game.npcs:
-        if np["node"].visible:
-            s.append(np["name"])
-    return "[" + ", ".join(s) + "]"
-
-func _items() -> String:
-    var s := []
-    for it in game.items:
-        if it["node"].visible:
-            s.append(str(it["def"]["name"]))
-    return "[" + ", ".join(s) + "]"
+func _run() -> void:
+	for i in range(30):
+		await process_frame
+	var menu_ok: bool = game.state == "menu" and game.round == -1
+	print("[T] 菜单 state=", game.state, " round=", game.round, " 有存档=", game.game_has_save())
+	game._on_start()
+	for i in range(10):
+		await process_frame
+	var start_ok: bool = game.state == "play" and game.round == -1
+	print("[T] 开始 state=", game.state, " round=", game.round, " 钟=", game.clock_min)
+	game._press_button(0)
+	var saved: bool = game.game_save(0)
+	var has_save: bool = game.game_has_save()
+	var loaded: bool = game.game_load(0)
+	print("[T] 存档保存=", saved, " 存在=", has_save, " 读档=", loaded)
+	game._on_start()
+	for i in range(10):
+		await process_frame
+	game.clock_min = 1457.01
+	var t0 := Time.get_ticks_msec()
+	while game.state != "cutscene" and Time.get_ticks_msec() - t0 < 3000:
+		await process_frame
+	var cut_ok: bool = game.state == "cutscene"
+	print("[T] 到点 state=", game.state, " phase=", game.cut_phase, " cut_ok=", cut_ok)
+	game._skip_cutscene()
+	t0 = Time.get_ticks_msec()
+	while game.cut_phase != "preview" and Time.get_ticks_msec() - t0 < 3000:
+		await process_frame
+	var preview_ok: bool = game.cut_phase == "preview"
+	var summary_ok: bool = game.round_summary.visible and game.round_summary_body.text.contains("本轮发现：") and game.round_summary_body.text.contains("为什么重来：")
+	print("[T] 预览 phase=", game.cut_phase, " summary=", summary_ok)
+	print("[T] 结算 body=", game.round_summary_body.text.replace("\n", " | "))
+	game._skip_cutscene()
+	t0 = Time.get_ticks_msec()
+	while game.round < 0 and Time.get_ticks_msec() - t0 < 3000:
+		await process_frame
+	var next_ok: bool = game.round >= 0 and game.state == "play" and not game.round_summary.visible
+	print("[T] 下一轮 round=", game.round, " state=", game.state, " summary_hidden=", not game.round_summary.visible)
+	var pass_ok: bool = menu_ok and start_ok and cut_ok and preview_ok and summary_ok and next_ok
+	print("[T] PASS=", pass_ok)
+	quit(0 if pass_ok else 1)

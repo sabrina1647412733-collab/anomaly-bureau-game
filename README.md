@@ -5,7 +5,7 @@
 
 ## 怎么跑
 
-> **只想知道最近改了什么？** 直接跳到最后一节「42 · 躯干」。
+> **只想知道最近改了什么？** 直接跳到最后一节「46 · 发布候选」。
 
 - 引擎：**Godot 4.7.2 stable**（`Godot_v4.7.2-stable_win64.exe`）
 - 工程入口：本目录的 `project.godot`（编辑器里「导入」后打开）
@@ -1019,7 +1019,7 @@ NPC 同一套（`game.gd`）：躯干 0.400 × 0.300 × 0.240 → **0.410 × 0.2
 最宽 **0.673 m**（上一版 0.660，宽出的 1.3 cm 来自躯干与背心同步加宽）；
 图已重拍 `charlineup.png` / `charlineup_脸.png` / `charlineup_34.png` / `charlineup_侧.png` / `charlineup_眼.png`
 （本会话按字符轮廓采样复核了躯干—肩—胯的连续性，最终仍以肉眼看图为准）。
-### 44 · 结算卡：方块叠甲 → 椭圆截面放样 + 简化衣服
+### 46 · 发布候选：方块叠甲 → 椭圆截面放样 + 简化衣服
 
 用户看图后的原话：「躯干太丑了 太反了；写实也可以；可以简化；没有乐高小人感觉也可以」。
 不管"反"是指"方"还是"反光"，这版两件事一起动了：**形状不再是盒子，背心也不再自发光。**
@@ -1066,5 +1066,32 @@ NPC 同一套（`game.gd`）：躯干 0.400 × 0.300 × 0.240 → **0.410 × 0.2
 序章 `交接流程 2/3`、`_after_cutscene` 真实路径；`skip_test` 不再出现 SCRIPT ERROR；
 看图验收 `rs_结算.png`（深色卡面、琥珀边框、正文没有被裁掉）。
 
-注：老的 `flow_test.gd` 用固定帧数等待，在无头高帧率下会把“还没到点”误报成“没进 cutscene”；
-发布候选阶段再把它改成时间/状态驱动。
+注：
+`flow_test.gd` 已在第 46 节改成时间/状态驱动。
+### 45 · 声音层次：继电器 / 列车 / 门铃 / 脚步
+
+第 35 节待办第 2 条。原来只有 4 s 环境底噪 + 一次点击声；现在新增 6 条程序化 SFX：
+
+- **继电器**：两下机械 click（0.22 s），用于配电柜总闸、调度台按钮、总调度手柄、道岔。
+- **门铃 / 线索**：880 → 660 两音（0.9 s），用于开门、拾取、获得线索、轮次卡/结算卡。
+- **脚步**：0.1 s 噪声 + 95 Hz 落地，接 `player.footstep`，随机 pitch 0.92~1.08，走路/跑步音量不同。
+- **汽笛**：220 + 277 + 440 Hz，`T_TRAIN` 时播一次。
+- **刹车**：3.2k → 1.5k 下滑 + 噪声，列车过站末尾 / 环线结局。
+- **列车轰鸣**：4 s 循环，42/57 Hz 低频 + 噪声；进过场开始，轮次重置/结局停止。
+
+全部走 `SFX` 总线；`audio_test.gd` 验证 6 条流存在、列车 `LOOP_FORWARD`、所有播放调用无错误。
+验收：自检 exit 0；`audio_test` PASS；Web 构建里也包含新的 audio worklet 文件。
+
+### 46 · 发布候选：全流程状态测试 + 最新 Web 导出 + 公开链接
+
+- `flow_test.gd` 重写为时间/状态驱动（不再固定帧数）：菜单 → 开始 → 按钮 → 存读档 → 到点 cutscene →
+  跳过 → preview 结算卡 → 下一轮，**PASS**。
+- `roundsummary` PASS；`audio_test` PASS；`skip_test` 无 SCRIPT ERROR；`ending_a_test` 走通；audit 0/0。
+- Web 导出：2026-10-17 18:21，`deploy/game/`，Compatibility / 单线程；
+  `webverify.ps1` 报告 WebGL 2.0 / Compatibility / 20696 三角 / 场景就绪。
+- 公开链接（Cloudflare Quick Tunnel，临时，进程存活期间有效）：
+  `https://according-readily-favorites-corn.trycloudflare.com/game/`
+  本地静态服务 PID 54268，cloudflared PID 50608；`cloudflared.exe` 已下载到 `_tools/`（未入库）。
+- `0017-网页版.zip` 已用最新 `deploy/game` 重新打包（2026-10-17 18:23，约 10.7 MB）。
+
+注：Quick Tunnel 是临时链接；要固定域名需要 Cloudflare 账号 + named tunnel，或部署到任意静态托管。

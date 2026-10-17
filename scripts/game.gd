@@ -87,6 +87,18 @@ var menu
 var ambient: AudioStreamPlayer
 var sfx_player: AudioStreamPlayer
 var sfx_click: AudioStreamWAV
+var sfx_relay: AudioStreamWAV
+var sfx_chime: AudioStreamWAV
+var sfx_step: AudioStreamWAV
+var sfx_horn: AudioStreamWAV
+var sfx_brake: AudioStreamWAV
+var sfx_train: AudioStreamWAV
+var relay_player: AudioStreamPlayer
+var chime_player: AudioStreamPlayer
+var step_player: AudioStreamPlayer
+var horn_player: AudioStreamPlayer
+var brake_player: AudioStreamPlayer
+var train_player: AudioStreamPlayer
 var cutcam: Camera3D
 var cut_t := 0.0
 var train_started := false
@@ -232,6 +244,7 @@ func _spawn_player() -> void:
 	player.rotation.y = PI * 0.5
 	add_child(player)
 	player.landed.connect(_on_land)
+	player.footstep.connect(_on_footstep)
 
 func _on_land(hard: bool) -> void:
 	if hard:
@@ -442,7 +455,7 @@ func _toggle_door(d: Dictionary) -> void:
 		_say("旁白", "门锁着。先去配电柜合闸。")
 		return
 	d["open"] = not bool(d["open"])
-	play_click()
+	play_chime(0.75, -12.0)
 	_cost(4)
 	_say("旁白", ("关上了 " if not bool(d["open"]) else "推开了 ") + str(d["name"]) + "。")
 func _make_npcs() -> void:
@@ -695,6 +708,7 @@ func _make_buttons() -> void:
 
 func _start_round() -> void:
 	cut_phase = ""
+	stop_train()
 	if round_summary != null:
 		round_summary.visible = false
 	round += 1
@@ -756,6 +770,7 @@ func _process(delta: float) -> void:
 func _check_scripted() -> void:
 	if not train_started and clock_min >= T_TRAIN:
 		train_started = true
+		play_horn()
 		_say("旁白", "隧道里有光。它来了。")
 	if clock_min >= 1452.0 and not _once("warn"):
 		_say("站内广播", "0017 次，岚桥站呼叫。前方四道占用，立即停车，等待人工引导。站台乘客请后退至黄线内。")
@@ -792,6 +807,7 @@ func _begin_cutscene() -> void:
 	cut_phase = "out"
 	cut_t = 0.0
 	train_started = true
+	play_train()
 	player.can_move = false
 	player.dragging = false
 	_say("旁白", "")
@@ -815,6 +831,7 @@ func _cutscene(delta: float) -> void:
 			train.place(train.s_at_z(-200.0) + 310.0 * pow(p, 1.15))
 			hud_fade.modulate.a = clampf(1.0 - cut_t / 0.32, 0.0, 1.0)
 			if cut_t >= 3.15:
+				if not _once("brakepass"): play_brake()
 				cut_phase = "end"
 				cut_t = 0.0
 		"end":
@@ -864,6 +881,8 @@ func _cutscene(delta: float) -> void:
 			if cut_t >= 0.85:
 				cut_phase = ""
 				train.lights_on(false)
+				play_brake()
+				stop_train()
 				_show_end("B")
 		"out2":
 			hud_fade.modulate.a = clampf(cut_t / 0.35, 0.0, 1.0)
@@ -912,6 +931,7 @@ func _restore_player_cam() -> void:
 	train.reset()
 
 func _after_cutscene() -> void:
+	stop_train()
 	var hook := ""
 	if round == -1:
 		hook = "列车没有停。它驶进了废弃四道。\n……已按调度席指令执行。\n\n0017 次　位置未知"
@@ -970,6 +990,7 @@ func _show_round_summary(text: String) -> void:
 	hud_end.text = ""
 	hud_end.modulate.a = 0.0
 	round_summary.visible = true
+	play_chime(0.72, -14.0)
 	round_summary.modulate.a = 0.0
 	var tw := create_tween()
 	tw.tween_property(round_summary, "modulate:a", 1.0, 0.5)
@@ -982,6 +1003,7 @@ func _show_hook(text: String) -> void:
 	tw.tween_property(hud_end, "modulate:a", 1.0, 0.5)
 func _resolve_final() -> void:
 	state = "ending"
+	play_chime(0.75, -12.0)
 	if handle and not late:
 		_show_final_choice()
 	else:
@@ -1057,6 +1079,7 @@ func _skip_cutscene() -> void:
 			pass
 
 func _show_end(kind: String) -> void:
+	stop_train()
 	if round_summary != null:
 		round_summary.visible = false
 	_fade_to(0.0, 0.7)
@@ -1134,10 +1157,12 @@ func _give_clue(idx: int) -> void:
 	it["got"] = true
 	it["node"].visible = false
 	print("[0017] 获得 ", it["def"]["name"])
+	play_chime(1.12, -8.0)
 
 func _pickup(it: Dictionary) -> void:
 	it["got"] = true
 	it["node"].visible = false
+	play_chime(0.92, -11.0)
 	_cost(10)
 	_say("旁白", "你把「" + str(it["def"]["name"]) + "」收进值班服口袋。它比看起来重。")
 
@@ -1196,7 +1221,7 @@ func _press_button(idx: int) -> void:
 		return
 	b["done"] = true
 	b["mat"].emission_energy_multiplier = 2.6
-	play_click()
+	play_relay(1.0)
 	_cost(25)
 	if idx == 0:
 		_say("调度台", "0017 次，进二道。进路已设。")
@@ -1211,6 +1236,7 @@ func _act(id: String) -> void:
 	match id:
 		"power":
 			power = true
+			play_relay(0.82)
 			_cost(45)
 			_say("旁白", "闸刀合上的一瞬间，整条站台的灯都暗了一下，再亮起来。")
 		"console":
@@ -1221,8 +1247,10 @@ func _act(id: String) -> void:
 			_say("旁白", "你坐了下来。按 E 或方向键起身。")
 		"handle":
 			if _got_count() < 5:
+				play_relay(0.62)
 				_say("旁白", "手柄推不动。继电器没有响。")
 				return
+			play_relay(1.08)
 			_cost(60)
 			if clock_min >= T_LOCK:
 				late = true
@@ -1238,7 +1266,7 @@ func _act(id: String) -> void:
 				return
 			divert = true
 			_cost(35)
-			play_click()
+			play_relay(0.90)
 			_set_switch_green(true)
 			_say("旁白", "钥匙插进锁孔，锁扣弹开。道岔扳过去的时候，钢轨在黑暗里挪了一寸。")
 			_say("站内广播", "进路变更。0017 次，改走检修环线。")
@@ -1510,6 +1538,7 @@ func _show_round_card() -> void:
 	round_card_title.text = String(ROUND_NAMES[i])
 	round_card_sub.text = String(ROUND_HINTS[i]) if i < ROUND_HINTS.size() else ""
 	round_card.visible = true
+	play_chime(0.90, -14.0)
 	round_card.modulate.a = 0.0
 	var tw := create_tween()
 	tw.tween_property(round_card, "modulate:a", 1.0, 0.35)
@@ -1798,6 +1827,121 @@ func _make_audio() -> void:
 	sfx_player.bus = "SFX"
 	sfx_player.volume_db = -8.0
 	add_child(sfx_player)
+	# 继电器：两下短促的机械声
+	var n_relay := int(rate * 0.22)
+	var relay := PackedFloat32Array(); relay.resize(n_relay)
+	for i in range(n_relay):
+		var tr := float(i) / rate
+		var vr := rng.randf_range(-1.0, 1.0) * exp(-tr * 45.0) * 0.55
+		vr += sin(TAU * 2200.0 * tr) * exp(-tr * 130.0) * 0.28
+		if tr > 0.06:
+			var ur := tr - 0.06
+			vr += rng.randf_range(-1.0, 1.0) * exp(-ur * 55.0) * 0.45
+			vr += sin(TAU * 1800.0 * ur) * exp(-ur * 140.0) * 0.22
+		relay[i] = clampf(vr, -1.0, 1.0) * 0.8
+	sfx_relay = _wav(relay, false)
+	relay_player = _make_sfx_player(sfx_relay, -7.0)
+	# 门铃 / 线索提示：880 + 660
+	var n_chime := int(rate * 0.9)
+	var chime := PackedFloat32Array(); chime.resize(n_chime)
+	for i in range(n_chime):
+		var tc := float(i) / rate
+		var vc := sin(TAU * 880.0 * tc) * exp(-tc * 4.5) * 0.32 + sin(TAU * 1320.0 * tc) * exp(-tc * 6.0) * 0.14
+		if tc > 0.12:
+			var uc := tc - 0.12
+			vc += sin(TAU * 660.0 * uc) * exp(-uc * 3.8) * 0.28
+		chime[i] = clampf(vc, -1.0, 1.0)
+	sfx_chime = _wav(chime, false)
+	chime_player = _make_sfx_player(sfx_chime, -9.0)
+	# 脚步：短噪声 + 低频落地
+	var n_step := int(rate * 0.1)
+	var step := PackedFloat32Array(); step.resize(n_step)
+	var lp_step := 0.0
+	for i in range(n_step):
+		var ts := float(i) / rate
+		lp_step = lp_step * 0.72 + rng.randf_range(-1.0, 1.0) * 0.28
+		var vs := lp_step * exp(-ts * 55.0) * 0.8 + sin(TAU * 95.0 * ts) * exp(-ts * 40.0) * 0.32
+		step[i] = clampf(vs, -1.0, 1.0) * 0.8
+	sfx_step = _wav(step, false)
+	step_player = _make_sfx_player(sfx_step, -13.0)
+	# 汽笛：220 + 277 + 440
+	var n_horn := int(rate * 1.1)
+	var horn := PackedFloat32Array(); horn.resize(n_horn)
+	for i in range(n_horn):
+		var th := float(i) / rate
+		var envh := minf(th / 0.05, 1.0) * exp(-maxf(th - 0.15, 0.0) * 2.2)
+		var vh := (sin(TAU * 220.0 * th) + 0.55 * sin(TAU * 277.0 * th) + 0.25 * sin(TAU * 440.0 * th)) * envh * 0.35
+		horn[i] = clampf(vh, -1.0, 1.0)
+	sfx_horn = _wav(horn, false)
+	horn_player = _make_sfx_player(sfx_horn, -8.0)
+	# 刹车：高频下滑 + 噪声
+	var n_brake := int(rate * 0.9)
+	var brake := PackedFloat32Array(); brake.resize(n_brake)
+	var phase_brake := 0.0
+	for i in range(n_brake):
+		var tb := float(i) / rate
+		var fb := lerpf(3200.0, 1500.0, clampf(tb / 0.9, 0.0, 1.0))
+		phase_brake += TAU * fb / float(rate)
+		var vb := sin(phase_brake) * exp(-tb * 1.8) * 0.10 + rng.randf_range(-1.0, 1.0) * exp(-tb * 2.5) * 0.08
+		brake[i] = clampf(vb, -1.0, 1.0)
+	sfx_brake = _wav(brake, false)
+	brake_player = _make_sfx_player(sfx_brake, -10.0)
+	# 列车低频轰鸣：4 秒循环
+	var n_rumble := rate * 4
+	var rumble := PackedFloat32Array(); rumble.resize(n_rumble)
+	var lp_rumble := 0.0
+	for i in range(n_rumble):
+		var tu := float(i) / rate
+		lp_rumble = lp_rumble * 0.92 + rng.randf_range(-1.0, 1.0) * 0.08
+		var am := 0.72 + 0.28 * sin(TAU * 0.5 * tu)
+		var vu := (sin(TAU * 42.0 * tu) * 0.32 + sin(TAU * 57.0 * tu) * 0.18 + lp_rumble * 0.55) * am
+		rumble[i] = clampf(vu, -1.0, 1.0) * 0.55
+	sfx_train = _wav(rumble, true)
+	train_player = _make_sfx_player(sfx_train, -7.0)
+
+func _make_sfx_player(stream: AudioStream, vol: float) -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.stream = stream
+	p.bus = "SFX"
+	p.volume_db = vol
+	add_child(p)
+	return p
+
+func play_relay(pitch := 1.0) -> void:
+	if relay_player != null:
+		relay_player.pitch_scale = clampf(pitch, 0.6, 1.4)
+		relay_player.play()
+
+func play_chime(pitch := 1.0, vol := -9.0) -> void:
+	if chime_player != null:
+		chime_player.pitch_scale = clampf(pitch, 0.6, 1.4)
+		chime_player.volume_db = vol
+		chime_player.play()
+
+func play_step(running := false) -> void:
+	if step_player != null:
+		step_player.pitch_scale = randf_range(0.92, 1.08)
+		step_player.volume_db = -10.0 if running else -14.0
+		step_player.play()
+
+func play_horn() -> void:
+	if horn_player != null:
+		horn_player.play()
+
+func play_brake() -> void:
+	if brake_player != null:
+		brake_player.play()
+
+func play_train() -> void:
+	if train_player != null and not train_player.playing:
+		train_player.play()
+
+func stop_train() -> void:
+	if train_player != null:
+		train_player.stop()
+
+func _on_footstep(running: bool) -> void:
+	play_step(running)
 
 func play_click() -> void:
 	if sfx_player != null:
@@ -1857,6 +2001,7 @@ func _show_menu() -> void:
 func _on_start() -> void:
 	if round_summary != null:
 		round_summary.visible = false
+	stop_train()
 	round = -2
 	_once_flags.clear()
 	power = false; sr_open = false; handle = false; late = false; divert = false; shown_end = ""
@@ -2026,6 +2171,7 @@ func _begin_divert_end() -> void:
 	state = "cutscene"
 	cut_phase = "dv_out"
 	cut_t = 0.0
+	play_train()
 	dv_said = false
 	_dv_s0 = train.s_at_z(-160.0)
 	_dv_end_s = train.s_at_z(-62.0) + train.last_front_offset()
