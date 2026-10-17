@@ -1910,12 +1910,13 @@ func _toggle_cctv_review() -> void:
 	_cctv_tip()
 
 func _cctv_tip() -> void:
-	if player.cam_mode != 3 or saw_lag:
+	if player.cam_mode != 3:
 		return
-	if player.cctv_i != 6:                            # CAM 07 = 岔区
-		return
-	saw_lag = true
-	_say("旁白", "岔区机位 CAM 07：红灯亮了。\n可是比它该亮的时刻——晚了半秒。")
+	if player.cctv_i == 6 and not saw_lag:            # CAM 07 = 岔区
+		saw_lag = true
+		_say("旁白", "岔区机位 CAM 07：红灯亮了。\n可是比它该亮的时刻——晚了半秒。")
+	elif player.cctv_i == 7 and not _once("cam8chalk"):   # CAM 08 = 检修环线
+		_say("旁白", "环线机位 CAM 08：检修走道东墙上，有人用粉笔写了一行——00:16:43。")
 
 ## 值班记录板：钉在值班台后墙上，五件记录按时间轴依次钉上去；
 ## 另有两张附加卡——站台的「值班记录」（一直在）与监控里那半秒（在岔区机位看见后才出现）
