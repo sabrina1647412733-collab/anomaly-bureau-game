@@ -165,7 +165,7 @@ func _build_main() -> void:
     var t := _label("0017", 92, Color(0.95, 0.74, 0.36))
     t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
     center.add_child(t)
-    var tag := _label("岚桥站 · 二十七个零点十七分 · 你只有这 27 分钟", 15, Color(0.52, 0.62, 0.74))
+    var tag := _label("岚桥站 · 17 年前，0017 在 00:17 消失 · 你只有 27 分钟", 15, Color(0.52, 0.62, 0.74))
     tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
     center.add_child(tag)
     center.add_child(_label("", 26))

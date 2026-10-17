@@ -7,6 +7,7 @@ const PlayerScript := preload("res://scripts/player.gd")
 const CharBody := preload("res://scripts/charbody.gd")
 const TrainScript := preload("res://scripts/train.gd")
 const HudMap := preload("res://scripts/hudmap.gd")
+const MinesGame := preload("res://scripts/minigame_mines.gd")
 const MenuScript := preload("res://scripts/menu.gd")
 const BagScript := preload("res://scripts/bag.gd")
 const HotbarScript := preload("res://scripts/hotbar.gd")
@@ -59,6 +60,16 @@ var t_now := 0.0
 var web_perf_t := 0.0
 var map_acc := 0.0
 var web_gpu_is_software := false
+var got_this_round := {}
+var choice_text := ""
+var lan_trust := false
+var tape_air := false
+var bag_return := false
+var studio_onair_on := false
+var studio_freq_idx := 0
+var pc_overlay: Control
+var pc_layer: CanvasLayer
+var studio_onair_mat: StandardMaterial3D
 var prompt: Variant = null
 var prompt_ring: MeshInstance3D = null      # 交互目标脚下的「呼吸环」
 var prompt_ring_mat: StandardMaterial3D = null
@@ -164,6 +175,8 @@ func _ready() -> void:
 	_make_switch_signal()
 	_make_prompt_ring()
 	_make_desk_props()
+	_make_duty_computer()
+	_make_studio_props()
 	_make_tunnel_lamp()
 	train = TrainScript.new(self)
 	train.reset()
@@ -173,6 +186,11 @@ func _ready() -> void:
 		{"id":"handle","pos":Vector3(-16.70, 1.35, 30.80),"r":2.7,"label":"总调度手柄"},
 		{"id":"divert","pos":Vector3(7.7, -0.25, -112.4),"r":3.2,"label":"改环线 · 扳动道岔 1"},
 		{"id":"board","pos":Vector3(-17.5, 2.15, -14.5),"r":3.2,"label":"看值班记录板"},
+		{"id":"pc", "pos":Vector3(-15.8, 1.15, 4.15), "r": 2.2, "label":"打开值班终端"},
+		{"id":"studio_mic", "pos":Vector3(-16.0, 1.25, 34.8), "r": 2.2, "label":"对麦克风试音"},
+		{"id":"studio_dial", "pos":Vector3(-15.35, 1.1, 34.8), "r": 1.8, "label":"转动频率旋钮"},
+		{"id":"studio_onair", "pos":Vector3(-12.0, 1.9, 36.5), "r": 2.0, "label":"切换 ON AIR"},
+		{"id":"studio_tape", "pos":Vector3(-19.2, 1.4, 42.5), "r": 2.2, "label":"翻找磁带架"},
 	]
 	for s in builder.seats:
 		spots.append({"id":"seat", "pos": s["pos"] + Vector3(0, 0.55, 0), "r": 2.1, "label": "坐下", "seat": s})
@@ -180,6 +198,7 @@ func _ready() -> void:
 	_make_audio()
 	_make_menu()
 	_make_bag()
+	_make_pc_overlay()
 	train.lights_on(false)     # 预热：列车灯常驻但能量极低，先把着色器变体编译掉
 	round = -2
 	_start_round()
@@ -744,6 +763,7 @@ func _make_buttons() -> void:
 func _start_round() -> void:
 	cut_phase = ""
 	stop_train()
+	got_this_round.clear()
 	if round_summary != null:
 		round_summary.visible = false
 	round += 1
@@ -768,11 +788,12 @@ func _start_round() -> void:
 		it["node"].visible = (int(it["def"]["round"]) <= round and not it["got"])
 	# 序章
 	if round == -1:
+		_say("旁白", "十七年前，父亲在事故责任书上签了字。今晚，你第一次坐进他的调度席。")
 		_say("站内广播", "23:50。岚桥站最后一班车即将进站。……你接管夜班调度席。0017 次，进二道。")
-		_say("旁白", "按流程做完交接：确认进路，签值班簿，然后等车。")
+		_say("旁白", "按流程做完交接：确认进路，签值班簿，然后等车。林岚——你妹妹——还在信号室。")
 	elif round == 0:
-		_say("旁白", "23:50。还是那个时间。你确定没有听错——广播里那句「按调度席指令执行」，说的是你。")
-		_say("旁白", "站台上只有一个人没有在等车。她拎着一个工具盒，站在信号室门口。")
+		_say("旁白", "23:50。还是那个时间。广播里那句「按调度席指令执行」，是父亲的声音。")
+		_say("旁白", "站台上只有一个人没有在等车。她拎着一个工具盒，站在信号室门口——林岚，你妹妹。")
 	elif round == 1:
 		_say("旁白", "23:50。纸上的字还在，别的东西都回到原位。站台另一头，多了一个拎着录音笔的男人。")
 	elif round == 2:
@@ -784,7 +805,8 @@ func _process(delta: float) -> void:
 	_anim_npcs(delta)
 
 	t_now += delta
-	if state == "play":
+	var reading := dialog.size() > 0 or bag_open or choice != null or (round_card != null and round_card.visible)
+	if state == "play" and not reading:
 		round_elapsed += delta
 		clock_min += delta / SEC_PER_MIN
 		_check_scripted()
@@ -998,9 +1020,8 @@ func _after_cutscene() -> void:
 
 func _round_found_line() -> String:
 	var found := []
-	for it in items:
-		if int(it["def"]["round"]) == round and bool(it["got"]):
-			found.append(String(it["def"]["name"]))
+	for k in got_this_round.keys():
+		found.append(String(k))
 	if not found.is_empty():
 		var s := ""
 		for f in found:
@@ -1050,14 +1071,14 @@ func _resolve_final() -> void:
 	if handle and not late:
 		_show_final_choice()
 	else:
-		_show_end("B")
+		_show_end("C")
 
 func _show_final_choice() -> void:
 	if round_summary != null:
 		round_summary.visible = false
 	_fade_to(0.0, 0.7)
 	hud_end_title.text = "最后的决定"
-	hud_end.text = "列车停住了。天亮之前，只剩一件事要你决定。\n\n记录是公开，还是封存？\n\n[E] 公开真相　　[R] 封存"
+	hud_end.text = "列车停住了。天亮之前，只剩一件事要你决定。\n\n公开真相：19 个名字会被看见，父亲可以洗清；但这条线会被关掉，林岚和陈默会失去现在的生活。\n封存：车站和活下来的人可以继续；但 19 个人会永远「失踪」，父亲永远背着那份报告。\n\n[E] 公开真相　　[R] 封存"
 	hud_end.add_theme_color_override("font_color", Color(0.92, 0.95, 0.98))
 	choice = {"key_a": KEY_E, "key_b": KEY_R}
 	chooser_a = "A"
@@ -1128,18 +1149,27 @@ func _show_end(kind: String) -> void:
 	_fade_to(0.0, 0.7)
 	# 彩蛋：结局文字里那把钥匙的去向，在场景里真的出现
 	if ending_key_cab != null:
-		ending_key_cab.visible = (kind != "A")
+		ending_key_cab.visible = (kind == "B")
 	if ending_key_desk != null:
 		ending_key_desk.visible = (kind == "A")
 	shown_end = kind
 	state = "ending"
 	hud_end_title.add_theme_color_override("font_color", Color(0.88, 0.64, 0.29))
+	var lan_a := "林岚站了出来，把工牌放在桌上。" if lan_trust else "林岚没有来。她的工位空着。"
+	var tape_a := "周砚把录音播了出去，节目开头第一次没有配乐。" if tape_air else "周砚把录音锁进了抽屉。"
+	var bag_a := "陈默走进调查室时，把停用钥匙放在了桌上。" if bag_return else "陈默带着钥匙离开了。"
+	var lan_b := "林岚在清晨第一班车前重新校准五号继电器。" if not lan_trust else "林岚把工牌收进抽屉，没再看你。"
+	var tape_b := "周砚删掉了录音。" if not tape_air else "周砚把那段录音留在了自己的硬盘里，没有播。"
+	var bag_b := "陈默把钥匙留在失物招领柜。" if not bag_return else "陈默把钥匙带回了隧道。"
 	if kind == "A":
 		hud_end_title.text = "结局 A · 零点之后"
-		hud_end.text = "00:16:43，手动进路被取消。\n00:17，工程车与三道隔离。0017 在二道停稳，车门没有打开。\n\n「本次列车暂停服务。今晚的延误不是故障，是一份迟到了十七年的记录。」\n\n第二天，林远舟的名字从事故责任人一栏移出。\n周砚重录了那期节目，开头第一次没有配乐。\n陈默走进调查室时，把停用钥匙放在了桌上。"
-	else:
+		hud_end.text = "00:16:43，手动进路被取消。\n00:17，工程车与三道隔离。0017 在二道停稳，车门没有打开。\n\n「本次列车暂停服务。今晚的延误不是故障，是一份迟到了十七年的记录。」\n\n第二天，林远舟的名字从事故责任人一栏移出。\n" + lan_a + "\n" + tape_a + "\n" + bag_a
+	elif kind == "B":
 		hud_end_title.text = "结局 B · 最后一班"
-		hud_end.text = "00:16:50，0017 被手动送进检修环线。空工程车驶入四道。\n\n「设备故障已排除，0017 次取消运行。请乘客改乘接驳车辆，感谢配合。」\n\n没有人伤亡。公开通报没有出现任何人的名字。\n陈默把钥匙留在失物招领柜，周砚删掉了录音。\n林岚在清晨第一班车前重新校准五号继电器，像什么都没发生过。"
+		hud_end.text = "00:16:50，0017 被手动送进检修环线。空工程车驶入四道。\n\n「设备故障已排除，0017 次取消运行。请乘客改乘接驳车辆，感谢配合。」\n\n今晚没有人伤亡。公开通报没有出现任何人的名字。\n" + lan_b + "\n" + tape_b + "\n" + bag_b
+	elif kind == "C":
+		hud_end_title.text = "结局 C · 第二十八个 00:17"
+		hud_end.text = "00:17。0017 次没有停。\n\n你又一次回到 23:50。钟还在走，五号继电器还在慢半拍。\n\n这一次，你连那 19 个名字都没能带出来。"
 	hud_end.modulate.a = 0.0
 	var tw := create_tween()
 	tw.tween_property(hud_end, "modulate:a", 1.0, 0.8)
@@ -1187,6 +1217,8 @@ func _interact() -> void:
 
 func _resolve_choice(allow: bool) -> void:
 	if chooser_a == "A":
+		lan_trust = allow
+		choice_text = ""
 		if allow:
 			_give_clue(0)
 			_say("林岚", "工牌划过端口的一瞬间，红灯迟了半秒才亮。")
@@ -1194,17 +1226,35 @@ func _resolve_choice(allow: bool) -> void:
 		else:
 			_say("林岚", "你最好记住这半秒。")
 			dialog_npc["said"] = false
+	elif chooser_a == "air":
+		tape_air = allow
+		choice_text = ""
+		play_click()
+		if allow:
+			_say("周砚", "……好。我会播。但你别指望所有人都会感谢你。")
+		else:
+			_say("周砚", "我把带子删掉。今晚之后，没有人会再听见它。")
+	elif chooser_a == "return":
+		bag_return = allow
+		choice_text = ""
+		play_click()
+		if allow:
+			_say("陈默", "……谢谢。至少让我把包还给他。")
+		else:
+			_say("陈默", "钥匙我带走。它不该留在这里。")
 
 func _give_clue(idx: int) -> void:
 	var it: Dictionary = items[idx]
 	it["got"] = true
 	it["node"].visible = false
+	got_this_round[String(it["def"]["name"])] = true
 	print("[0017] 获得 ", it["def"]["name"])
 	play_chime(1.12, -8.0)
 
 func _pickup(it: Dictionary) -> void:
 	it["got"] = true
 	it["node"].visible = false
+	got_this_round[String(it["def"]["name"])] = true
 	play_chime(0.92, -11.0)
 	_cost(10)
 	_say("旁白", "你把「" + str(it["def"]["name"]) + "」收进值班服口袋。它比看起来重。")
@@ -1212,8 +1262,8 @@ func _pickup(it: Dictionary) -> void:
 func _talk(np: Dictionary) -> void:
 	if round == 0 and np["name"] == "林岚":
 		dialog = [
-			"我是信号检修，不是乘客。",
-			"五号继电器的反馈慢了半秒。",
+			"你回来了。爸的名字还挂在事故责任栏里。",
+			"五号继电器的反馈慢了半秒。和十七年前一样。",
 			"让我进控制室——那个端口十七年前就封了，我的工牌能打开它。",
 		]
 		dialog_npc = np
@@ -1227,6 +1277,7 @@ func _talk(np: Dictionary) -> void:
 		dialog_npc = np; dialog_idx = -1; _advance_dialog()
 	elif round == 2 and np["name"] == "陈默":
 		dialog = [
+			"十七年前，我叫邵国安。三道里那 19 个人，有我弟弟。只有我出来了。",
 			"这只包在失物柜里放了十七年。今天有人用我的名字把它取出来，我得送回去。",
 			"一把旧钥匙而已。站里换了系统，这样的东西早就没用了。",
 		]
@@ -1248,15 +1299,24 @@ func _after_talk() -> void:
 	if nm == "林岚":
 		choice = {"key_a": KEY_E, "key_b": KEY_R}
 		chooser_a = "A"; chooser_b = "no"
-		hud_prompt.text = "[E] 允许她接入旧继电器端口　[R] 拒绝"
+		choice_text = "[E] 允许她接入旧继电器端口　[R] 拒绝"
+		hud_prompt.text = choice_text
 	elif nm == "周砚":
 		_give_clue(1)
 		_say("周砚", "三道有人，改四道。")
 		_say("旁白", "可官方报告写着——三道无人。获得「倒放广播」。")
+		choice = {"key_a": KEY_E, "key_b": KEY_R}
+		chooser_a = "air"; chooser_b = "delete"
+		choice_text = "[E] 让他把录音播出去　[R] 让他删掉"
+		hud_prompt.text = choice_text
 	elif nm == "陈默":
 		_give_clue(2); _give_clue(3)
-		_say("陈默", "三道有人。不是车，是人。那时候我叫邵国安，他还在隧道里。")
+		_say("陈默", "三道有人。不是车，是人。十七年前我叫邵国安；那 19 个人里，有我弟弟。只有我出来了。")
 		_say("旁白", "获得「停用钥匙」和「巡检簿」。")
+		choice = {"key_a": KEY_E, "key_b": KEY_R}
+		chooser_a = "return"; chooser_b = "keep"
+		choice_text = "[E] 把包还给他　[R] 留下钥匙"
+		hud_prompt.text = choice_text
 
 func _press_button(idx: int) -> void:
 	var b: Dictionary = buttons[idx]
@@ -1313,6 +1373,41 @@ func _act(id: String) -> void:
 			_set_switch_green(true)
 			_say("旁白", "钥匙插进锁孔，锁扣弹开。道岔扳过去的时候，钢轨在黑暗里挪了一寸。")
 			_say("站内广播", "进路变更。0017 次，改走检修环线。")
+		"pc":
+			_open_pc()
+		"studio_mic":
+			play_chime(0.55, -12.0)
+			_say("广播台", "……电流声。麦克风还开着。")
+			if round == 1:
+				_say("周砚", "别对着它说话。它会录下来。")
+		"studio_dial":
+			studio_freq_idx = (studio_freq_idx + 1) % 3
+			play_relay(0.70)
+			if studio_freq_idx == 2:
+				if round >= 1:
+					_say("广播台", "……0017。无信号。\n……三道有人。改四道。")
+					if not _has_clue(1):
+						_give_clue(1)
+						_say("旁白", "收音机里传来一句倒放的话。获得「倒放广播」。")
+				else:
+					_say("广播台", "……0017。无信号。……三道有人。改四道。")
+					_say("旁白", "你听见了一句不该出现在这个时间的话。")
+			elif studio_freq_idx == 0:
+				_say("广播台", "88.7 岚桥交通台：……末班车……")
+			else:
+				_say("广播台", "101.7 夜间节目：……谁弄丢了 0017……")
+		"studio_onair":
+			studio_onair_on = not studio_onair_on
+			play_relay(0.90)
+			if studio_onair_mat != null:
+				studio_onair_mat.emission_energy_multiplier = 2.6 if studio_onair_on else 0.2
+			_say("广播台", "ON AIR 灯亮了。整座站台都能听见你。" if studio_onair_on else "ON AIR 灯灭了。")
+		"studio_tape":
+			if not _has_clue(1):
+				_say("广播台", "磁带架最上层有一盘没有标签的带子。背面写着：2009.11.03 / 三道。")
+				_say("旁白", "把频率调到 0017，也许能听见它。")
+			else:
+				_say("广播台", "磁带架上空了一格。标签还在：2009.11.03 / 三道。")
 
 func _cost(sec: float) -> void:
 	clock_min += sec / 60.0
@@ -1330,6 +1425,9 @@ func _got_count() -> int:
 
 # ------------------------------------------------------------------ 交互检测
 func _update_interaction() -> void:
+	if choice != null and state == "play":
+		hud_prompt.text = choice_text
+		return
 	prompt = null
 	hud_prompt.text = ""
 	if player.sitting:
@@ -1734,6 +1832,10 @@ func _fade_to(a: float, dur: float) -> void:
 	tw.tween_property(hud_fade, "modulate:a", a, dur)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if state == "minigame":
+		if event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
+			_close_pc()
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if state == "cutscene" and (event.physical_keycode == KEY_SPACE or event.physical_keycode == KEY_ENTER or event.physical_keycode == KEY_E or event.physical_keycode == KEY_ESCAPE):
 			_skip_cutscene()
@@ -1835,6 +1937,69 @@ func _wav(samples: PackedFloat32Array, loop: bool) -> AudioStreamWAV:
 		w.loop_end = n
 	return w
 
+func _make_pc_overlay() -> void:
+	pc_layer = CanvasLayer.new()
+	pc_layer.layer = 20
+	add_child(pc_layer)
+	pc_overlay = MinesGame.new()
+	pc_layer.add_child(pc_overlay)
+	pc_overlay.call("setup", font)
+	pc_overlay.visible = false
+	pc_overlay.connect("closed", _close_pc)
+
+func _open_pc() -> void:
+	if pc_overlay == null:
+		return
+	pc_overlay.call("new_game")
+	pc_overlay.visible = true
+	state = "minigame"
+	player.can_move = false
+	player.allow_capture = false
+	player.dragging = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	hud.visible = false
+	hud_prompt.text = ""
+
+func _close_pc() -> void:
+	if pc_overlay == null:
+		return
+	pc_overlay.visible = false
+	state = "play"
+	player.can_move = true
+	player.allow_capture = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	hud.visible = true
+
+func _make_duty_computer() -> void:
+	var root3 := Node3D.new(); root3.name = "DutyComputer"; add_child(root3)
+	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.06, 0.07, 0.08); dark.roughness = 0.70
+	var metal := StandardMaterial3D.new(); metal.albedo_color = Color(0.38, 0.40, 0.42); metal.metallic = 0.8; metal.roughness = 0.35
+	var green := StandardMaterial3D.new(); green.albedo_color = Color(0.04, 0.20, 0.10)
+	green.emission_enabled = true; green.emission = Color(0.20, 0.95, 0.55); green.emission_energy_multiplier = 1.8
+	_item_part(root3, Vector3(0.52, 0.36, 0.20), Vector3(-15.8, 1.21, 3.24), dark)
+	_item_part(root3, Vector3(0.42, 0.28, 0.012), Vector3(-15.8, 1.22, 3.345), green)
+	_item_part(root3, Vector3(0.44, 0.022, 0.14), Vector3(-15.8, 1.075, 3.50), dark)
+	_item_part(root3, Vector3(0.18, 0.42, 0.20), Vector3(-15.8, 0.80, 3.22), dark)
+	_item_part(root3, Vector3(0.03, 0.03, 0.012), Vector3(-15.8, 0.84, 3.325), green)
+	var lbl := Label3D.new(); lbl.font = font; lbl.text = "值班终端"; lbl.font_size = 48
+	lbl.pixel_size = 0.012; lbl.modulate = Color(0.55, 0.95, 0.70); lbl.position = Vector3(-15.8, 1.46, 3.34)
+	root3.add_child(lbl)
+
+func _make_studio_props() -> void:
+	var root3 := Node3D.new(); root3.name = "StudioProps"; add_child(root3)
+	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.06, 0.07, 0.08); dark.roughness = 0.70
+	var metal := StandardMaterial3D.new(); metal.albedo_color = Color(0.38, 0.40, 0.42); metal.metallic = 0.8; metal.roughness = 0.35
+	studio_onair_mat = StandardMaterial3D.new(); studio_onair_mat.albedo_color = Color(0.32, 0.04, 0.04)
+	studio_onair_mat.emission_enabled = true; studio_onair_mat.emission = Color(0.95, 0.12, 0.10); studio_onair_mat.emission_energy_multiplier = 0.2
+	_item_part(root3, Vector3(0.028, 0.34, 0.028), Vector3(-16.0, 1.08, 34.0), metal, true)
+	_item_part(root3, Vector3(0.060, 0.060, 0.060), Vector3(-16.0, 1.28, 34.0), dark, true)
+	_item_part(root3, Vector3(0.090, 0.018, 0.090), Vector3(-15.35, 0.945, 34.6), metal, true)
+	_item_part(root3, Vector3(0.028, 0.040, 0.028), Vector3(-15.35, 0.97, 34.6), metal, true)
+	_item_part(root3, Vector3(0.040, 0.260, 0.520), Vector3(-11.58, 2.15, 36.5), studio_onair_mat)
+	_item_part(root3, Vector3(0.340, 0.100, 0.240), Vector3(-19.2, 1.28, 42.5), dark)
+	_item_part(root3, Vector3(0.080, 0.080, 0.080), Vector3(-19.30, 1.36, 42.5), metal, true)
+	_item_part(root3, Vector3(0.080, 0.080, 0.080), Vector3(-19.10, 1.36, 42.5), metal, true)
+	_item_part(root3, Vector3(0.040, 0.020, 0.040), Vector3(-19.2, 1.35, 42.63), studio_onair_mat)
 func _make_audio() -> void:
 	_make_buses()
 	# 站内底噪：低频嗡鸣 + 风机噪声（4 秒循环）
@@ -2055,6 +2220,7 @@ func _on_start() -> void:
 	round = -2
 	_once_flags.clear()
 	power = false; sr_open = false; handle = false; late = false; divert = false; shown_end = ""
+	lan_trust = false; tape_air = false; bag_return = false; studio_onair_on = false; studio_freq_idx = 0; choice_text = ""
 	train.set_divert(false)
 	_set_switch_green(false)
 	for it in items: it["got"] = false

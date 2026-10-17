@@ -624,6 +624,15 @@ func _update_body(delta: float, planar: float) -> void:
 			parts["knee" + sgn].rotation = Vector3(-1.279, 0, 0)
 			parts["elbow" + sgn].rotation = Vector3(0.45, 0, 0)
 		return
+	# 第三人称：让可见身体朝移动方向平滑转过去（根节点仍跟鼠标控制相机）
+	if cam_mode == 1:
+		var local_yaw := 0.0
+		if planar > 0.25:
+			var desired := atan2(-velocity.x, -velocity.z)
+			local_yaw = wrapf(desired - rotation.y, -PI, PI)
+		body.rotation.y = lerp_angle(body.rotation.y, local_yaw, clampf(delta * 9.0, 0.0, 1.0))
+	else:
+		body.rotation.y = lerp_angle(body.rotation.y, 0.0, clampf(delta * 6.0, 0.0, 1.0))
 	body.visible = (cam_mode != 0)
 	parts["head"].visible = (cam_mode != 0)
 	var k := crouch_k

@@ -1,48 +1,38 @@
 extends SceneTree
-## 结局 A（不改环线）依然要走通：过场 → 二选一 → 公开
+## 结局 A 回归：轮次卡后到点 → 跳列车过场 → 等最终选择 → E 公开
 var game
-var f := 0
+
 func _initialize() -> void:
-    game = load("res://scenes/main.tscn").instantiate()
-    root.add_child(game)
-func _key_down(code: int) -> void:
-    var e1 := InputEventKey.new()
-    e1.physical_keycode = code
-    e1.pressed = true
-    Input.parse_input_event(e1)
-func _key_up(code: int) -> void:
-    var e2 := InputEventKey.new()
-    e2.physical_keycode = code
-    e2.pressed = false
-    Input.parse_input_event(e2)
-func _key(code: int) -> void:
-    var e1 := InputEventKey.new()
-    e1.physical_keycode = code
-    e1.pressed = true
-    Input.parse_input_event(e1)
-    var e2 := InputEventKey.new()
-    e2.physical_keycode = code
-    e2.pressed = false
-    Input.parse_input_event(e2)
-func _process(_d: float) -> bool:
-    f += 1
-    match f:
-        20:
-            game._on_start()
-            game.round = 3
-            for it in game.items:
-                it["got"] = true
-            game.handle = true
-            game.late = false
-            game.clock_min = 1457.2
-        600:
-            print("[A] 过场后 state=", game.state, " 有选择=", game.choice != null, " 结局=", game.shown_end)
-        620:
-            _key_down(KEY_E)
-        660:
-            _key_up(KEY_E)
-        700:
-            print("[A] 按 E 后 state=", game.state, " 结局=", game.shown_end, "（应为 A）")
-            print("[A] 结局文字长度=", game.hud_end.text.length(), " 标题=", game.hud_end_title.text)
-            return true
-    return false
+	game = load("res://scenes/main.tscn").instantiate()
+	root.add_child(game)
+	_run()
+
+func _run() -> void:
+	for i in range(30):
+		await process_frame
+	game._on_start()
+	game.round_card.visible = false
+	game.round = 3
+	for it in game.items:
+		it["got"] = true
+	game.handle = true
+	game.late = false
+	game.clock_min = 1457.2
+	var t0 := Time.get_ticks_msec()
+	while game.state != "cutscene" and Time.get_ticks_msec() - t0 < 3000:
+		await process_frame
+	print("[A] cutscene state=", game.state, " phase=", game.cut_phase)
+	game._skip_cutscene()
+	t0 = Time.get_ticks_msec()
+	while game.choice == null and game.state != "ending" and Time.get_ticks_msec() - t0 < 5000:
+		await process_frame
+	print("[A] final choice=", game.choice != null, " state=", game.state)
+	var e1 := InputEventKey.new(); e1.physical_keycode = KEY_E; e1.pressed = true
+	Input.parse_input_event(e1)
+	await process_frame
+	var e2 := InputEventKey.new(); e2.physical_keycode = KEY_E; e2.pressed = false
+	Input.parse_input_event(e2)
+	await process_frame
+	var ok: bool = game.shown_end == "A" and game.hud_end_title.text.contains("结局 A")
+	print("[A] shown_end=", game.shown_end, " title=", game.hud_end_title.text, " PASS=", ok)
+	quit(0 if ok else 1)

@@ -14,9 +14,9 @@ func _run() -> void:
 	for i in range(10):
 		await process_frame
 	game.round = 0
-	for it in game.items:
-		if String(it["def"]["id"]) == "red":
-			it["got"] = true
+	for i in range(game.items.size()):
+		if String(game.items[i]["def"]["id"]) == "red":
+			game._give_clue(i)
 	game._show_round_summary("测试：0017 没有进站。")
 	await process_frame
 	var ok1: bool = game.round_summary.visible
