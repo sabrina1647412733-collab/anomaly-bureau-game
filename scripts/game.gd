@@ -62,6 +62,9 @@ var prompt_ring_mat: StandardMaterial3D = null
 var ring_flash := 0.0                      # 按下 E 之后 1 秒的高亮
 var desk_phone_mat: StandardMaterial3D = null   # 调度台上那台老式电话的指示灯
 var desk_phone_t := 0.0
+var tun_lamp_mat: StandardMaterial3D = null        # 环线隧道里那盏坏灯
+var tun_lamp_light: OmniLight3D = null
+var tun_lamp_t := 0.0                              # 用累积时间而不是真实时钟，方便采样验证
 var sub := ""
 var sub_cps := 26.0
 var sub_time := 0.0
@@ -130,6 +133,7 @@ func _ready() -> void:
 	_make_switch_signal()
 	_make_prompt_ring()
 	_make_desk_props()
+	_make_tunnel_lamp()
 	train = TrainScript.new(self)
 	train.reset()
 	spots = [
@@ -665,6 +669,7 @@ func _process(delta: float) -> void:
 	_animate_doors(delta)
 	_animate_items(delta)
 	_update_desk_props(delta)
+	_update_tunnel_lamp(delta)
 	_update_interaction()
 	_update_prompt_ring(delta)
 	_update_hud()
@@ -1344,6 +1349,38 @@ func _update_desk_props(delta: float) -> void:
 	elif desk_phone_t >= 1.35 and desk_phone_t < 2.05:
 		on = true
 	desk_phone_mat.emission_energy_multiplier = 1.6 if on else 0.05
+## 环线隧道东墙上那盏坏灯（level.gd 里三盏壁灯中间那盏是 "dark"）。
+## 彩蛋：它不是彻底死掉，而是「大多数时候亮着、偶尔整段掉下去」，亮的时候还在轻微抖。
+func _make_tunnel_lamp() -> void:
+	var root3 := Node3D.new()
+	root3.name = "TunnelLamp"
+	add_child(root3)
+	tun_lamp_mat = StandardMaterial3D.new()
+	tun_lamp_mat.albedo_color = Color(0.55, 0.70, 0.86)
+	tun_lamp_mat.emission_enabled = true
+	tun_lamp_mat.emission = Color(0.45, 0.70, 0.95)
+	tun_lamp_mat.emission_energy_multiplier = 1.0
+	_item_part(root3, Vector3(0.030, 0.080, 0.900), Vector3(11.945, 0.870, -61.300), tun_lamp_mat)
+	tun_lamp_light = OmniLight3D.new()
+	tun_lamp_light.position = Vector3(11.45, 0.62, -61.30)
+	tun_lamp_light.light_color = Color(0.62, 0.72, 0.92)
+	tun_lamp_light.light_energy = 1.5
+	tun_lamp_light.omni_range = 7.5
+	tun_lamp_light.shadow_enabled = false
+	root3.add_child(tun_lamp_light)
+
+func _update_tunnel_lamp(_delta: float) -> void:
+	if tun_lamp_mat == null:
+		return
+	tun_lamp_t += _delta
+	var t := tun_lamp_t
+	# 两个不同周期的正弦相乘 → 不规律的"大部分亮、偶尔断"
+	var slow := sin(t * 0.90) * sin(t * 0.37 + 2.0)
+	var on := slow > -0.25
+	var v := (0.85 + 0.15 * sin(t * 11.0)) if on else 0.10
+	tun_lamp_mat.emission_energy_multiplier = 1.05 * v
+	if tun_lamp_light != null:
+		tun_lamp_light.light_energy = 1.55 * v
 # ------------------------------------------------------------------ 动画
 func _animate_doors(delta: float) -> void:
 	var lv: MeshInstance3D = get_meta("lever")
