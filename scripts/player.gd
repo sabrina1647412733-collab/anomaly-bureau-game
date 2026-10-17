@@ -179,9 +179,9 @@ func _build_body() -> void:
 
 	var hip := _joint("hip", body, Vector3(0, 0.86, 0))
 	var skin := Color(0.90, 0.71, 0.60)
-	hip.add_child(_mesh_bevbox(Vector3(0.36, 0.20, 0.24), dark, Vector3(0, 0.0125, 0), 0.018))
+	hip.add_child(_mesh_bevbox(Vector3(0.360, 0.200, 0.240), dark, Vector3(0, 0.0125, 0), 0.032))
 	var torso := _joint("torso", body, Vector3(0, 0.94, 0))
-	torso.add_child(_mesh_bevbox(Vector3(0.42, 0.46, 0.26), coat, Vector3(0, 0.23, 0), 0.022))
+	torso.add_child(_mesh_bevbox(Vector3(0.430, 0.430, 0.270), coat, Vector3(0, 0.215, 0), 0.042))
 	# 内层：衬衫领口 + 前襟在背心下面露一条（叠穿的读法）
 	torso.add_child(_mesh_box(Vector3(0.200, 0.046, 0.202), shirt, Vector3(0, 0.436, 0.004)))
 	torso.add_child(_mesh_box(Vector3(0.062, 0.078, 0.022), shirt, Vector3(0, 0.428, -0.128)))
@@ -192,18 +192,18 @@ func _build_body() -> void:
 	for sc in [-1.0, 1.0]:
 		torso.add_child(_mesh_sphere(Vector3(0.186, 0.176, 0.210), coat, Vector3(sc * 0.235, 0.425, 0)))
 	# 背心拆成胸 + 腰两段：胸 0.44 宽、腰收到 0.382 —— 直筒背心是「整个人像块板」的主因，原来是一根 0.44x0.44 到底。
-	torso.add_child(_mesh_bevbox(Vector3(0.440, 0.260, 0.275), vest, Vector3(0, 0.310, 0), 0.018, 0.55))
-	torso.add_child(_mesh_bevbox(Vector3(0.382, 0.190, 0.275), vest, Vector3(0, 0.095, 0), 0.016, 0.55))   # 反光背心（A 里是从胸到胯的长背心）
-	torso.add_child(_mesh_box(Vector3(0.45, 0.045, 0.285), Color(0.89, 0.80, 0.33), Vector3(0, 0.36, 0), 0.9))
-	torso.add_child(_mesh_box(Vector3(0.392, 0.045, 0.285), Color(0.89, 0.80, 0.33), Vector3(0, 0.13, 0), 0.9))
+	torso.add_child(_mesh_bevbox(Vector3(0.436, 0.250, 0.285), vest, Vector3(0, 0.305, 0), 0.034, 0.55))
+	torso.add_child(_mesh_bevbox(Vector3(0.396, 0.185, 0.285), vest, Vector3(0, 0.095, 0), 0.030, 0.55))   # 反光背心（A 里是从胸到胯的长背心）
+	torso.add_child(_mesh_box(Vector3(0.446, 0.045, 0.295), Color(0.89, 0.80, 0.33), Vector3(0, 0.36, 0), 0.9))
+	torso.add_child(_mesh_box(Vector3(0.404, 0.045, 0.295), Color(0.89, 0.80, 0.33), Vector3(0, 0.13, 0), 0.9))
 	# 背心的两条肩带盖过肩膀（原来只有胸口一块平板，肩上是空的）
 	for sx in [-0.155, 0.155]:
-		torso.add_child(_mesh_box(Vector3(0.098, 0.064, 0.288), vest, Vector3(sx, 0.450, 0.0), 0.55))
+		torso.add_child(_mesh_box(Vector3(0.098, 0.064, 0.298), vest, Vector3(sx, 0.450, 0.0), 0.55))
 	# 背心口袋 + 深色袋口线
 	for px in [-0.135, 0.135]:
-		torso.add_child(_mesh_box(Vector3(0.125, 0.105, 0.020), vest.darkened(0.18), Vector3(px, 0.240, -0.146)))
-		torso.add_child(_mesh_box(Vector3(0.128, 0.016, 0.024), vest.darkened(0.42), Vector3(px, 0.288, -0.148)))
-	torso.add_child(_mesh_box(Vector3(0.392, 0.045, 0.27), dark, Vector3(0, 0.01, 0)))          # 腰带
+		torso.add_child(_mesh_box(Vector3(0.125, 0.105, 0.020), vest.darkened(0.18), Vector3(px, 0.240, -0.152)))
+		torso.add_child(_mesh_box(Vector3(0.128, 0.016, 0.024), vest.darkened(0.42), Vector3(px, 0.288, -0.154)))
+	torso.add_child(_mesh_box(Vector3(0.404, 0.045, 0.280), dark, Vector3(0, 0.01, 0)))          # 腰带
 	torso.add_child(_mesh_box(Vector3(0.052, 0.048, 0.020), Color(0.62, 0.60, 0.52), Vector3(0, 0.010, -0.142)))  # 腰带扣
 	torso.add_child(_mesh_box(Vector3(0.10, 0.14, 0.02), vest, Vector3(0.11, 0.34, -0.15), 0.9))  # 工牌
 	torso.add_child(_mesh_box(Vector3(0.38, 0.02, 0.02), dark, Vector3(0, 0.44, -0.13)))        # 挂绳
