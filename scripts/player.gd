@@ -183,10 +183,10 @@ func _build_body() -> void:
 	var torso := _joint("torso", body, Vector3(0, 0.94, 0))
 	torso.add_child(_mesh_bevbox(Vector3(0.42, 0.46, 0.26), coat, Vector3(0, 0.23, 0), 0.022))
 	# 内层：衬衫领口 + 前襟在背心下面露一条（叠穿的读法）
-	torso.add_child(_mesh_box(Vector3(0.205, 0.048, 0.208), shirt, Vector3(0, 0.468, 0.004)))
+	torso.add_child(_mesh_box(Vector3(0.200, 0.046, 0.202), shirt, Vector3(0, 0.436, 0.004)))
 	torso.add_child(_mesh_box(Vector3(0.062, 0.078, 0.022), shirt, Vector3(0, 0.428, -0.128)))
-	torso.add_child(_mesh_box(Vector3(0.115, 0.085, 0.115), skin, Vector3(0, 0.472, 0)))
-	torso.add_child(_mesh_box(Vector3(0.300, 0.062, 0.246), coat, Vector3(0, 0.452, 0)))
+	torso.add_child(_mesh_box(Vector3(0.112, 0.140, 0.112), skin, Vector3(0, 0.465, 0)))   # 脖子：从领口里一直伸进下巴
+	torso.add_child(_mesh_box(Vector3(0.300, 0.052, 0.246), coat, Vector3(0, 0.412, 0)))
 	# 肩：以前是一块 0.14x0.08x0.16 的方盒子顶在肩角上，外面鼓出一块直角（很反人类）。
 	# 现在换成 8 段低多边形椭球（三角肌），肩线从躯干顶自然滚下来接住上臂圆管。
 	for sc in [-1.0, 1.0]:
@@ -208,7 +208,7 @@ func _build_body() -> void:
 	torso.add_child(_mesh_box(Vector3(0.10, 0.14, 0.02), vest, Vector3(0.11, 0.34, -0.15), 0.9))  # 工牌
 	torso.add_child(_mesh_box(Vector3(0.38, 0.02, 0.02), dark, Vector3(0, 0.44, -0.13)))        # 挂绳
 	torso.add_child(_mesh_box(Vector3(0.12, 0.14, 0.07), Color(0.30, 0.26, 0.20), Vector3(-0.15, 0.06, 0.15)))  # 工具腰包
-	var head := _joint("head", body, Vector3(0, 1.44, 0))
+	var head := _joint("head", body, Vector3(0, 1.46, 0))     # 抬高 2cm：给脖子留出可见的一段
 	head.add_child(_mesh_bevbox(Vector3(0.205, 0.20, 0.205), skin, Vector3(0, 0.105, 0), 0.020))
 	head.add_child(_mesh_bevbox(Vector3(0.208, 0.040, 0.208), Color(0.10, 0.09, 0.10), Vector3(0, 0.210, 0.012), 0.012))
 	head.add_child(_mesh_bevbox(Vector3(0.196, 0.180, 0.038), Color(0.10, 0.09, 0.10), Vector3(0, 0.108, 0.100), 0.010))
@@ -228,7 +228,7 @@ func _build_body() -> void:
 		head.add_child(_mesh_box(Vector3(0.0035, 0.0035, 0.004), Color(0.98, 0.98, 1.0), Vector3(eye_x - 0.0035, 0.1195, -0.1125), 1.2))
 	head.add_child(_mesh_box(Vector3(0.030, 0.050, 0.028), skin.darkened(0.10), Vector3(0, 0.094, -0.104)))
 	head.add_child(_mesh_box(Vector3(0.042, 0.013, 0.012), Color(0.46, 0.27, 0.26), Vector3(0, 0.062, -0.100)))
-	head.add_child(_mesh_bevbox(Vector3(0.225, 0.075, 0.225), dark, Vector3(0, 0.235, 0), 0.014))          # 帽子
+	head.add_child(_mesh_bevbox(Vector3(0.225, 0.081, 0.225), dark, Vector3(0, 0.235, 0), 0.014))          # 帽子
 	head.add_child(_mesh_bevbox(Vector3(0.245, 0.028, 0.095), dark, Vector3(0, 0.208, -0.122), 0.010))      # 帽檐
 	head.add_child(_mesh_box(Vector3(0.058, 0.028, 0.02), vest, Vector3(0, 0.185, -0.108), 0.6))  # 帽徽
 	for sgn in [-1.0, 1.0]:

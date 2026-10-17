@@ -471,7 +471,7 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	n.add_child(upper)
 	var hp := Node3D.new()
 	hp.name = "headPivot"
-	hp.position = Vector3(0, 0.625, 0)          # 世界 y = 1.62（抬高 2cm 给脖子留位置）
+	hp.position = Vector3(0, 0.645, 0)          # 世界 y = 1.64（再抬 2cm：领口下面那段脖子才看得见）
 	upper.add_child(hp)
 	# 头 / 发 / 帽（坐标相对头枢轴）
 	_part(hp, "head", Vector3(0, 0, 0), Vector3(0.21, 0.23, 0.20), skin, 0.0, false, Vector3.ZERO, false, 0.020)
@@ -497,13 +497,13 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	if cap_on:
 		_part(hp, "cap", Vector3(0, 0.152, 0), Vector3(0.243, 0.055, 0.233), cloth2, 0.0, false, Vector3.ZERO, false, 0.013)
 		_part(hp, "visor", Vector3(0, 0.130, -0.152), Vector3(0.233, 0.030, 0.108), cloth2, 0.0, false, Vector3.ZERO, false, 0.009)	# 躯干 + 衣服叠穿（坐标相对上半身枢轴）：内层领口 → 外层领子 → 前襟 → 下摆 → 腰带 → 口袋
-	_part(upper, "neck", Vector3(0, 0.492, 0), Vector3(0.118, 0.078, 0.118), skin)
+	_part(upper, "neck", Vector3(0, 0.480, 0), Vector3(0.116, 0.130, 0.116), skin)
 	# 躯干拆成胸 + 腰两段（同一进深，只把宽度收进去）：直筒是「像块板」的主因
 	_part(upper, "torso", Vector3(0, 0.330, 0), Vector3(0.400, 0.300, 0.240), cloth, 0.0, false, Vector3.ZERO, false, 0.022)
 	_part(upper, "waist", Vector3(0, 0.085, 0), Vector3(0.352, 0.200, 0.240), cloth, 0.0, false, Vector3.ZERO, false, 0.020)
-	_part(upper, "innerCollar", Vector3(0, 0.489, -0.008), Vector3(0.207, 0.054, 0.200), inner)
+	_part(upper, "innerCollar", Vector3(0, 0.462, -0.008), Vector3(0.207, 0.050, 0.200), inner)
 	_part(upper, "innerV", Vector3(0, 0.412, -0.126), Vector3(0.112, 0.104, 0.020), inner)
-	_part(upper, "collar", Vector3(0, 0.471, -0.002), Vector3(0.312, 0.062, 0.224), cloth)
+	_part(upper, "collar", Vector3(0, 0.445, -0.002), Vector3(0.312, 0.052, 0.224), cloth)
 	_part(upper, "placket", Vector3(0, 0.248, -0.126), Vector3(0.028, 0.400, 0.016), cloth.darkened(0.38))
 	_part(upper, "hem", Vector3(0, 0.042, 0), Vector3(0.362, 0.048, 0.250), cloth.darkened(0.24))
 	_part(upper, "belt", Vector3(0, 0.010, 0), Vector3(0.366, 0.062, 0.252), cloth2)
