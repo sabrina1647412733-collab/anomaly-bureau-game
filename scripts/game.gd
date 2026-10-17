@@ -63,6 +63,10 @@ var ring_flash := 0.0                      # 按下 E 之后 1 秒的高亮
 var round_card: Control = null                   # 每轮开头那张「第 N 轮」卡片
 var round_card_title: Label = null
 var round_card_sub: Label = null
+var round_summary: Control = null                # 每轮结束的结算卡
+var round_summary_title: Label = null
+var round_summary_body: Label = null
+var round_summary_foot: Label = null
 var desk_phone_mat: StandardMaterial3D = null   # 调度台上那台老式电话的指示灯
 var desk_phone_t := 0.0
 var tun_lamp_mat: StandardMaterial3D = null        # 环线隧道里那盏坏灯
@@ -271,6 +275,26 @@ func _make_hud() -> void:
 	round_card_sub = _label(round_card, 0, Vector2(600, 412), Vector2(400, 36), 15, Color(0.78, 0.82, 0.88))
 	round_card.visible = false
 	root.add_child(round_card)
+	# 每轮结束的结算卡（在下一轮预览时显示；放在 fade 下面，过场黑幕会盖住它）
+	round_summary = Control.new()
+	round_summary.set_anchors_preset(Control.PRESET_FULL_RECT)
+	round_summary.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sum_edge := ColorRect.new()
+	sum_edge.color = Color(0.88, 0.64, 0.29, 0.85)
+	sum_edge.position = Vector2(300, 470); sum_edge.size = Vector2(1000, 330)
+	sum_edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	round_summary.add_child(sum_edge)
+	var sum_fill := ColorRect.new()
+	sum_fill.color = Color(0.04, 0.05, 0.07, 0.94)
+	sum_fill.position = Vector2(304, 474); sum_fill.size = Vector2(992, 322)
+	sum_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	round_summary.add_child(sum_fill)
+	round_summary_title = _label(round_summary, 0, Vector2(330, 490), Vector2(940, 40), 24, Color(0.88, 0.64, 0.29))
+	round_summary_body = _label(round_summary, 0, Vector2(330, 535), Vector2(940, 215), 17, Color(0.84, 0.88, 0.94))
+	round_summary_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	round_summary_foot = _label(round_summary, 0, Vector2(330, 760), Vector2(940, 24), 12, Color(0.55, 0.60, 0.66))
+	round_summary.visible = false
+	root.add_child(round_summary)
 	hud_fade = ColorRect.new()
 	hud_fade.color = Color(0, 0, 0, 1)
 	hud_fade.position = Vector2.ZERO
@@ -670,6 +694,9 @@ func _make_buttons() -> void:
 		buttons.append({"label": d[0], "node": n, "mesh": mi, "mat": m, "done": false})
 
 func _start_round() -> void:
+	cut_phase = ""
+	if round_summary != null:
+		round_summary.visible = false
 	round += 1
 	round_elapsed = 0.0
 	clock_min = T_START
@@ -752,6 +779,14 @@ func _once(k: String) -> bool:
 const CUT_POS := Vector3(-4.5, 2.30, 14.0)
 const CUT_LOOK := Vector3(4.6, 1.35, 1.0)
 
+func _ensure_cutcam() -> void:
+	if cutcam != null:
+		return
+	cutcam = Camera3D.new()
+	cutcam.fov = 62.0
+	cutcam.near = 0.05
+	cutcam.far = 420.0
+	add_child(cutcam)
 func _begin_cutscene() -> void:
 	state = "cutscene"
 	cut_phase = "out"
@@ -767,12 +802,7 @@ func _cutscene(delta: float) -> void:
 		"out":
 			hud_fade.modulate.a = clampf(cut_t / 0.28, 0.0, 1.0)
 			if cut_t >= 0.34:
-				if cutcam == null:
-					cutcam = Camera3D.new()
-					cutcam.fov = 62.0
-					cutcam.near = 0.05
-					cutcam.far = 420.0
-					add_child(cutcam)
+				_ensure_cutcam()
 				cutcam.position = CUT_POS
 				cutcam.look_at(CUT_LOOK)
 				cutcam.current = true
@@ -793,24 +823,20 @@ func _cutscene(delta: float) -> void:
 				cut_phase = ""
 				_after_cutscene()
 		"preview":
+			_ensure_cutcam()
 			# 小角度弧线：只轻轻划过 ±26°，不是绕圈
-			var k := clampf(cut_t / 3.6, 0.0, 1.0)
+			var k := clampf(cut_t / 5.2, 0.0, 1.0)
 			var ang := preview_base + (k - 0.5) * 0.9
 			cutcam.position = preview_center + Vector3(cos(ang) * preview_r, preview_h, sin(ang) * preview_r)
 			cutcam.look_at(preview_center + Vector3(0, 0.05, 0))
 			hud_fade.modulate.a = clampf(1.0 - cut_t / 0.45, 0.0, 1.0)
-			if cut_t >= 3.6:
+			if cut_t >= 5.2:
 				cut_phase = "out2"
 				cut_t = 0.0
 		"dv_out":
 			hud_fade.modulate.a = 1.0
 			if cut_t >= 0.55:
-				if cutcam == null:
-					cutcam = Camera3D.new()
-					cutcam.fov = 62.0
-					cutcam.near = 0.05
-					cutcam.far = 420.0
-					add_child(cutcam)
+				_ensure_cutcam()
 				cutcam.position = Vector3(16.6, 3.40, -78.0)
 				cutcam.look_at(Vector3(6.0, 0.8, -104.0))
 				cutcam.current = true
@@ -820,6 +846,7 @@ func _cutscene(delta: float) -> void:
 				cut_phase = "dv_run"
 				cut_t = 0.0
 		"dv_run":
+			_ensure_cutcam()
 			var t01 := clampf(cut_t / 9.0, 0.0, 1.0)
 			var ee := t01 * t01 * (3.0 - 2.0 * t01)
 			hud_fade.modulate.a = clampf(1.0 - cut_t / 0.5, 0.0, 1.0)
@@ -904,8 +931,48 @@ func _after_cutscene() -> void:
 	_preview_setup()
 	cut_phase = "preview"
 	cut_t = 0.0
-	_show_hook(hook)
+	_show_round_summary(hook)
 
+func _round_found_line() -> String:
+	var found := []
+	for it in items:
+		if int(it["def"]["round"]) == round and bool(it["got"]):
+			found.append(String(it["def"]["name"]))
+	if not found.is_empty():
+		var s := ""
+		for f in found:
+			if s != "": s += "、"
+			s += f
+		return s
+	if round == -1:
+		var done := 0
+		for b in buttons:
+			if bool(b["done"]): done += 1
+		return "无新线索（交接流程 %d/3）" % done
+	return "无新线索"
+
+func _round_reset_reason() -> String:
+	match round:
+		-1: return "列车没有停。它驶进了废弃四道，时间回到 23:50。"
+		0: return "0017 没有进站，屏幕只剩「列车位置未知」。"
+		1: return "你听到了「三道有人」，但 0017 还是没停。"
+		2: return "你拿到了钥匙和巡检簿，但还差五号继电器。"
+		_: return ""
+
+func _show_round_summary(text: String) -> void:
+	if round_summary == null:
+		_show_hook(text)
+		return
+	var i := clampi(round + 1, 0, ROUND_NAMES.size() - 1)
+	round_summary_title.text = String(ROUND_NAMES[i]) + " · 结算"
+	round_summary_body.text = text + "\n\n本轮发现：" + _round_found_line() + "\n为什么重来：" + _round_reset_reason()
+	round_summary_foot.text = "[E / 空格] 继续"
+	hud_end.text = ""
+	hud_end.modulate.a = 0.0
+	round_summary.visible = true
+	round_summary.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(round_summary, "modulate:a", 1.0, 0.5)
 func _show_hook(text: String) -> void:
 	hud_end_title.text = ""
 	hud_end.text = text
@@ -921,6 +988,8 @@ func _resolve_final() -> void:
 		_show_end("B")
 
 func _show_final_choice() -> void:
+	if round_summary != null:
+		round_summary.visible = false
 	_fade_to(0.0, 0.7)
 	hud_end_title.text = "最后的决定"
 	hud_end.text = "列车停住了。天亮之前，只剩一件事要你决定。\n\n记录是公开，还是封存？\n\n[E] 公开真相　　[R] 封存"
@@ -930,6 +999,8 @@ func _show_final_choice() -> void:
 	chooser_b = "B"
 
 func _end_hook() -> void:
+	if round_summary != null:
+		round_summary.visible = false
 	hud_end.text = ""
 	hud_end.modulate.a = 1.0
 	_once_flags.clear()
@@ -951,12 +1022,7 @@ func _skip_cutscene() -> void:
 		"dv_out":
 			hud_fade.modulate.a = clampf(cut_t / 0.45, 0.0, 1.0)
 			if cut_t >= 0.55:
-				if cutcam == null:
-					cutcam = Camera3D.new()
-					cutcam.fov = 62.0
-					cutcam.near = 0.05
-					cutcam.far = 420.0
-					add_child(cutcam)
+				_ensure_cutcam()
 				cutcam.position = Vector3(16.6, 3.40, -78.0)
 				cutcam.look_at(Vector3(6.0, 0.8, -104.0))
 				cutcam.current = true
@@ -966,6 +1032,7 @@ func _skip_cutscene() -> void:
 				cut_phase = "dv_run"
 				cut_t = 0.0
 		"dv_run":
+			_ensure_cutcam()
 			var t01 := clampf(cut_t / 9.0, 0.0, 1.0)
 			var ee := t01 * t01 * (3.0 - 2.0 * t01)
 			hud_fade.modulate.a = clampf(1.0 - cut_t / 0.5, 0.0, 1.0)
@@ -990,6 +1057,8 @@ func _skip_cutscene() -> void:
 			pass
 
 func _show_end(kind: String) -> void:
+	if round_summary != null:
+		round_summary.visible = false
 	_fade_to(0.0, 0.7)
 	# 彩蛋：结局文字里那把钥匙的去向，在场景里真的出现
 	if ending_key_cab != null:
@@ -1786,6 +1855,8 @@ func _show_menu() -> void:
 		player.dragging = false
 
 func _on_start() -> void:
+	if round_summary != null:
+		round_summary.visible = false
 	round = -2
 	_once_flags.clear()
 	power = false; sr_open = false; handle = false; late = false; divert = false; shown_end = ""
