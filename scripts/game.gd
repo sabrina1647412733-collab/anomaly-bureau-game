@@ -502,21 +502,13 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		_part(hp, "cap", Vector3(0, 0.152, 0), Vector3(0.243, 0.055, 0.233), cloth2, 0.0, false, Vector3.ZERO, false, 0.013)
 		_part(hp, "visor", Vector3(0, 0.130, -0.152), Vector3(0.233, 0.030, 0.108), cloth2, 0.0, false, Vector3.ZERO, false, 0.009)	# 躯干 + 衣服叠穿（坐标相对上半身枢轴）：内层领口 → 外层领子 → 前襟 → 下摆 → 腰带 → 口袋
 	_part(upper, "neck", Vector3(0, 0.480, 0), Vector3(0.116, 0.130, 0.116), skin)
-	# 躯干拆成胸 + 腰两段（同一进深，只把宽度收进去）：直筒是「像块板」的主因
-	_part(upper, "torso", Vector3(0, 0.330, 0), Vector3(0.410, 0.290, 0.250), cloth, 0.0, false, Vector3.ZERO, false, 0.040)
-	_part(upper, "waist", Vector3(0, 0.085, 0), Vector3(0.362, 0.200, 0.250), cloth, 0.0, false, Vector3.ZERO, false, 0.034)
-	_part(upper, "innerCollar", Vector3(0, 0.462, -0.008), Vector3(0.207, 0.050, 0.200), inner)
-	_part(upper, "innerV", Vector3(0, 0.412, -0.126), Vector3(0.112, 0.104, 0.020), inner)
-	_part(upper, "collar", Vector3(0, 0.445, -0.002), Vector3(0.312, 0.052, 0.224), cloth)
-	_part(upper, "placket", Vector3(0, 0.248, -0.126), Vector3(0.028, 0.400, 0.016), cloth.darkened(0.38))
-	_part(upper, "hem", Vector3(0, 0.042, 0), Vector3(0.372, 0.048, 0.256), cloth.darkened(0.24))
-	_part(upper, "belt", Vector3(0, 0.010, 0), Vector3(0.376, 0.062, 0.258), cloth2)
-	_part(upper, "buckle", Vector3(0, 0.010, -0.130), Vector3(0.046, 0.046, 0.014), Color(0.62, 0.60, 0.52))
-	_part(upper, "badge", Vector3(0.10, 0.350, -0.132), Vector3(0.055, 0.075, 0.016), accent, 1.6)
-	for px in [-0.108, 0.108]:
-		var psfx := "L" if px < 0 else "R"
-		_part(upper, "pocket" + psfx, Vector3(px, 0.150, -0.124), Vector3(0.116, 0.105, 0.014), cloth.darkened(0.18))
-		_part(upper, "pocketLip" + psfx, Vector3(px, 0.198, -0.129), Vector3(0.119, 0.016, 0.017), cloth.darkened(0.44))
+	# 躯干：椭圆截面放样（腰细、胸宽、肩部收口），不再用胸/腰两个方块叠
+	_part_loft(upper, "torso", _npc_profile(), cloth)
+	_part(upper, "innerCollar", Vector3(0, 0.462, -0.008), Vector3(0.180, 0.044, 0.170), inner, 0.0, false, Vector3.ZERO, false, 0.010)
+	_part(upper, "collar", Vector3(0, 0.445, -0.002), Vector3(0.280, 0.050, 0.205), cloth, 0.0, false, Vector3.ZERO, false, 0.018)
+	_part_loft(upper, "belt", _band_profile(-0.020, 0.040, 0.170, 0.108), cloth2)
+	_part(upper, "buckle", Vector3(0, 0.010, -0.112), Vector3(0.046, 0.046, 0.014), Color(0.62, 0.60, 0.52))
+	_part(upper, "badge", Vector3(0.10, 0.350, -0.110), Vector3(0.070, 0.090, 0.012), accent, 1.6)
 	if long_coat:
 		# 大衣领子：两片翻领，用旋转做出 V 字
 		for ls in [-1.0, 1.0]:
@@ -588,6 +580,34 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	n.visible = false
 	return {"name": nm, "node": n, "accent": accent, "show_round": show_round, "label": lbl,
 		"upper": upper, "head": hp, "mouth": mth}
+
+func _part_loft(parent: Node3D, nm: String, profile: Array, col: Color, segments := 16) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = nm
+	mi.mesh = CharBody.loft(profile, segments)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = 0.78
+	mi.material_override = m
+	parent.add_child(mi)
+	return mi
+
+func _band_profile(y0: float, y1: float, rx: float, rz: float) -> Array:
+	return [Vector3(y0, rx, rz), Vector3(y1, rx, rz)]
+
+## NPC 躯干放样（相对 upper 关节）：腰 0.171、胸 0.205、肩部收口
+func _npc_profile() -> Array:
+	return [
+		Vector3(-0.020, 0.174, 0.108),
+		Vector3(0.030, 0.168, 0.104),
+		Vector3(0.100, 0.163, 0.102),
+		Vector3(0.180, 0.172, 0.107),
+		Vector3(0.280, 0.186, 0.115),
+		Vector3(0.360, 0.199, 0.122),
+		Vector3(0.420, 0.205, 0.125),
+		Vector3(0.460, 0.198, 0.121),
+		Vector3(0.480, 0.184, 0.113),
+	]
 
 func _part(parent: Node3D, nm: String, p: Vector3, size: Vector3, col: Color,
 		emis := 0.0, tube := false, rot := Vector3.ZERO, ball := false, bev := 0.0,

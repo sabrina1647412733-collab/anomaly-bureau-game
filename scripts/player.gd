@@ -156,6 +156,44 @@ func _mesh_sphere(size: Vector3, col: Color, off: Vector3) -> MeshInstance3D:
 	mi.position = off
 	mi.scale = size
 	return mi
+func _mesh_loft(profile: Array, col: Color) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = CharBody.loft(profile, 16)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = 0.80
+	mi.material_override = m
+	return mi
+
+## 腰带/反光条这种"一圈薄带"：两圈放样，比一个倒角盒子更贴身体
+func _band_loft(y0: float, y1: float, rx: float, rz: float, col: Color) -> MeshInstance3D:
+	return _mesh_loft([Vector3(y0, rx, rz), Vector3(y1, rx, rz)], col)
+
+## 躯干放样（局部坐标 y，半宽 rx，半深 rz）：腰 0.175、胸 0.212、肩部收口
+func _player_coat_profile() -> Array:
+	return [
+		Vector3(-0.020, 0.176, 0.112),
+		Vector3(0.020, 0.166, 0.108),
+		Vector3(0.080, 0.162, 0.106),
+		Vector3(0.160, 0.172, 0.111),
+		Vector3(0.260, 0.192, 0.120),
+		Vector3(0.340, 0.207, 0.128),
+		Vector3(0.400, 0.212, 0.131),
+		Vector3(0.430, 0.200, 0.124),
+		Vector3(0.440, 0.185, 0.115),
+	]
+
+## 背心：比外套大 6~10 mm 的一层，从腰带上方包到领口下方
+func _player_vest_profile() -> Array:
+	return [
+		Vector3(0.055, 0.172, 0.113),
+		Vector3(0.130, 0.176, 0.115),
+		Vector3(0.220, 0.192, 0.124),
+		Vector3(0.320, 0.213, 0.133),
+		Vector3(0.390, 0.217, 0.136),
+		Vector3(0.415, 0.211, 0.134),
+	]
+
 func _joint(nm: String, parent: Node3D, joint: Vector3) -> Node3D:
 	var n := Node3D.new()
 	n.name = nm
@@ -181,33 +219,23 @@ func _build_body() -> void:
 	var skin := Color(0.90, 0.71, 0.60)
 	hip.add_child(_mesh_bevbox(Vector3(0.360, 0.200, 0.240), dark, Vector3(0, 0.0125, 0), 0.032))
 	var torso := _joint("torso", body, Vector3(0, 0.94, 0))
-	torso.add_child(_mesh_bevbox(Vector3(0.430, 0.430, 0.270), coat, Vector3(0, 0.215, 0), 0.042))
-	# 内层：衬衫领口 + 前襟在背心下面露一条（叠穿的读法）
-	torso.add_child(_mesh_box(Vector3(0.200, 0.046, 0.202), shirt, Vector3(0, 0.436, 0.004)))
-	torso.add_child(_mesh_box(Vector3(0.062, 0.078, 0.022), shirt, Vector3(0, 0.428, -0.128)))
-	torso.add_child(_mesh_box(Vector3(0.112, 0.140, 0.112), skin, Vector3(0, 0.465, 0)))   # 脖子：从领口里一直伸进下巴
-	torso.add_child(_mesh_box(Vector3(0.300, 0.052, 0.246), coat, Vector3(0, 0.412, 0)))
-	# 肩：以前是一块 0.14x0.08x0.16 的方盒子顶在肩角上，外面鼓出一块直角（很反人类）。
-	# 现在换成 8 段低多边形椭球（三角肌），肩线从躯干顶自然滚下来接住上臂圆管。
+	# 躯干：一个椭圆截面的放样体（腰细、胸宽、肩部收口），不再是几个方块叠甲
+	torso.add_child(_mesh_loft(_player_coat_profile(), coat))
+	torso.add_child(_mesh_loft(_player_vest_profile(), vest))
+	# 反光条 / 腰带：贴着放样体的薄环，不再是浮在表面的扁盒子
+	torso.add_child(_band_loft(0.119, 0.151, 0.179, 0.119, Color(0.89, 0.80, 0.33)))
+	torso.add_child(_band_loft(0.347, 0.383, 0.218, 0.139, Color(0.89, 0.80, 0.33)))
+	torso.add_child(_band_loft(-0.020, 0.030, 0.172, 0.113, dark))
+	# 领口只留两层：衬衫内领 + 外套领（领子压小、加倒角）
+	torso.add_child(_mesh_box(Vector3(0.170, 0.044, 0.170), shirt, Vector3(0, 0.438, 0.004)))
+	torso.add_child(_mesh_box(Vector3(0.112, 0.140, 0.112), skin, Vector3(0, 0.465, 0)))
+	torso.add_child(_mesh_bevbox(Vector3(0.270, 0.050, 0.205), coat, Vector3(0, 0.420, 0), 0.018))
+	# 肩：三角肌椭球，接住上臂圆管
 	for sc in [-1.0, 1.0]:
 		torso.add_child(_mesh_sphere(Vector3(0.186, 0.176, 0.210), coat, Vector3(sc * 0.235, 0.425, 0)))
-	# 背心拆成胸 + 腰两段：胸 0.44 宽、腰收到 0.382 —— 直筒背心是「整个人像块板」的主因，原来是一根 0.44x0.44 到底。
-	torso.add_child(_mesh_bevbox(Vector3(0.436, 0.250, 0.285), vest, Vector3(0, 0.305, 0), 0.034, 0.55))
-	torso.add_child(_mesh_bevbox(Vector3(0.396, 0.185, 0.285), vest, Vector3(0, 0.095, 0), 0.030, 0.55))   # 反光背心（A 里是从胸到胯的长背心）
-	torso.add_child(_mesh_box(Vector3(0.446, 0.045, 0.295), Color(0.89, 0.80, 0.33), Vector3(0, 0.36, 0), 0.9))
-	torso.add_child(_mesh_box(Vector3(0.404, 0.045, 0.295), Color(0.89, 0.80, 0.33), Vector3(0, 0.13, 0), 0.9))
-	# 背心的两条肩带盖过肩膀（原来只有胸口一块平板，肩上是空的）
-	for sx in [-0.155, 0.155]:
-		torso.add_child(_mesh_box(Vector3(0.098, 0.064, 0.298), vest, Vector3(sx, 0.450, 0.0), 0.55))
-	# 背心口袋 + 深色袋口线
-	for px in [-0.135, 0.135]:
-		torso.add_child(_mesh_box(Vector3(0.125, 0.105, 0.020), vest.darkened(0.18), Vector3(px, 0.240, -0.152)))
-		torso.add_child(_mesh_box(Vector3(0.128, 0.016, 0.024), vest.darkened(0.42), Vector3(px, 0.288, -0.154)))
-	torso.add_child(_mesh_box(Vector3(0.404, 0.045, 0.280), dark, Vector3(0, 0.01, 0)))          # 腰带
-	torso.add_child(_mesh_box(Vector3(0.052, 0.048, 0.020), Color(0.62, 0.60, 0.52), Vector3(0, 0.010, -0.142)))  # 腰带扣
-	torso.add_child(_mesh_box(Vector3(0.10, 0.14, 0.02), vest, Vector3(0.11, 0.34, -0.15), 0.9))  # 工牌
-	torso.add_child(_mesh_box(Vector3(0.38, 0.02, 0.02), dark, Vector3(0, 0.44, -0.13)))        # 挂绳
-	torso.add_child(_mesh_box(Vector3(0.12, 0.14, 0.07), Color(0.30, 0.26, 0.20), Vector3(-0.15, 0.06, 0.15)))  # 工具腰包
+	# 只留一枚工牌；口袋、肩带、前襟、工具包全部去掉
+	torso.add_child(_mesh_box(Vector3(0.070, 0.090, 0.012), vest.lightened(0.10), Vector3(0.10, 0.34, -0.124), 0.6))
+	torso.add_child(_mesh_box(Vector3(0.052, 0.048, 0.016), Color(0.62, 0.60, 0.52), Vector3(0, 0.005, -0.121)))
 	var head := _joint("head", body, Vector3(0, 1.46, 0))     # 抬高 2cm：给脖子留出可见的一段
 	# 参考图那套「玩具人偶」头：偏宽、圆角大，五官是圆眼睛 + 小笑弧 + 腮红
 	head.add_child(_mesh_bevbox(Vector3(0.215, 0.195, 0.210), skin, Vector3(0, 0.100, 0), 0.032))

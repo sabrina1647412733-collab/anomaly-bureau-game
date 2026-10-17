@@ -96,3 +96,55 @@ static func _push(V: Array, N: Array, I: Array, poly: Array) -> void:
         I.append(base)
         I.append(base + k)
         I.append(base + k + 1)
+## 椭圆截面放样：profile 是 [Vector3(y, rx, rz), ...]，从下往上；生成平滑着色的封闭体。
+## 躯干这种"腰细、胸宽、肩部收口"的形体，用放样比叠几个倒角盒自然得多。
+static func loft(profile: Array, segments := 16) -> ArrayMesh:
+    if profile.size() < 2:
+        return ArrayMesh.new()
+    var seg := maxi(segments, 6)
+    var st := SurfaceTool.new()
+    st.begin(Mesh.PRIMITIVE_TRIANGLES)
+    var rings := []
+    for p in profile:
+        var y: float = p.x
+        var rx: float = p.y
+        var rz: float = p.z
+        var ring := []
+        for i in range(seg):
+            var a := TAU * float(i) / float(seg)
+            ring.append(Vector3(cos(a) * rx, y, sin(a) * rz))
+        rings.append(ring)
+    for r in range(rings.size() - 1):
+        for i in range(seg):
+            var j := (i + 1) % seg
+            _quad_out(st, rings[r][i], rings[r][j], rings[r + 1][j], rings[r + 1][i])
+    var b0 := Vector3(0.0, profile[0].x, 0.0)
+    var t0 := Vector3(0.0, profile[profile.size() - 1].x, 0.0)
+    for i in range(seg):
+        var j := (i + 1) % seg
+        _tri_out(st, b0, rings[0][i], rings[0][j], Vector3(0, -1, 0))
+        _tri_out(st, t0, rings[rings.size() - 1][i], rings[rings.size() - 1][j], Vector3(0, 1, 0))
+    st.index()
+    st.generate_normals()
+    return st.commit()
+
+## 一圈四边面：按"质心朝外"定向，再翻成 Godot 的顺时针正面。
+static func _quad_out(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+    var cen := (a + b + c + d) * 0.25
+    var out := Vector3(cen.x, 0.0, cen.z)
+    var n := (b - a).cross(c - a)
+    if out.length_squared() < 0.000001:
+        out = n
+    if n.dot(out) > 0.0:
+        st.add_vertex(a); st.add_vertex(c); st.add_vertex(b)
+        st.add_vertex(a); st.add_vertex(d); st.add_vertex(c)
+    else:
+        st.add_vertex(a); st.add_vertex(b); st.add_vertex(c)
+        st.add_vertex(a); st.add_vertex(c); st.add_vertex(d)
+
+static func _tri_out(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward: Vector3) -> void:
+    var n := (b - a).cross(c - a)
+    if n.dot(outward) > 0.0:
+        st.add_vertex(a); st.add_vertex(c); st.add_vertex(b)
+    else:
+        st.add_vertex(a); st.add_vertex(b); st.add_vertex(c)
