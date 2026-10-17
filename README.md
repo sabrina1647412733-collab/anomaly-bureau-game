@@ -5,7 +5,7 @@
 
 ## 怎么跑
 
-> **只想知道最近改了什么？** 直接跳到最后一节「46 · 发布候选」。
+> **只想知道最近改了什么？** 直接跳到最后一节「47 · Web 中文字体」。
 
 - 引擎：**Godot 4.7.2 stable**（`Godot_v4.7.2-stable_win64.exe`）
 - 工程入口：本目录的 `project.godot`（编辑器里「导入」后打开）
@@ -1095,3 +1095,22 @@ NPC 同一套（`game.gd`）：躯干 0.400 × 0.300 × 0.240 → **0.410 × 0.2
 - `0017-网页版.zip` 已用最新 `deploy/game` 重新打包（2026-10-17 18:23，约 10.7 MB）。
 
 注：Quick Tunnel 是临时链接；要固定域名需要 Cloudflare 账号 + named tunnel，或部署到任意静态托管。
+### 47 · Web 中文字体：SystemFont → 内嵌 Noto Sans SC
+
+用户在 Web 版截图中所有中文都是方框。根因：`game.gd::_make_font()` 用的是 `SystemFont`
+（Microsoft YaHei / SimHei / Noto Sans CJK SC）。桌面端能读系统字体，Web 导出后没有这些字体，
+Godot 的默认回退又不含 CJK，于是菜单/HUD/Label3D 全部变成 tofu。
+
+改法：
+- 把 **Noto Sans SC Regular**（8.48 MB，SIL OFL 1.1）放进 `assets/fonts/NotoSansSC-Regular.otf`，
+  附 `LICENSE-NotoSansSC.txt`。
+- `game.gd::_make_font()` 优先 `load()` 这个 FontFile；`SystemFont` 只作为桌面端兜底。
+- `poster.gd` 同样优先内嵌字体。
+- `fontcheck.gd` 扫描 `scripts/*.gd` 里全部 CJK/全角标点：**955 个唯一字符，缺字 0**，
+  字体名 `Noto Sans SC`，确认是内嵌 `FontFile` 而不是 `SystemFont`。
+
+重新导出：`index.pck` **379 KB → 8.12 MB**（字体进包）；`webverify.ps1` 仍报告
+Compatibility / WebGL 2.0 / 20696 三角 / 场景就绪。Web 菜单截图 `web_menu_fixed.png`。
+`0017-网页版.zip` 更新为约 **18.5 MB**。
+
+公开链接不变：`https://according-readily-favorites-corn.trycloudflare.com/game/`（刷新即可看到中文）。

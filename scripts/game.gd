@@ -175,6 +175,11 @@ func _ready() -> void:
 	print("[0017] 就绪 · 三角 ", builder.tri_count, " · 碰撞 ", builder.col_count, " · 灯 ", builder.lights.size())
 
 func _make_font() -> void:
+	# Web 版没有系统字体，必须用内嵌的 CJK 字体，否则中文全是方框
+	var f := load("res://assets/fonts/NotoSansSC-Regular.otf")
+	if f is Font:
+		font = f
+		return
 	var sf := SystemFont.new()
 	sf.font_names = PackedStringArray(["Microsoft YaHei UI", "Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "sans-serif"])
 	sf.allow_system_fallback = true

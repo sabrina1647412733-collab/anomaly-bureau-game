@@ -5,8 +5,11 @@ const Level := preload("res://scripts/level.gd")
 const TrainScript := preload("res://scripts/train.gd")
 
 func _ready() -> void:
-    var sf := SystemFont.new()
-    sf.font_names = PackedStringArray(["Microsoft YaHei UI", "Microsoft YaHei", "SimHei"])
+    var sf: Font = load("res://assets/fonts/NotoSansSC-Regular.otf")
+    if not (sf is Font):
+        var sys := SystemFont.new()
+        sys.font_names = PackedStringArray(["Microsoft YaHei UI", "Microsoft YaHei", "SimHei"])
+        sf = sys
     var e := Environment.new()
     e.background_mode = Environment.BG_COLOR
     e.background_color = Color(0.027, 0.043, 0.063)
