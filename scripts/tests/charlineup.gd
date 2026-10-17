@@ -77,6 +77,9 @@ func _run() -> void:
 	var img: Image = root.get_texture().get_image()
 	img.save_png("res://_预览/look/charlineup.png")
 	print("[LINEUP] ", img.get_width(), "x", img.get_height())
+	# 后面的玩家特写只留玩家：旁边 NPC 会挡住侧视
+	for np in game.npcs:
+		np["node"].visible = false
 	# 再来一张玩家上半身特写（看脸 / 帽子 / 背心 / 手臂）
 	c.position = Vector3(0.0, 1.35, 2.0)
 	c.fov = 42.0
@@ -87,6 +90,31 @@ func _run() -> void:
 	var img2: Image = root.get_texture().get_image()
 	img2.save_png("res://_预览/look/charlineup_脸.png")
 	print("[LINEUP] 玩家特写 ", img2.get_width(), "x", img2.get_height())
+	# 3/4 与侧面：正面容易被手臂挡住腰线，这两张看躯干进深和收腰
+	c.position = Vector3(1.45, 1.35, 1.45)
+	c.fov = 42.0
+	c.look_at(Vector3(0.0, 1.20, 0.0), Vector3.UP)
+	for i in range(12):
+		await process_frame
+	await RenderingServer.frame_post_draw
+	var img34: Image = root.get_texture().get_image()
+	img34.save_png("res://_预览/look/charlineup_34.png")
+	print("[LINEUP] 3/4 特写 ", img34.get_width(), "x", img34.get_height())
+	# 侧视：从 -X 看，背后补一块纯色板（+X 侧），避免看到站内
+	var sideWall := MeshInstance3D.new()
+	var swb := BoxMesh.new(); swb.size = Vector3(0.4, 12, 16)
+	sideWall.mesh = swb; sideWall.material_override = flat
+	sideWall.position = Vector3(1.2, 4.5, 0.0)
+	game.add_child(sideWall)
+	c.position = Vector3(-2.0, 1.30, 0.0)
+	c.fov = 42.0
+	c.look_at(Vector3(0.0, 1.20, 0.0), Vector3.UP)
+	for i in range(12):
+		await process_frame
+	await RenderingServer.frame_post_draw
+	var imgSide: Image = root.get_texture().get_image()
+	imgSide.save_png("res://_预览/look/charlineup_侧.png")
+	print("[LINEUP] 侧面特写 ", imgSide.get_width(), "x", imgSide.get_height())
 	# 再来一张"只拍脸"的极近景：检查眼睛 / 眉 / 鼻 / 嘴 / 耳这些 2~6cm 的零件
 	c.position = Vector3(0.0, 1.552, 0.52)
 	c.fov = 30.0

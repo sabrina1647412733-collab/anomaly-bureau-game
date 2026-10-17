@@ -1017,7 +1017,7 @@ NPC 同一套（`game.gd`）：躯干 0.400 × 0.300 × 0.240 → **0.410 × 0.2
 
 验收：自检 exit 0；audit 0/0；`charmeasure` 玩家头身比 **6.28**、脚底 **0.000**、总高 **1.716 m**、
 最宽 **0.673 m**（上一版 0.660，宽出的 1.3 cm 来自躯干与背心同步加宽）；
-图已重拍 `charlineup.png` / `charlineup_脸.png` / `charlineup_眼.png`
+图已重拍 `charlineup.png` / `charlineup_脸.png` / `charlineup_34.png` / `charlineup_侧.png` / `charlineup_眼.png`
 （本会话按字符轮廓采样复核了躯干—肩—胯的连续性，最终仍以肉眼看图为准）。
 ### 43 · 躯干重做：方块叠甲 → 椭圆截面放样 + 简化衣服
 
@@ -1041,5 +1041,5 @@ NPC 同一套（`game.gd`）：躯干 0.400 × 0.300 × 0.240 → **0.410 × 0.2
 
 验收：自检 exit 0；audit 0/0；`charmeasure` 玩家头身比 **6.28**、脚底 **0.000**、总高 **1.716 m**、
 最宽 **0.673 m**；NPC 头身比 **7.07**、脚底 **0.000**。
-图已重拍 `charlineup.png` / `charlineup_脸.png` / `charlineup_眼.png`
-（本会话无图像输入，用字符轮廓采样复核了胸→腰→胯的连续收分；最终造型仍以肉眼看图为准）。
+图已重拍 `charlineup.png` / `charlineup_脸.png` / `charlineup_34.png` / `charlineup_侧.png` / `charlineup_眼.png`
+（3/4 与侧面两张会先隐藏旁边的 NPC、再加一块纯色背景板，避免林岚挡住侧视；本会话无图像输入，用字符轮廓采样复核了胸→腰→胯的连续收分，最终造型仍以肉眼看图为准）。
