@@ -53,6 +53,7 @@ var prologue_roots: Dictionary = {}
 var prologue_spots: Array = []
 var prologue_envelope: MeshInstance3D = null
 var prologue_reader_mat: StandardMaterial3D = null
+var prologue_room_facade_window: MeshInstance3D = null
 var prologue_ui: CanvasLayer = null
 var prologue_paper: Control = null
 var prologue_paper_text: Label = null
@@ -524,102 +525,214 @@ func _pro_light(parent: Node3D, pos: Vector3, col: Color, energy: float, rng: fl
 func _make_prologue_world() -> void:
 	prologue_roots.clear()
 	prologue_spots.clear()
-	for stage in ["room", "store", "entrance"]:
+	for stage in ["room", "street"]:
 		var root := Node3D.new()
 		root.name = "Prologue_" + String(stage)
 		add_child(root)
 		root.visible = false
 		prologue_roots[stage] = root
-	prologue_roots["room"].position = Vector3(0, 0, 300)
-	prologue_roots["store"].position = Vector3(20, 0, 300)
-	prologue_roots["entrance"].position = Vector3(40, 0, 300)
+	prologue_roots["room"].position = Vector3(0, 12, 322.5)
+	prologue_roots["street"].position = Vector3.ZERO
 	_build_pro_room(prologue_roots["room"])
-	_build_pro_store(prologue_roots["store"])
-	_build_pro_entrance(prologue_roots["entrance"])
+	_build_pro_street(prologue_roots["street"])
 
 func _build_pro_room(root: Node3D) -> void:
-	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.10, 0.11, 0.13))
-	_pro_box(root, Vector3(0, 3.05, 0), Vector3(6, 0.1, 5), Color(0.07, 0.08, 0.10))
-	_pro_box(root, Vector3(0, 1.5, -2.5), Vector3(6, 3.0, 0.1), Color(0.14, 0.15, 0.17))
-	_pro_box(root, Vector3(-3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.13, 0.14, 0.16))
-	_pro_box(root, Vector3(3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.13, 0.14, 0.16))
-	_pro_box(root, Vector3(0, 1.5, 2.5), Vector3(6, 3.0, 0.1), Color(0.13, 0.14, 0.16))
-	_pro_box(root, Vector3(0, 1.1, 2.44), Vector3(1.0, 2.2, 0.08), Color(0.06, 0.06, 0.07), false)
-	_pro_box(root, Vector3(-2.0, 0.30, -1.4), Vector3(1.8, 0.55, 1.1), Color(0.15, 0.18, 0.24))
-	_pro_box(root, Vector3(-2.0, 0.62, -1.75), Vector3(0.7, 0.12, 0.35), Color(0.68, 0.68, 0.64))
-	_pro_box(root, Vector3(1.8, 0.72, 0.7), Vector3(1.6, 0.08, 0.8), Color(0.28, 0.20, 0.14))
-	for lx in [-1.0, 1.0]:
-		for lz in [0.38, 1.02]:
-			_pro_box(root, Vector3(1.8 + lx, 0.36, 0.7 + lz), Vector3(0.07, 0.72, 0.07), Color(0.20, 0.15, 0.11))
-	_pro_box(root, Vector3(1.8, 0.84, 0.7), Vector3(0.26, 0.08, 0.16), Color(0.04, 0.05, 0.06), false)
-	_pro_box(root, Vector3(1.55, 0.88, 0.55), Vector3(0.08, 0.10, 0.08), Color(0.30, 0.85, 0.42), false, 1.4)
-	_pro_box(root, Vector3(-1.5, 0.35, 1.2), Vector3(0.9, 0.7, 0.7), Color(0.36, 0.26, 0.16))
-	_pro_box(root, Vector3(1.2, 1.7, -2.44), Vector3(1.5, 1.1, 0.04), Color(0.42, 0.56, 0.70), false, 0.55)
-	prologue_envelope = _pro_box(root, Vector3(0, 0.03, 2.2), Vector3(0.34, 0.02, 0.22), Color(0.84, 0.82, 0.72), false)
+	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.22, 0.20, 0.18))
+	_pro_box(root, Vector3(0, 3.05, 0), Vector3(6, 0.1, 5), Color(0.52, 0.48, 0.42))
+	_pro_box(root, Vector3(0, 1.5, -2.5), Vector3(6, 3.0, 0.1), Color(0.46, 0.43, 0.38))
+	_pro_box(root, Vector3(-3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.44, 0.41, 0.36))
+	_pro_box(root, Vector3(3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.44, 0.41, 0.36))
+	# 南墙留出大窗洞：左右墙垛 + 上下墙梁
+	_pro_box(root, Vector3(-2.25, 1.5, 2.5), Vector3(1.5, 3.0, 0.1), Color(0.44, 0.41, 0.36))
+	_pro_box(root, Vector3(2.25, 1.5, 2.5), Vector3(1.5, 3.0, 0.1), Color(0.44, 0.41, 0.36))
+	_pro_box(root, Vector3(0, 0.55, 2.5), Vector3(3.0, 1.1, 0.1), Color(0.44, 0.41, 0.36))
+	_pro_box(root, Vector3(0, 2.72, 2.5), Vector3(3.0, 0.56, 0.1), Color(0.44, 0.41, 0.36))
+	for wx in [-1.5, -0.5, 0.5, 1.5]:
+		_pro_box(root, Vector3(wx, 1.7, 2.46), Vector3(0.05, 1.4, 0.05), Color(0.12, 0.12, 0.11), false)
+	for wy in [1.03, 2.37]:
+		_pro_box(root, Vector3(0, wy, 2.46), Vector3(3.0, 0.05, 0.05), Color(0.12, 0.12, 0.11), false)
+	var glass := StandardMaterial3D.new()
+	glass.albedo_color = Color(0.45, 0.60, 0.75, 0.16)
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var gmi := _pro_box(root, Vector3(0, 1.7, 2.49), Vector3(3.0, 1.4, 0.02), Color(0.45, 0.60, 0.75), false)
+	gmi.material_override = glass
+	# 窗台 / 窗帘 / 暖气片
+	_pro_box(root, Vector3(0, 0.98, 2.72), Vector3(3.3, 0.10, 0.42), Color(0.50, 0.47, 0.41), false)
+	_pro_box(root, Vector3(-1.62, 1.65, 2.38), Vector3(0.18, 1.55, 0.08), Color(0.22, 0.25, 0.30), false)
+	_pro_box(root, Vector3(1.62, 1.65, 2.38), Vector3(0.18, 1.55, 0.08), Color(0.22, 0.25, 0.30), false)
+	_pro_box(root, Vector3(0, 0.38, 2.36), Vector3(1.8, 0.46, 0.16), Color(0.32, 0.32, 0.31), false)
+	# 床
+	_pro_box(root, Vector3(-1.9, 0.28, -1.15), Vector3(1.9, 0.55, 1.25), Color(0.20, 0.25, 0.32))
+	_pro_box(root, Vector3(-1.9, 0.58, -1.15), Vector3(1.8, 0.12, 1.15), Color(0.34, 0.37, 0.42))
+	_pro_box(root, Vector3(-1.9, 0.70, -1.62), Vector3(0.76, 0.14, 0.34), Color(0.72, 0.70, 0.64))
+	_pro_box(root, Vector3(-1.9, 0.68, -0.72), Vector3(1.55, 0.10, 0.55), Color(0.26, 0.31, 0.39))
+	_pro_box(root, Vector3(-2.65, 0.18, -1.15), Vector3(0.12, 0.36, 1.3), Color(0.18, 0.18, 0.19))
+	# 书桌 / 椅子 / 台灯 / 电话
+	_pro_box(root, Vector3(1.8, 0.74, 0.70), Vector3(1.7, 0.08, 0.82), Color(0.40, 0.28, 0.18))
+	for lx in [-0.70, 0.70]:
+		for lz in [-0.30, 0.30]:
+			_pro_box(root, Vector3(1.8 + lx, 0.36, 0.70 + lz), Vector3(0.07, 0.72, 0.07), Color(0.26, 0.18, 0.12))
+	_pro_box(root, Vector3(1.1, 0.48, 0.15), Vector3(0.48, 0.08, 0.48), Color(0.25, 0.22, 0.20))
+	_pro_box(root, Vector3(1.1, 0.78, 0.02), Vector3(0.06, 0.62, 0.06), Color(0.20, 0.20, 0.20))
+	_pro_box(root, Vector3(1.1, 1.08, -0.08), Vector3(0.46, 0.10, 0.46), Color(0.25, 0.22, 0.20))
+	_pro_box(root, Vector3(1.55, 0.94, 0.55), Vector3(0.10, 0.34, 0.10), Color(0.18, 0.18, 0.18), false)
+	_pro_box(root, Vector3(1.55, 1.14, 0.55), Vector3(0.28, 0.22, 0.22), Color(0.95, 0.78, 0.48), false, 1.6)
+	_pro_box(root, Vector3(1.95, 0.82, 0.72), Vector3(0.26, 0.08, 0.16), Color(0.05, 0.05, 0.06), false)
+	# 衣柜 / 厨房台面 / 纸箱
+	_pro_box(root, Vector3(-2.55, 1.0, -2.18), Vector3(0.85, 2.0, 0.55), Color(0.30, 0.25, 0.20))
+	_pro_box(root, Vector3(-2.55, 1.0, -1.89), Vector3(0.04, 1.9, 0.04), Color(0.60, 0.50, 0.35), false)
+	_pro_box(root, Vector3(2.55, 0.82, -2.18), Vector3(0.82, 0.10, 0.68), Color(0.46, 0.43, 0.38))
+	_pro_box(root, Vector3(2.55, 0.40, -2.18), Vector3(0.76, 0.74, 0.62), Color(0.30, 0.28, 0.25))
+	_pro_box(root, Vector3(2.55, 0.90, -2.18), Vector3(0.42, 0.04, 0.32), Color(0.12, 0.13, 0.14), false)
+	_pro_box(root, Vector3(-1.5, 0.35, 1.2), Vector3(0.9, 0.7, 0.7), Color(0.48, 0.34, 0.20))
+	_pro_box(root, Vector3(-2.25, 0.25, 1.45), Vector3(0.55, 0.5, 0.55), Color(0.40, 0.30, 0.20))
+	prologue_envelope = _pro_box(root, Vector3(0, 0.03, -0.1), Vector3(0.34, 0.02, 0.22), Color(0.88, 0.86, 0.76), false)
 	prologue_envelope.visible = false
-	_pro_light(root, Vector3(0, 2.7, 0), Color(0.92, 0.74, 0.52), 1.8, 7.0)
-	_pro_light(root, Vector3(1.2, 1.7, -2.2), Color(0.40, 0.52, 0.70), 0.7, 3.0)
-	prologue_spots.append({"stage":"room", "id":"phone", "pos":Vector3(1.8, 0.9, 300.7), "r":1.7})
-	prologue_spots.append({"stage":"room", "id":"box", "pos":Vector3(-1.5, 0.35, 301.2), "r":1.7})
-	prologue_spots.append({"stage":"room", "id":"window", "pos":Vector3(1.2, 1.7, 297.56), "r":1.8})
-	prologue_spots.append({"stage":"room", "id":"door", "pos":Vector3(0, 1.1, 302.44), "r":1.6})
+	# 北墙门 + 门框
+	_pro_box(root, Vector3(0, 1.1, -2.44), Vector3(1.0, 2.2, 0.08), Color(0.18, 0.16, 0.14), false)
+	_pro_box(root, Vector3(-0.58, 1.1, -2.42), Vector3(0.08, 2.3, 0.12), Color(0.35, 0.28, 0.20), false)
+	_pro_box(root, Vector3(0.58, 1.1, -2.42), Vector3(0.08, 2.3, 0.12), Color(0.35, 0.28, 0.20), false)
+	_pro_box(root, Vector3(0, 2.24, -2.42), Vector3(1.24, 0.10, 0.12), Color(0.35, 0.28, 0.20), false)
+	# 墙面细节：日历 / 海报 / 水渍
+	_pro_box(root, Vector3(-1.8, 1.95, -2.43), Vector3(0.58, 0.72, 0.02), Color(0.78, 0.76, 0.66), false)
+	_pro_box(root, Vector3(2.15, 1.85, -2.43), Vector3(0.46, 0.62, 0.02), Color(0.55, 0.48, 0.38), false)
+	_pro_box(root, Vector3(-0.9, 2.55, -2.43), Vector3(0.65, 0.25, 0.02), Color(0.34, 0.30, 0.27), false)
+	# 吊灯 + 灯绳
+	_pro_box(root, Vector3(0, 2.92, 0), Vector3(0.02, 0.30, 0.02), Color(0.10, 0.10, 0.10), false)
+	_pro_box(root, Vector3(0, 2.72, 0), Vector3(0.22, 0.12, 0.22), Color(1.0, 0.86, 0.60), false, 2.2)
+	_pro_light(root, Vector3(0, 2.65, 0), Color(1.0, 0.80, 0.55), 4.2, 10.0)
+	_pro_light(root, Vector3(1.55, 1.14, 0.55), Color(1.0, 0.72, 0.40), 2.2, 4.0)
+	_pro_light(root, Vector3(0, 1.7, 2.0), Color(0.42, 0.56, 0.78), 1.1, 5.0)
+	# 窗外小阳台
+	_pro_box(root, Vector3(0, 0.92, 2.92), Vector3(3.3, 0.10, 0.72), Color(0.34, 0.32, 0.29), false)
+	for bx in [-1.5, -0.5, 0.5, 1.5]:
+		_pro_box(root, Vector3(bx, 1.35, 3.24), Vector3(0.05, 0.82, 0.05), Color(0.20, 0.20, 0.20), false)
+	_pro_box(root, Vector3(0, 1.75, 3.24), Vector3(3.1, 0.05, 0.05), Color(0.20, 0.20, 0.20), false)
+	prologue_spots.append({"stage":"room", "id":"phone", "pos":Vector3(1.95, 12.95, 323.22), "r":1.8})
+	prologue_spots.append({"stage":"room", "id":"box", "pos":Vector3(-1.5, 12.35, 323.7), "r":1.8})
+	prologue_spots.append({"stage":"room", "id":"window", "pos":Vector3(0, 13.7, 325.1), "r":2.0})
+	prologue_spots.append({"stage":"room", "id":"door", "pos":Vector3(0, 13.1, 320.06), "r":1.8})
 
-func _build_pro_store(root: Node3D) -> void:
-	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.16, 0.17, 0.16))
-	_pro_box(root, Vector3(0, 3.05, 0), Vector3(6, 0.1, 5), Color(0.10, 0.11, 0.10))
-	_pro_box(root, Vector3(0, 1.5, -2.5), Vector3(6, 3.0, 0.1), Color(0.20, 0.21, 0.19))
-	_pro_box(root, Vector3(-3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.19, 0.20, 0.18))
-	_pro_box(root, Vector3(3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.19, 0.20, 0.18))
-	_pro_box(root, Vector3(0, 1.5, 2.5), Vector3(6, 3.0, 0.1), Color(0.19, 0.20, 0.18))
-	_pro_box(root, Vector3(0, 1.1, 2.44), Vector3(1.0, 2.2, 0.08), Color(0.05, 0.05, 0.06), false)
-	_pro_box(root, Vector3(1.2, 0.55, 0.9), Vector3(3.0, 1.1, 0.8), Color(0.30, 0.22, 0.15))
-	_pro_box(root, Vector3(1.2, 1.13, 0.9), Vector3(3.2, 0.06, 0.9), Color(0.48, 0.36, 0.22))
-	_pro_box(root, Vector3(-1.5, 1.2, -2.0), Vector3(2.5, 2.0, 0.5), Color(0.14, 0.15, 0.15))
-	for i in range(4):
-		_pro_box(root, Vector3(-2.3 + float(i) * 0.55, 1.6, -1.72), Vector3(0.32, 0.42, 0.12), Color(0.55, 0.22 + float(i) * 0.10, 0.16), false)
-	_pro_box(root, Vector3(1.2, 1.22, 0.9), Vector3(0.60, 0.28, 0.50), Color(0.45, 0.22, 0.10), false, 0.45)
-	_pro_box(root, Vector3(2.1, 1.20, 0.9), Vector3(0.25, 0.18, 0.18), Color(0.06, 0.06, 0.06), false)
-	_pro_box(root, Vector3(-1.6, 0.80, -1.45), Vector3(0.45, 1.2, 0.30), Color(0.10, 0.18, 0.16))
-	_pro_box(root, Vector3(-1.6, 1.55, -1.45), Vector3(0.25, 0.25, 0.25), Color(0.72, 0.56, 0.44))
-	_pro_light(root, Vector3(0, 2.8, 0), Color(0.88, 0.94, 0.90), 2.0, 7.0)
-	var sign := Label3D.new()
-	sign.font = font
-	sign.text = "24H"
-	sign.font_size = 96
-	sign.pixel_size = 0.010
-	sign.modulate = Color(0.45, 0.95, 0.65)
-	sign.position = Vector3(0, 2.35, -2.40)
-	root.add_child(sign)
-	prologue_spots.append({"stage":"store", "id":"counter", "pos":Vector3(21.2, 1.0, 300.9), "r":1.8})
-	prologue_spots.append({"stage":"store", "id":"store_door", "pos":Vector3(20.0, 1.1, 302.44), "r":1.5})
+func _build_pro_street(root: Node3D) -> void:
+	_build_pro_street_ground(root)
+	_build_pro_street_residential(root)
+	_build_pro_street_shops(root)
+	_build_pro_street_props(root)
+	prologue_spots.append({"stage":"street", "id":"counter", "pos":Vector3(10.5, 1.05, 325.9), "r":2.3})
+	prologue_spots.append({"stage":"street", "id":"reader", "pos":Vector3(19.55, 1.32, 325.55), "r":2.2})
 
-func _build_pro_entrance(root: Node3D) -> void:
-	_pro_box(root, Vector3(0, -0.05, 0), Vector3(4, 0.1, 4), Color(0.12, 0.13, 0.14))
-	_pro_box(root, Vector3(0, 3.05, 0), Vector3(4, 0.1, 4), Color(0.08, 0.09, 0.10))
-	_pro_box(root, Vector3(0, 1.5, -2.0), Vector3(4, 3.0, 0.1), Color(0.16, 0.17, 0.18))
-	_pro_box(root, Vector3(-2.0, 1.5, 0), Vector3(0.1, 3.0, 4), Color(0.15, 0.16, 0.17))
-	_pro_box(root, Vector3(2.0, 1.5, 0), Vector3(0.1, 3.0, 4), Color(0.15, 0.16, 0.17))
-	_pro_box(root, Vector3(0, 1.5, 2.0), Vector3(4, 3.0, 0.1), Color(0.15, 0.16, 0.17))
-	_pro_box(root, Vector3(0, 1.1, -1.95), Vector3(1.2, 2.2, 0.08), Color(0.05, 0.06, 0.07), false)
+func _build_pro_street_ground(root: Node3D) -> void:
+	_pro_box(root, Vector3(10, -0.05, 331.0), Vector3(46, 0.1, 8.0), Color(0.13, 0.14, 0.15))
+	_pro_box(root, Vector3(10, 0.05, 326.4), Vector3(46, 0.1, 2.2), Color(0.30, 0.29, 0.27))
+	_pro_box(root, Vector3(10, 0.05, 335.4), Vector3(46, 0.1, 1.2), Color(0.27, 0.26, 0.24))
+	_pro_box(root, Vector3(10, 0.14, 327.52), Vector3(46, 0.18, 0.18), Color(0.45, 0.43, 0.39))
+	for lx in [-8, -4, 0, 4, 8, 12, 16, 20, 24, 28]:
+		_pro_box(root, Vector3(lx, 0.015, 331.0), Vector3(1.8, 0.02, 0.16), Color(0.72, 0.68, 0.52), false, 0.25)
+
+func _build_pro_street_residential(root: Node3D) -> void:
+	_pro_box(root, Vector3(-1, 4.5, 325.1), Vector3(10, 9, 0.4), Color(0.34, 0.28, 0.25))
+	_pro_box(root, Vector3(-1, 9.05, 325.1), Vector3(10.4, 0.18, 0.55), Color(0.22, 0.20, 0.19))
+	_pro_box(root, Vector3(-1, 3.0, 325.1), Vector3(10.4, 0.16, 0.55), Color(0.22, 0.20, 0.19))
+	_pro_box(root, Vector3(-1, 6.0, 325.1), Vector3(10.4, 0.16, 0.55), Color(0.22, 0.20, 0.19))
+	for fl in range(3):
+		var wy := 1.7 + float(fl) * 3.0
+		for wx in [-4.0, -1.0, 2.0]:
+			_pro_box(root, Vector3(wx, wy, 324.86), Vector3(1.15, 1.35, 0.06), Color(0.14, 0.16, 0.20), false)
+			_pro_box(root, Vector3(wx, wy, 324.82), Vector3(1.0, 1.15, 0.03), Color(0.78, 0.64, 0.38) if (fl + int(wx)) % 3 == 0 else Color(0.20, 0.24, 0.30), false, 0.55)
+			_pro_box(root, Vector3(wx, wy - 0.74, 324.70), Vector3(1.35, 0.10, 0.28), Color(0.25, 0.23, 0.21), false)
+	_pro_box(root, Vector3(-4.15, 12.0, 325.1), Vector3(1.7, 3.0, 0.35), Color(0.34, 0.28, 0.25))
+	_pro_box(root, Vector3(2.15, 12.0, 325.1), Vector3(1.7, 3.0, 0.35), Color(0.34, 0.28, 0.25))
+	_pro_box(root, Vector3(0, 10.55, 325.1), Vector3(3.0, 0.30, 0.35), Color(0.34, 0.28, 0.25))
+	_pro_box(root, Vector3(0, 13.45, 325.1), Vector3(3.0, 0.30, 0.35), Color(0.34, 0.28, 0.25))
+	prologue_room_facade_window = _pro_box(root, Vector3(0, 12.0, 324.86), Vector3(2.4, 1.6, 0.05), Color(0.98, 0.78, 0.44), false, 1.5)
+	prologue_room_facade_window.visible = false
+	_pro_box(root, Vector3(-1, 14.6, 325.1), Vector3(10, 3.0, 0.4), Color(0.30, 0.25, 0.23))
+	for wx in [-4.0, -1.0, 2.0]:
+		_pro_box(root, Vector3(wx, 14.8, 324.86), Vector3(1.15, 1.3, 0.06), Color(0.14, 0.16, 0.20), false)
+		_pro_box(root, Vector3(wx, 14.8, 324.82), Vector3(1.0, 1.1, 0.03), Color(0.72, 0.58, 0.34) if wx < 0 else Color(0.18, 0.22, 0.28), false, 0.45)
+	_pro_box(root, Vector3(-1, 16.15, 325.1), Vector3(10.4, 0.2, 0.8), Color(0.20, 0.18, 0.17))
+	_pro_box(root, Vector3(-3.5, 16.6, 325.1), Vector3(1.2, 1.2, 1.0), Color(0.18, 0.18, 0.17))
+	_pro_box(root, Vector3(3.2, 16.4, 325.1), Vector3(0.8, 0.8, 0.8), Color(0.18, 0.18, 0.17))
+	_pro_box(root, Vector3(0, 1.05, 324.84), Vector3(1.4, 2.1, 0.08), Color(0.12, 0.10, 0.09), false)
+	_pro_box(root, Vector3(0, 2.45, 324.76), Vector3(1.8, 0.32, 0.10), Color(0.55, 0.42, 0.24), false, 0.35)
+	var addr := Label3D.new()
+	addr.font = font
+	addr.text = "临江里 17 号"
+	addr.font_size = 72
+	addr.pixel_size = 0.011
+	addr.modulate = Color(0.95, 0.80, 0.52)
+	addr.position = Vector3(0, 2.85, 324.70)
+	root.add_child(addr)
+func _build_pro_street_shops(root: Node3D) -> void:
+	_pro_box(root, Vector3(10.5, 1.45, 324.85), Vector3(4.6, 2.5, 0.10), Color(0.20, 0.17, 0.14), false)
+	_pro_box(root, Vector3(10.5, 1.40, 324.78), Vector3(4.2, 2.2, 0.04), Color(0.95, 0.66, 0.30), false, 0.85)
+	_pro_box(root, Vector3(10.5, 0.78, 325.55), Vector3(4.2, 1.0, 0.55), Color(0.36, 0.25, 0.16))
+	_pro_box(root, Vector3(10.5, 1.30, 325.60), Vector3(4.4, 0.10, 0.62), Color(0.55, 0.38, 0.20))
+	_pro_box(root, Vector3(10.5, 1.45, 324.55), Vector3(3.8, 1.8, 0.25), Color(0.16, 0.13, 0.10), false)
+	for sx in [9.2, 10.0, 10.8, 11.6]:
+		_pro_box(root, Vector3(sx, 1.55, 324.45), Vector3(0.45, 0.75, 0.10), Color(0.55, 0.28, 0.18), false, 0.15)
+	_pro_box(root, Vector3(11.8, 1.32, 325.42), Vector3(0.42, 0.24, 0.38), Color(0.55, 0.28, 0.10), false, 0.55)
+	_pro_box(root, Vector3(10.5, 3.15, 325.25), Vector3(4.8, 0.12, 1.0), Color(0.18, 0.17, 0.15))
+	var shop := Label3D.new()
+	shop.font = font
+	shop.text = "24H 便利店"
+	shop.font_size = 96
+	shop.pixel_size = 0.011
+	shop.modulate = Color(0.55, 0.95, 0.65)
+	shop.position = Vector3(10.5, 3.45, 324.75)
+	root.add_child(shop)
+	_pro_box(root, Vector3(18.5, 3.0, 325.1), Vector3(6.0, 6.0, 0.45), Color(0.22, 0.23, 0.25))
+	_pro_box(root, Vector3(18.5, 1.1, 324.82), Vector3(1.5, 2.2, 0.08), Color(0.08, 0.08, 0.09), false)
+	_pro_box(root, Vector3(18.5, 3.7, 324.72), Vector3(4.2, 0.34, 0.10), Color(0.35, 0.42, 0.48), false, 0.35)
+	var st := Label3D.new()
+	st.font = font
+	st.text = "岚桥站 · 员工通道"
+	st.font_size = 72
+	st.pixel_size = 0.011
+	st.modulate = Color(0.62, 0.78, 0.92)
+	st.position = Vector3(18.5, 4.2, 324.68)
+	root.add_child(st)
 	prologue_reader_mat = _pro_mat(Color(0.70, 0.12, 0.10), 1.4)
 	var rd := MeshInstance3D.new()
 	var rb := BoxMesh.new()
-	rb.size = Vector3(0.22, 0.32, 0.06)
+	rb.size = Vector3(0.24, 0.34, 0.07)
 	rd.mesh = rb
-	rd.position = Vector3(0.85, 1.3, -1.88)
+	rd.position = Vector3(19.55, 1.32, 324.72)
 	rd.material_override = prologue_reader_mat
 	root.add_child(rd)
-	var sign := Label3D.new()
-	sign.font = font
-	sign.text = "岚桥站 · 员工通道"
-	sign.font_size = 72
-	sign.pixel_size = 0.010
-	sign.modulate = Color(0.72, 0.78, 0.84)
-	sign.position = Vector3(0, 2.1, -1.92)
-	root.add_child(sign)
-	_pro_light(root, Vector3(0, 2.7, 0), Color(0.48, 0.58, 0.72), 1.2, 6.0)
-	prologue_spots.append({"stage":"entrance", "id":"reader", "pos":Vector3(40.85, 1.3, 298.12), "r":1.8})
-
+	for bx in [-9.0, 1.0, 11.0, 21.0]:
+		var bh := 9.0 + float(int(abs(bx)) % 4) * 2.2
+		_pro_box(root, Vector3(bx, bh * 0.5, 337.2), Vector3(8.2, bh, 2.4), Color(0.16, 0.17, 0.19))
+		for wy in [2.0, 4.5, 7.0]:
+			if wy < bh - 1.0:
+				for wx in [-2.6, 0.0, 2.6]:
+					_pro_box(root, Vector3(bx + wx, wy, 335.96), Vector3(1.0, 1.2, 0.05), Color(0.20, 0.24, 0.28) if (int(wx + wy) % 3 != 0) else Color(0.78, 0.64, 0.38), false, 0.25)
+	_pro_light(root, Vector3(10.0, 8.0, 331.5), Color(0.45, 0.58, 0.78), 1.3, 22.0)
+	_pro_light(root, Vector3(-2.0, 4.5, 327.0), Color(1.0, 0.70, 0.38), 3.6, 11.0)
+	_pro_light(root, Vector3(8.0, 4.2, 327.0), Color(1.0, 0.74, 0.42), 3.8, 10.0)
+	_pro_light(root, Vector3(16.0, 4.4, 327.0), Color(0.72, 0.82, 0.96), 2.2, 8.0)
+	_pro_light(root, Vector3(10.5, 2.4, 325.4), Color(1.0, 0.72, 0.36), 3.6, 8.0)
+	_pro_light(root, Vector3(18.5, 2.8, 325.4), Color(0.48, 0.62, 0.80), 1.4, 5.0)
+func _build_pro_street_props(root: Node3D) -> void:
+	for lx in [-6.0, 3.0, 12.0, 21.0]:
+		_pro_box(root, Vector3(lx, 2.2, 327.6), Vector3(0.10, 4.4, 0.10), Color(0.14, 0.14, 0.14))
+		_pro_box(root, Vector3(lx, 4.35, 327.25), Vector3(0.10, 0.10, 0.70), Color(0.14, 0.14, 0.14), false)
+		_pro_box(root, Vector3(lx, 4.22, 326.95), Vector3(0.34, 0.12, 0.24), Color(1.0, 0.80, 0.50), false, 2.4)
+		_pro_light(root, Vector3(lx, 4.0, 327.0), Color(1.0, 0.72, 0.40), 2.8, 8.0)
+	_pro_box(root, Vector3(6.0, 3.5, 328.4), Vector3(0.18, 7.0, 0.18), Color(0.16, 0.14, 0.12))
+	_pro_box(root, Vector3(6.0, 6.3, 328.4), Vector3(1.8, 0.10, 0.10), Color(0.16, 0.14, 0.12), false)
+	_pro_box(root, Vector3(-4.0, 0.45, 326.0), Vector3(0.55, 0.8, 0.55), Color(0.16, 0.22, 0.18))
+	_pro_box(root, Vector3(-4.0, 0.88, 326.0), Vector3(0.62, 0.08, 0.62), Color(0.10, 0.13, 0.11))
+	_pro_box(root, Vector3(2.0, 0.55, 326.4), Vector3(1.2, 0.08, 0.08), Color(0.20, 0.20, 0.20), false)
+	for bx in [1.5, 2.5]:
+		_pro_box(root, Vector3(bx, 0.28, 326.4), Vector3(0.06, 0.55, 0.55), Color(0.20, 0.20, 0.20), false)
+	_pro_box(root, Vector3(15.0, 0.45, 325.9), Vector3(0.55, 0.8, 0.55), Color(0.18, 0.16, 0.14))
+	for px in [-2.0, 5.0, 13.0, 20.0]:
+		_pro_box(root, Vector3(px, 0.012, 330.2), Vector3(2.2, 0.01, 0.8), Color(0.10, 0.16, 0.22), false, 0.18)
+	_pro_box(root, Vector3(-2.8, 2.0, 327.0), Vector3(0.08, 1.2, 0.8), Color(0.34, 0.28, 0.22), false)
+	_pro_box(root, Vector3(22.8, 1.2, 327.0), Vector3(0.08, 2.4, 0.6), Color(0.18, 0.20, 0.22), false)
 func _start_prologue() -> void:
 	prologue_seen.clear()
 	prologue_letter_ready = false
@@ -628,6 +741,9 @@ func _start_prologue() -> void:
 	prologue_store_done = false
 	prologue_reader_done = false
 	prologue_objective = "看看手机"
+	if env_node != null and env_node.environment != null:
+		env_node.environment.tonemap_exposure = 1.15
+		env_node.environment.ambient_light_energy = 0.75
 	if player.sitting:
 		player.stand_up()
 	player.cam_mode = 0
@@ -653,18 +769,20 @@ func _start_prologue() -> void:
 	_say_seq("林屿", "……又是这个梦。")
 
 func _show_prologue_stage(stage: String) -> void:
-	for k in prologue_roots.keys():
-		var r: Node3D = prologue_roots[k]
-		r.visible = (String(k) == stage)
+	var room_root: Node3D = prologue_roots["room"]
+	var street_root: Node3D = prologue_roots["street"]
+	room_root.visible = (stage == "room")
+	street_root.visible = true
+	if prologue_room_facade_window != null:
+		prologue_room_facade_window.visible = (stage == "street")
 	prologue_stage = stage
 	match stage:
 		"room":
-			player.position = Vector3(0, 0.1, 301.55)
-		"store":
-			player.position = Vector3(20, 0.1, 301.55)
-		"entrance":
-			player.position = Vector3(40, 0.1, 301.2)
-	player.rotation.y = 0.0
+			player.position = Vector3(0, 12.1, 324.0)
+			player.rotation.y = PI
+		"street":
+			player.position = Vector3(0, 0.1, 326.4)
+			player.rotation.y = -PI * 0.5
 	player.velocity = Vector3.ZERO
 	player.can_move = true
 	safe_pos = player.global_position
@@ -743,7 +861,7 @@ func _prologue_act(id: String) -> void:
 		"counter":
 			if not prologue_store_done:
 				prologue_store_done = true
-				_prologue_set_objective("离开便利店")
+				_prologue_set_objective("去岚桥站")
 				_say_seq("店员", "今晚还上班？")
 				_say_seq("林屿", "嗯。")
 				_say_seq("店员", "岚桥站？")
@@ -752,10 +870,6 @@ func _prologue_act(id: String) -> void:
 				_say_seq("旁白", "你用旧钞买了一份关东煮。收据上的时间印着 00:17。")
 			else:
 				_say_seq("店员", "关东煮要凉了。")
-		"store_door":
-			if not prologue_store_done:
-				_say_seq("旁白", "店员看了你一眼，没有拦你。")
-			_prologue_leave_store()
 		"reader":
 			if prologue_reader_done:
 				return
@@ -767,22 +881,11 @@ func _prologue_leave_room() -> void:
 	player.can_move = false
 	_fade_to(1.0, 0.5)
 	await get_tree().create_timer(0.65).timeout
-	_show_prologue_stage("store")
-	prologue_objective = "买点吃的"
+	_show_prologue_stage("street")
+	prologue_objective = "去便利店"
 	_fade_to(0.0, 0.5)
 	state = "prologue"
-	_say_seq("旁白", "楼下有一家 24 小时便利店。灯管在闪。")
-
-func _prologue_leave_store() -> void:
-	state = "prologue_transition"
-	player.can_move = false
-	_fade_to(1.0, 0.5)
-	await get_tree().create_timer(0.65).timeout
-	_show_prologue_stage("entrance")
-	prologue_objective = "刷工牌进站"
-	_fade_to(0.0, 0.5)
-	state = "prologue"
-	_say_seq("旁白", "岚桥站员工通道。门是旧的，读卡器也是旧的。")
+	_say_seq("旁白", "临江里 17 号。雨还没停。街口的便利店还亮着。")
 
 func _prologue_use_badge() -> void:
 	state = "prologue_transition"
@@ -807,6 +910,9 @@ func _prologue_enter_station() -> void:
 	hud_objective.visible = false
 	hud_clock.visible = true
 	hud_map.visible = true
+	if env_node != null and env_node.environment != null:
+		env_node.environment.tonemap_exposure = 0.58
+		env_node.environment.ambient_light_energy = 0.18
 	state = "play"
 	player.position = Vector3(-15.05, 0.15, -12.90)
 	player.rotation.y = PI * 0.5
@@ -862,8 +968,6 @@ func _prologue_label(sp: Dictionary) -> String:
 			return "出门"
 		"counter":
 			return "便利店柜台"
-		"store_door":
-			return "离开便利店"
 		"reader":
 			return "刷工牌"
 	return "查看"

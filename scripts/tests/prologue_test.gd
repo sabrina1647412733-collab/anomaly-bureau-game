@@ -31,17 +31,23 @@ func _run() -> void:
 	print("[PRO] call=", call_ok)
 	game._prologue_act("door")
 	await create_timer(1.0).timeout
-	var store_ok: bool = game.prologue_stage == "store"
-	print("[PRO] store=", store_ok, " stage=", game.prologue_stage)
+	var street_ok: bool = game.prologue_stage == "street"
+	print("[PRO] street=", street_ok, " stage=", game.prologue_stage)
+	game.player.position = Vector3(10.5, 0.1, 327.2)
+	game.player.rotation.y = 0.0
+	game._update_prologue_interaction()
+	var counter_prompt: bool = game.prompt != null and String(game.prompt.get("id", "")) == "counter"
 	game._prologue_act("counter")
-	game._prologue_act("store_door")
-	await create_timer(1.0).timeout
-	var entrance_ok: bool = game.prologue_stage == "entrance"
-	print("[PRO] entrance=", entrance_ok, " stage=", game.prologue_stage)
+	var counter_ok: bool = game.prologue_store_done and counter_prompt
+	print("[PRO] counter=", counter_ok, " prompt=", counter_prompt)
+	game.player.position = Vector3(19.55, 0.1, 327.2)
+	game.player.rotation.y = 0.0
+	game._update_prologue_interaction()
+	var reader_prompt: bool = game.prompt != null and String(game.prompt.get("id", "")) == "reader"
 	game._prologue_act("reader")
 	await create_timer(7.0).timeout
 	var station_ok: bool = game.state == "play" and game.round == -1
 	print("[PRO] station=", station_ok, " state=", game.state, " round=", game.round)
-	var ok := start_ok and letter_ok and ui_ok and call_ok and store_ok and entrance_ok and station_ok
+	var ok := start_ok and letter_ok and ui_ok and call_ok and street_ok and counter_ok and reader_prompt and station_ok
 	print("[PRO] PASS=", ok)
 	quit(0 if ok else 1)

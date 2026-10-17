@@ -12,7 +12,7 @@ func _shot(name: String) -> void:
 	print("[SHOT] ", name, " ", img.get_width(), "x", img.get_height())
 func _run() -> void:
 	for i in range(30): await process_frame
-	game._on_new_game()
+	game.menu.start_game.emit()
 	for i in range(20): await process_frame
 	await _shot("prologue_room")
 	game._prologue_act("phone")
@@ -24,10 +24,16 @@ func _run() -> void:
 	game._prologue_act("phone")
 	game._prologue_act("door")
 	await create_timer(1.2).timeout
+	game.player.position = Vector3(6, 0.1, 326.4)
+	game.player.rotation.y = -PI * 0.5
+	for i in range(10): await process_frame
+	await _shot("prologue_street")
+	game.player.position = Vector3(10.5, 0.1, 327.0)
+	game.player.rotation.y = 0.0
 	for i in range(10): await process_frame
 	await _shot("prologue_store")
-	game._prologue_act("store_door")
-	await create_timer(1.2).timeout
+	game.player.position = Vector3(18.5, 0.1, 327.0)
+	game.player.rotation.y = 0.0
 	for i in range(10): await process_frame
-	await _shot("prologue_entrance")
+	await _shot("prologue_station")
 	quit()
