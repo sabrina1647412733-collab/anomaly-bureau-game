@@ -468,7 +468,7 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		_part(hp, "eyeP" + esfx, Vector3(ex2, 0.0235, -0.1125), Vector3(0.016, 0.014, 0.005), Color(0.09, 0.09, 0.12))
 		_part(hp, "eyeH" + esfx, Vector3(ex2 - 0.0035, 0.0265, -0.1145), Vector3(0.0035, 0.0035, 0.004), Color(0.98, 0.98, 1.0), 1.2)
 	_part(hp, "nose", Vector3(0, -0.006, -0.106), Vector3(0.030, 0.050, 0.028), skin.darkened(0.10))
-	_part(hp, "mouth", Vector3(0, -0.063, -0.101), Vector3(0.044, 0.013, 0.012), Color(0.46, 0.27, 0.26))
+	var mth := _part(hp, "mouth", Vector3(0, -0.063, -0.101), Vector3(0.044, 0.013, 0.012), Color(0.46, 0.27, 0.26))
 	if cap_on:
 		_part(hp, "cap", Vector3(0, 0.152, 0), Vector3(0.243, 0.055, 0.233), cloth2, 0.0, false, Vector3.ZERO, false, 0.013)
 		_part(hp, "visor", Vector3(0, 0.130, -0.152), Vector3(0.233, 0.030, 0.108), cloth2, 0.0, false, Vector3.ZERO, false, 0.009)	# 躯干 + 衣服叠穿（坐标相对上半身枢轴）：内层领口 → 外层领子 → 前襟 → 下摆 → 腰带 → 口袋
@@ -554,7 +554,7 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	add_child(n)
 	n.visible = false
 	return {"name": nm, "node": n, "accent": accent, "show_round": show_round, "label": lbl,
-		"upper": upper, "head": hp}
+		"upper": upper, "head": hp, "mouth": mth}
 
 func _part(parent: Node3D, nm: String, p: Vector3, size: Vector3, col: Color,
 		emis := 0.0, tube := false, rot := Vector3.ZERO, ball := false, bev := 0.0,
@@ -1893,6 +1893,15 @@ func _anim_npcs(delta: float) -> void:
 		if dialog_npc == np and hud_sub != null and hud_sub.visible:
 			nod = sin(t * 6.2) * 0.05
 		hd.rotation.x = lerpf(hd.rotation.x, nod, clampf(delta * 6.0, 0.0, 1.0))
+		# 说话时嘴动：一秒钟开合七次（张嘴时高度 x2.1、下唇再压 8mm）
+		var mth: MeshInstance3D = np.get("mouth")
+		if mth != null:
+			var opening := 0.0
+			if dialog_npc == np and hud_sub != null and hud_sub.visible:
+				opening = 1.0 if fposmod(t * 7.0, 1.0) < 0.45 else 0.18
+			var kk := clampf(delta * 15.0, 0.0, 1.0)
+			mth.scale.y = lerpf(mth.scale.y, 1.0 + opening * 1.10, kk)
+			mth.position.y = lerpf(mth.position.y, -0.063 - opening * 0.008, kk)
 
 # ------------------------------------------------------------------ 值班台回看监控（M）
 ## 站在值班台前按 M：接上站内监控；再按 M 退出。岔区那台机位能看见「红灯晚了半秒」

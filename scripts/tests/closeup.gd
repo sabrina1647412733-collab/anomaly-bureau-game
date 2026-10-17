@@ -92,6 +92,12 @@ func _run(nm: String, x: float, y: float, z: float, yaw: float, pitch: float,
 		if str(f).begins_with("clock="):
 			game.clock_min = float(str(f).substr(6))
 			print("[CLOSEUP] 时钟拨到 ", game.clock_min)
+	if flags.has("talk"):
+		var np: Dictionary = game.npcs[0]
+		np["node"].visible = true
+		game.dialog_npc = np
+		game._say(String(np["name"]), "这台机子昨晚响过三次。")
+		print("[CLOSEUP] 触发对话 ", np["name"])
 	if flags.has("noarm"):
 		game.player.view_arm.visible = false
 	if flags.has("third"):
