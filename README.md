@@ -5,7 +5,7 @@
 
 ## 怎么跑
 
-> **只想知道最近改了什么？** 直接跳到最后一节「47 · Web 中文字体」。
+> **只想知道最近改了什么？** 直接跳到最后一节「48 · Web 性能」。
 
 - 引擎：**Godot 4.7.2 stable**（`Godot_v4.7.2-stable_win64.exe`）
 - 工程入口：本目录的 `project.godot`（编辑器里「导入」后打开）
@@ -1114,3 +1114,28 @@ Compatibility / WebGL 2.0 / 20696 三角 / 场景就绪。Web 菜单截图 `web_
 `0017-网页版.zip` 更新为约 **18.5 MB**。
 
 公开链接不变：`https://according-readily-favorites-corn.trycloudflare.com/game/`（刷新即可看到中文）。
+### 48 · Web 性能：为什么卡，以及 Web 低画质档
+
+用户反馈网页卡。项目自带 `webverify`（Edge headless + SwiftShader）实测：
+- **基线：2 FPS / 519 draw calls。**
+- GPU：`ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device ...), SwiftShader driver)` —— **软件 WebGL**，没有硬件加速。
+- 优化后：**3–4 FPS / 150 draw calls**（仍是 SwiftShader）。真实硬件 GPU 会高很多。
+- 另一个干扰：之前后台隐藏的 Godot 游戏实例累计跑了 **1949 s CPU**，会和浏览器抢 CPU/GPU，已停止。
+
+Web 低画质档（只在 `OS.has_feature("web")` 生效）：
+- 关泛光、关 SSAO、关 MSAA，3D 渲染缩放 **0.65**，`Engine.max_fps = 60`。
+- 站内灯：隐藏 energy **< 1.3** 的装饰灯（75 → 22 盏有效主光），主光范围收紧、能量补偿。
+- 列车灯：`lights_on(false)` 时直接 `visible = false`（不再用 0.02 能量常驻）。
+- 手电：Web 端关闭 shadow map。
+- HUD：地图重绘 15 Hz、游戏数据更新 10 Hz；**菜单打开时整个 HUD 隐藏**。
+- Label3D：Web 端 22 m 可见距离，远端标牌不参与渲染。
+- GPU 检测：`JavaScriptBridge` 读取 `WEBGL_debug_renderer_info`；检测到 SwiftShader/软件渲染时，菜单直接显示警告。
+
+首次加载还有约 **39.5 MB wasm + 8.1 MB pck**（字体已进包），Quick Tunnel 下首屏会慢；之后浏览器会缓存。
+
+如果仍然卡：
+1. 在 Edge/Chrome 打开 `edge://gpu` / `chrome://gpu`，确认 WebGL 是 **Hardware accelerated** 而不是 **Software only**；
+   在设置里开启「使用图形加速」并重启浏览器。
+2. 如果硬件加速正常但仍卡，下一步把角色/标牌的 MeshInstance 按关节/材质合并，进一步降 draw calls。
+
+公开链接不变，**Ctrl+F5** 强制刷新以加载新 pck。

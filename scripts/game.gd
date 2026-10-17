@@ -56,6 +56,9 @@ var npcs := []
 var buttons := []
 var spots := []
 var t_now := 0.0
+var web_perf_t := 0.0
+var map_acc := 0.0
+var web_gpu_is_software := false
 var prompt: Variant = null
 var prompt_ring: MeshInstance3D = null      # 交互目标脚下的「呼吸环」
 var prompt_ring_mat: StandardMaterial3D = null
@@ -138,6 +141,15 @@ var ITEM_DEFS := [
 ]
 
 func _ready() -> void:
+	if OS.has_feature("web"):
+		Engine.max_fps = 60
+		call_deferred("_apply_web_quality")
+		var gpu := _detect_web_gpu()
+		print("[WEB] gpu=", gpu)
+		var gl := gpu.to_lower()
+		web_gpu_is_software = gl.contains("swiftshader") or gl.contains("software") or gl.contains("llvmpipe")
+		if web_gpu_is_software:
+			print("[WEB] warning: software WebGL; enable hardware acceleration")
 	_make_font()
 	_make_env()
 	_build_world()
@@ -174,6 +186,21 @@ func _ready() -> void:
 	_show_menu()
 	print("[0017] 就绪 · 三角 ", builder.tri_count, " · 碰撞 ", builder.col_count, " · 灯 ", builder.lights.size())
 
+func _apply_web_quality() -> void:
+	var vp := get_viewport()
+	if vp == null:
+		return
+	vp.scaling_3d_scale = 0.65
+	vp.msaa_3d = Viewport.MSAA_DISABLED
+	print("[WEB] quality=low scale=0.65 glow=off msaa=off")
+func _detect_web_gpu() -> String:
+	if not OS.has_feature("web"):
+		return ""
+	var jb = Engine.get_singleton("JavaScriptBridge")
+	if jb == null:
+		return ""
+	var js := "(function(){var c=document.createElement('canvas');var gl=c.getContext('webgl2')||c.getContext('webgl');if(!gl)return 'none';var e=gl.getExtension('WEBGL_debug_renderer_info');return e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);})()"
+	return str(jb.eval(js))
 func _make_font() -> void:
 	# Web 版没有系统字体，必须用内嵌的 CJK 字体，否则中文全是方框
 	var f := load("res://assets/fonts/NotoSansSC-Regular.otf")
@@ -221,6 +248,9 @@ func _make_env() -> void:
 	e.adjustment_enabled = true
 	e.adjustment_contrast = 1.04
 	e.adjustment_saturation = 1.05
+	if OS.has_feature("web"):
+		e.glow_enabled = false
+		e.ssao_enabled = false
 	var we := WorldEnvironment.new()
 	we.environment = e
 	add_child(we)
@@ -769,8 +799,16 @@ func _process(delta: float) -> void:
 	_update_interaction()
 	_update_prompt_ring(delta)
 	_update_hud()
-	_update_map()
+	map_acc += delta
+	if map_acc >= 0.1:
+		map_acc = 0.0
+		_update_map()
 	_update_sub(delta)
+	if OS.has_feature("web"):
+		web_perf_t += delta
+		if web_perf_t >= 2.0:
+			web_perf_t = 0.0
+			print("[WEB] fps=", Engine.get_frames_per_second(), " draws=", Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
 
 func _check_scripted() -> void:
 	if not train_started and clock_min >= T_TRAIN:
@@ -1960,6 +1998,11 @@ func _make_menu() -> void:
 	menu = MenuScript.new()
 	menu_layer.add_child(menu)
 	menu.setup(font)
+	var warn := _label(menu, 0, Vector2(240, 770), Vector2(1120, 44), 14, Color(0.98,0.62,0.26))
+	warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	warn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	warn.text = "当前浏览器使用软件渲染（SwiftShader），帧率会很低。请在浏览器设置中开启「使用图形加速」后重开页面。"
+	warn.visible = web_gpu_is_software
 	menu.start_game.connect(_on_start)
 	menu.load_slot.connect(_on_load_slot)
 	menu.save_slot.connect(_on_save_slot)
@@ -1989,11 +2032,13 @@ func _apply_settings() -> void:
 
 func _hide_menu() -> void:
 	menu.visible = false
+	if hud != null: hud.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	player.allow_capture = true
 
 func _show_menu() -> void:
 	state = "menu"
+	if hud != null: hud.visible = false
 	menu.hide_all()
 	menu.visible = true
 	menu.center.visible = true
@@ -2055,6 +2100,7 @@ func slots_info() -> Array:
 
 func _on_resume() -> void:
 	state = "play"
+	if hud != null: hud.visible = true
 	menu.hide_all()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	player.allow_capture = true

@@ -112,10 +112,10 @@ func reset() -> void:
 func lights_on(v: bool) -> void:
     for l in lamps:
         if l is SpotLight3D:
-            l.visible = true
+            l.visible = v
             l.light_energy = SPOT_ON if v else 0.02
         elif l is OmniLight3D:
-            l.visible = true
+            l.visible = v
             l.light_energy = OMNI_ON if v else 0.04
 
 # ------------------------------------------------------------------ 几何

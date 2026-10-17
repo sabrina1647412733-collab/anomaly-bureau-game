@@ -85,7 +85,7 @@ func _ready() -> void:
 	flash.spot_angle = 33.0
 	flash.spot_angle_attenuation = 1.1
 	flash.spot_attenuation = 1.4
-	flash.shadow_enabled = true
+	flash.shadow_enabled = not OS.has_feature("web")
 	flash.position = Vector3(0.20, -0.05, 0.0)
 	cam.add_child(flash)
 

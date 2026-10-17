@@ -388,6 +388,12 @@ func light(pos: Vector3, color: Color, energy: float, rng: float, shadows := fal
     l.light_color = color
     l.light_energy = energy * LIGHT_SCALE
     l.omni_range = rng
+    if OS.has_feature("web"):
+        if l.light_energy < 1.3:
+            l.visible = false
+        else:
+            l.omni_range *= 0.78
+            l.light_energy *= 1.10
     l.shadow_enabled = shadows
     l.light_specular = 0.6
     body.add_child(l)
@@ -424,6 +430,8 @@ func label3d(text: String, pos: Vector3, size := 0.5, color := Color(0.92,0.95,1
     l.billboard = BaseMaterial3D.BILLBOARD_DISABLED
     l.no_depth_test = false
     l.double_sided = true
+    if OS.has_feature("web"):
+        l.visibility_range_end = 22.0
     body.add_child(l)
     return l
 

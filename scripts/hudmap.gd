@@ -10,6 +10,7 @@ var round_hint := ""
 var clue_labels := ["C01 红灯延迟记录", "C03 倒放广播", "C05 停用钥匙", "C06 巡检簿撕页"]
 var clues := {}
 var t := 0.0
+var redraw_acc := 0.0
 
 const X0 := -20.5
 const Z0 := -124.0
@@ -21,7 +22,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
     t += delta
-    queue_redraw()
+    redraw_acc += delta
+    if redraw_acc >= 0.066:
+        redraw_acc = 0.0
+        queue_redraw()
 
 func mp(x: float, z: float) -> Vector2:
     return Vector2(MAPX + (x - X0) * S, MAPY + (z - Z0) * S)
