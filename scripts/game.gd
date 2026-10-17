@@ -60,6 +60,9 @@ var prompt: Variant = null
 var prompt_ring: MeshInstance3D = null      # 交互目标脚下的「呼吸环」
 var prompt_ring_mat: StandardMaterial3D = null
 var ring_flash := 0.0                      # 按下 E 之后 1 秒的高亮
+var round_card: Control = null                   # 每轮开头那张「第 N 轮」卡片
+var round_card_title: Label = null
+var round_card_sub: Label = null
 var desk_phone_mat: StandardMaterial3D = null   # 调度台上那台老式电话的指示灯
 var desk_phone_t := 0.0
 var tun_lamp_mat: StandardMaterial3D = null        # 环线隧道里那盏坏灯
@@ -250,6 +253,24 @@ func _make_hud() -> void:
 	hud_end_title = _label(root, 0, Vector2(340, 320), Vector2(920, 80), 46, Color(0.88,0.64,0.29))
 	hud_end.text = ""
 	hud_end_title.text = ""
+	# 每轮开头的标题卡（放在 fade 下面，过场淡入淡出会把它一起盖住）
+	round_card = Control.new()
+	round_card.set_anchors_preset(Control.PRESET_FULL_RECT)
+	round_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var card_edge := ColorRect.new()
+	card_edge.color = Color(0.88, 0.64, 0.29, 0.80)
+	card_edge.position = Vector2(598, 336); card_edge.size = Vector2(404, 126)
+	card_edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	round_card.add_child(card_edge)
+	var card_fill := ColorRect.new()
+	card_fill.color = Color(0.04, 0.05, 0.07, 0.94)
+	card_fill.position = Vector2(602, 340); card_fill.size = Vector2(396, 118)
+	card_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	round_card.add_child(card_fill)
+	round_card_title = _label(round_card, 0, Vector2(600, 352), Vector2(400, 54), 32, Color(0.88, 0.64, 0.29))
+	round_card_sub = _label(round_card, 0, Vector2(600, 412), Vector2(400, 36), 15, Color(0.78, 0.82, 0.88))
+	round_card.visible = false
+	root.add_child(round_card)
 	hud_fade = ColorRect.new()
 	hud_fade.color = Color(0, 0, 0, 1)
 	hud_fade.position = Vector2.ZERO
@@ -634,6 +655,7 @@ func _start_round() -> void:
 	_restore_player_cam()      # 释放过场机位、交还控制权
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_fade_to(0.0, 1.2)
+	_show_round_card()
 	# 人物出现
 	for np in npcs:
 		np["node"].visible = (np["show_round"] >= 0 and np["show_round"] <= round)
@@ -1381,6 +1403,22 @@ func _update_tunnel_lamp(_delta: float) -> void:
 	tun_lamp_mat.emission_energy_multiplier = 1.05 * v
 	if tun_lamp_light != null:
 		tun_lamp_light.light_energy = 1.55 * v
+## 每轮开头的「第 N 轮」卡片：淡入 0.35s → 停 1.9s → 淡出 0.55s
+const ROUND_HINTS := ["接管夜班调度席 · 按流程做完交接", "林岚说，红灯亮了，但慢了半秒",
+	"周砚的录音里，有一句被剪掉的话", "陈默还带着那只包", "0017 次，二道停车"]
+func _show_round_card() -> void:
+	if round_card == null:
+		return
+	var i := clampi(round + 1, 0, ROUND_NAMES.size() - 1)
+	round_card_title.text = String(ROUND_NAMES[i])
+	round_card_sub.text = String(ROUND_HINTS[i]) if i < ROUND_HINTS.size() else ""
+	round_card.visible = true
+	round_card.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(round_card, "modulate:a", 1.0, 0.35)
+	tw.tween_interval(1.9)
+	tw.tween_property(round_card, "modulate:a", 0.0, 0.55)
+	tw.tween_callback(func() -> void: round_card.visible = false)
 # ------------------------------------------------------------------ 动画
 func _animate_doors(delta: float) -> void:
 	var lv: MeshInstance3D = get_meta("lever")
