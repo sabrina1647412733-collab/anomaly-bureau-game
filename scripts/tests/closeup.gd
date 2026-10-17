@@ -12,6 +12,7 @@ func _initialize() -> void:
 		print("[CLOSEUP] 参数不足：需要 <名> <x> <y> <z> <yaw> <pitch> [fov] [flags...]")
 		quit(1)
 		return
+	print("[DBG0] args=", ua)
 	var nm := ua[0]
 	var flags := []
 	var fov := -1.0
@@ -73,6 +74,7 @@ func _run(nm: String, x: float, y: float, z: float, yaw: float, pitch: float,
 		game.player.sitting = true
 	game.player.pitch = pitch
 	game.player.cam.rotation.x = pitch
+	game.player.lock_look = true      # 截图期间锁住鼠标转头
 	if seat_idx < 0:
 		game.player.global_position = Vector3(x, y, z)
 		game.player.rotation.y = yaw
@@ -92,6 +94,14 @@ func _run(nm: String, x: float, y: float, z: float, yaw: float, pitch: float,
 		if str(f).begins_with("clock="):
 			game.clock_min = float(str(f).substr(6))
 			print("[CLOSEUP] 时钟拨到 ", game.clock_min)
+	if flags.has("train"):
+		var sz := 0.0
+		for f2 in flags:
+			if str(f2).begins_with("z="):
+				sz = float(str(f2).substr(2))
+		game.train.place(game.train.s_at_z(sz))
+		game.train.lights_on(true)
+		print("[CLOSEUP] 列车前部摆到 z≈", sz)
 	if flags.has("talk"):
 		var np: Dictionary = game.npcs[0]
 		np["node"].visible = true
@@ -112,6 +122,17 @@ func _run(nm: String, x: float, y: float, z: float, yaw: float, pitch: float,
 	if fov > 0.0:
 		game.player.cam.fov = fov
 	await _settle(30)
+	# 注意：_settle 里切 mouse_mode 会让系统丢来一个大的 mouse_motion，把 pitch 带跑
+	# （调试打印抓到过 -0.55 被改成 +0.5，于是画面永远在拍天花板）。拍之前把 pitch 再钉一次。
+	game.player.pitch = pitch
+	game.player.cam.rotation.x = pitch
+	game.player.lock_look = true      # 截图期间锁住鼠标转头
+	await process_frame
+	await RenderingServer.frame_post_draw
+	print("[DBG] player=", game.player.global_position, " cam=", game.player.cam.global_position,
+		" camrot=", game.player.cam.rotation, " pitch=", game.player.pitch,
+		" mode=", game.player.cam_mode, " current=", game.player.cam.current,
+		" fov=", game.player.cam.fov)
 	var path := "res://_预览/look/%s.png" % nm
 	var img: Image = root.get_texture().get_image()
 	img.save_png(path)

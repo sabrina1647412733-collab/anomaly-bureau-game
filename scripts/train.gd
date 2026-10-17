@@ -132,11 +132,11 @@ func _build_car(b, car: Node3D, is_head: bool, is_tail: bool) -> void:
     b.box("trainB", Vector3(_x(2.545), TY + 0.62, z1), Vector3(_x(5.455), TY + 1.48, z0), false)
     for w in range(4):
         var wz := z0 - 2.6 - float(w) * 4.3
-        b.box("trainW", Vector3(_x(2.52), TY + 0.78, wz - 1.35), Vector3(_x(5.48), TY + 1.42, wz - 0.05), false)
+        b.box("trainWin", Vector3(_x(2.52), TY + 0.78, wz - 1.35), Vector3(_x(5.48), TY + 1.42, wz - 0.05), false)
     for d in range(3):
         var dz := z0 - 1.2 - float(d) * 6.0
         b.box("trainB", Vector3(_x(2.50), yB + 0.02, dz - 1.35), Vector3(_x(5.50), yT + 0.02, dz - 0.05), false)
-        b.box("trainW", Vector3(_x(2.49), TY + 1.05, dz - 1.28), Vector3(_x(5.51), TY + 2.06, dz - 0.12), false)
+        b.box("trainWin", Vector3(_x(2.49), TY + 1.05, dz - 1.28), Vector3(_x(5.51), TY + 2.06, dz - 0.12), false)
     for bz in [z0 - 3.1, z1 + 3.1]:
         b.box("dark", Vector3(_x(2.85), TY + 0.06, bz - 1.05), Vector3(_x(5.15), TY + 0.50, bz + 1.05), false)
         for wx in [3.05, 4.95]:
@@ -144,7 +144,7 @@ func _build_car(b, car: Node3D, is_head: bool, is_tail: bool) -> void:
             b.box("metalD", Vector3(_x(wx - 0.09), TY + 0.02, bz + 0.42), Vector3(_x(wx + 0.09), TY + 0.40, bz + 0.62), false)
     if is_head:
         b.box("trainA", Vector3(_x(2.62), TY + 0.55, -0.02), Vector3(_x(5.38), yT - 0.25, 0.30), false)
-        b.box("trainW", Vector3(_x(2.60), TY + 1.35, 0.28), Vector3(_x(5.40), TY + 2.42, 0.34), false)
+        b.box("trainWin", Vector3(_x(2.60), TY + 1.35, 0.28), Vector3(_x(5.40), TY + 2.42, 0.34), false)
         b.box("head", Vector3(_x(2.70), TY + 0.66, 0.33), Vector3(_x(3.60), TY + 1.00, 0.38), false, "f")
         b.box("head", Vector3(_x(4.40), TY + 0.66, 0.33), Vector3(_x(5.30), TY + 1.00, 0.38), false, "f")
         b.box("trainC", Vector3(_x(2.56), TY + 0.30, -0.02), Vector3(_x(5.44), TY + 0.55, 0.33), false)

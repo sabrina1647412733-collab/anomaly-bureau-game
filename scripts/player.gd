@@ -39,6 +39,7 @@ var flash: SpotLight3D
 var cap: CapsuleShape3D
 var cap_node: CollisionShape3D
 var pitch := 0.0
+var lock_look := false        # 截图脚本用：锁住鼠标转头，避免窗口鼠标事件把镜头带跑（游戏里恒为 false）
 var can_move := true
 var allow_capture := true
 var cam_mode := 0          # 0 第一人称 / 1 第三人称 / 2 第二人称（正面看眼睛）/ 3 监视器
@@ -406,6 +407,8 @@ func forward() -> Vector3:
 	return -cam.global_transform.basis.z
 
 func look(delta_rot: Vector2) -> void:
+	if lock_look:
+		return
 	rotate_y(-delta_rot.x * mouse_sens)
 	pitch = clamp(pitch - delta_rot.y * mouse_sens, -PITCH_MAX, PITCH_MAX)
 	if cam_mode == 0:

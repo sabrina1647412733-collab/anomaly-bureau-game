@@ -45,6 +45,7 @@ const MATS := {
     "trainB": {"color":Color(0.07,0.09,0.12), "rough":0.6, "metal":0},
     "trainC": {"color":Color(0.15,0.35,0.61), "rough":0.35, "metal":0.1},                                   # 蓝色腰线
     "trainW": {"color":Color(0.10,0.15,0.20), "rough":0.7, "metal":0},
+    "trainWin":{"color":Color(0.66,0.55,0.36), "emission":Color(1.0,0.84,0.52), "energy":1.05, "rough":0.35, "metal":0},   # 夜车车窗：暖色透光（原来用了 trainW，整排窗是黑的）
     "head":   {"color":Color(0.90,0.95,1.00), "emission":Color(0.72,0.82,0.95), "energy":2.40, "rough":0.3, "metal":0},
     "red":    {"color":Color(0.60,0.13,0.11), "emission":Color(0.85,0.16,0.12), "energy":0.5, "rough":0.5, "metal":0},
 }
