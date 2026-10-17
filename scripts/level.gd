@@ -150,6 +150,12 @@ func columns_and_lights() -> void:
 func track() -> void:
     for rx in [3.28, 4.72]:
         b.box("metal", _v(rx - 0.045, TY, ZTUN), _v(rx + 0.045, TY + 0.16, 200.0), false)
+        # 轨头磨光面：钢轨顶上那一溜才是会反光的，只画一个顶面（2 个三角面）
+        b.box("white", _v(rx - 0.038, TY + 0.160, ZTUN), _v(rx + 0.038, TY + 0.172, 200.0), false, "t")
+    # 轨行区原来一盏灯都没有 —— 六机位拍到"地面与轨道"时整条钢轨是黑的、读不出轨道。
+    # 加四盏很暗的灯（energy 0.55 / range 7），只为让轨头能反一点光，不改变站台整体亮度。
+    for lz in [-42.0, -14.0, 14.0, 42.0]:
+        b.light(_v(4.0, TY + 2.60, lz), Color(0.55, 0.62, 0.78), 0.55, 7.0, false)
     var z := -80.0
     while z < 80.0:
         b.box("conc", _v(2.55, TY - 0.02, z), _v(5.45, TY + 0.03, z + 0.26), false)
