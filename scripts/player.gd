@@ -209,33 +209,43 @@ func _build_body() -> void:
 	torso.add_child(_mesh_box(Vector3(0.38, 0.02, 0.02), dark, Vector3(0, 0.44, -0.13)))        # 挂绳
 	torso.add_child(_mesh_box(Vector3(0.12, 0.14, 0.07), Color(0.30, 0.26, 0.20), Vector3(-0.15, 0.06, 0.15)))  # 工具腰包
 	var head := _joint("head", body, Vector3(0, 1.46, 0))     # 抬高 2cm：给脖子留出可见的一段
-	head.add_child(_mesh_bevbox(Vector3(0.205, 0.20, 0.205), skin, Vector3(0, 0.105, 0), 0.020))
-	head.add_child(_mesh_bevbox(Vector3(0.208, 0.040, 0.208), Color(0.10, 0.09, 0.10), Vector3(0, 0.210, 0.012), 0.012))
-	head.add_child(_mesh_bevbox(Vector3(0.196, 0.180, 0.038), Color(0.10, 0.09, 0.10), Vector3(0, 0.108, 0.100), 0.010))
-	for hx in [-0.101, 0.101]:
-		head.add_child(_mesh_bevbox(Vector3(0.028, 0.120, 0.186), Color(0.10, 0.09, 0.10), Vector3(hx, 0.148, 0.004), 0.008))
-	# 五官：耳朵 / 眉 / 眼 / 鼻 / 嘴（脸不再是一块光板）
-	for ex in [-0.104, 0.104]:
-		head.add_child(_mesh_box(Vector3(0.018, 0.048, 0.034), skin.darkened(0.12), Vector3(ex, 0.100, 0.008)))
+	# 参考图那套「玩具人偶」头：偏宽、圆角大，五官是圆眼睛 + 小笑弧 + 腮红
+	head.add_child(_mesh_bevbox(Vector3(0.215, 0.195, 0.210), skin, Vector3(0, 0.100, 0), 0.032))
+	head.add_child(_mesh_bevbox(Vector3(0.218, 0.040, 0.214), Color(0.10, 0.09, 0.10), Vector3(0, 0.203, 0.012), 0.014))
+	head.add_child(_mesh_bevbox(Vector3(0.204, 0.175, 0.040), Color(0.10, 0.09, 0.10), Vector3(0, 0.100, 0.104), 0.012))
+	for hx in [-0.106, 0.106]:
+		head.add_child(_mesh_bevbox(Vector3(0.028, 0.115, 0.190), Color(0.10, 0.09, 0.10), Vector3(hx, 0.140, 0.004), 0.010))
+	for ex in [-0.108, 0.108]:
+		head.add_child(_mesh_box(Vector3(0.018, 0.046, 0.032), skin.darkened(0.10), Vector3(ex, 0.095, 0.006)))
+	# 眉：短、略向外挑
 	for bx in [-0.052, 0.052]:
-		head.add_child(_mesh_box(Vector3(0.054, 0.011, 0.014), Color(0.26, 0.20, 0.16), Vector3(bx, 0.150, -0.100)))
-	for eye_x in [-0.055, 0.055]:
-		# 眼睛四层（暗框当睫毛 → 眼白 → 瞳 → 高光），每层只差 2~3 mm：
-		# 原来是一块 3.8x2.1cm 的纯黑方块，在脸上读起来像蒙了眼罩、没有活气。
-		head.add_child(_mesh_box(Vector3(0.038, 0.021, 0.010), Color(0.10, 0.10, 0.12), Vector3(eye_x, 0.117, -0.0985)))
-		head.add_child(_mesh_box(Vector3(0.030, 0.015, 0.006), Color(0.90, 0.91, 0.92), Vector3(eye_x, 0.117, -0.1065)))
-		head.add_child(_mesh_box(Vector3(0.016, 0.014, 0.005), Color(0.09, 0.09, 0.12), Vector3(eye_x, 0.1165, -0.1105)))
-		head.add_child(_mesh_box(Vector3(0.0035, 0.0035, 0.004), Color(0.98, 0.98, 1.0), Vector3(eye_x - 0.0035, 0.1195, -0.1125), 1.2))
-	head.add_child(_mesh_box(Vector3(0.030, 0.050, 0.028), skin.darkened(0.10), Vector3(0, 0.094, -0.104)))
-	head.add_child(_mesh_box(Vector3(0.042, 0.013, 0.012), Color(0.46, 0.27, 0.26), Vector3(0, 0.062, -0.100)))
-	head.add_child(_mesh_bevbox(Vector3(0.225, 0.081, 0.225), dark, Vector3(0, 0.235, 0), 0.014))          # 帽子
-	head.add_child(_mesh_bevbox(Vector3(0.245, 0.028, 0.095), dark, Vector3(0, 0.208, -0.122), 0.010))      # 帽檐
+		var brow := _mesh_box(Vector3(0.040, 0.007, 0.012), Color(0.28, 0.21, 0.17), Vector3(bx, 0.150, -0.100))
+		brow.rotation.z = -signf(bx) * 0.05
+		head.add_child(brow)
+	# 眼：圆眼球（白）+ 虹膜 + 高光，三层球，越靠前越小 —— 参考图里最抓人的就是这对圆眼
+	for eye_x in [-0.050, 0.050]:
+		head.add_child(_mesh_sphere(Vector3(0.042, 0.044, 0.024), Color(0.96, 0.96, 0.97), Vector3(eye_x, 0.110, -0.096)))
+		head.add_child(_mesh_sphere(Vector3(0.020, 0.022, 0.014), Color(0.13, 0.11, 0.10), Vector3(eye_x, 0.109, -0.104)))
+		head.add_child(_mesh_sphere(Vector3(0.008, 0.008, 0.006), Color(1.0, 1.0, 1.0), Vector3(eye_x - 0.004, 0.116, -0.110)))
+	head.add_child(_mesh_box(Vector3(0.014, 0.016, 0.012), skin.darkened(0.14), Vector3(0, 0.084, -0.103)))
+	# 嘴：三段小盒子拼一个上翘的笑弧（中间低、两头高）
+	head.add_child(_mesh_box(Vector3(0.026, 0.004, 0.008), Color(0.34, 0.20, 0.19), Vector3(0, 0.052, -0.101)))
+	for mx in [-0.013, 0.013]:
+		var lip := _mesh_box(Vector3(0.012, 0.004, 0.008), Color(0.34, 0.20, 0.19), Vector3(mx, 0.0555, -0.101))
+		lip.rotation.z = signf(mx) * 0.26
+		head.add_child(lip)
+	# 腮红：两片压扁的球
+	for cx in [-0.072, 0.072]:
+		head.add_child(_mesh_sphere(Vector3(0.022, 0.013, 0.008), Color(0.93, 0.60, 0.55), Vector3(cx, 0.078, -0.099)))
+	head.add_child(_mesh_bevbox(Vector3(0.232, 0.081, 0.232), dark, Vector3(0, 0.235, 0), 0.016))          # 帽子
+	head.add_child(_mesh_bevbox(Vector3(0.250, 0.028, 0.098), dark, Vector3(0, 0.208, -0.124), 0.012))      # 帽檐
 	head.add_child(_mesh_box(Vector3(0.058, 0.028, 0.02), vest, Vector3(0, 0.185, -0.108), 0.6))  # 帽徽
 	for sgn in [-1.0, 1.0]:
 		var sfx := "L" if sgn < 0 else "R"
 		var sh := _joint("shoulder" + sfx, body, Vector3(sgn * 0.25, 1.40, 0))
 		sh.add_child(_mesh_cyl(Vector3(0.140, 0.44, 0.140), coat, Vector3(0, -0.22, 0), 0.058))          # 上臂（圆管）
 		var el := _joint("elbow" + sfx, sh, Vector3(0, -0.42, 0))
+		el.add_child(_mesh_cyl(Vector3(0.136, 0.022, 0.136), coat.darkened(0.18), Vector3(0, 0, 0)))   # 肘关节环（玩具人偶那种球窝）
 		el.add_child(_mesh_cyl(Vector3(0.120, 0.34, 0.120), coat, Vector3(0, -0.17, 0), 0.044))          # 小臂
 		el.add_child(_mesh_cyl(Vector3(0.108, 0.024, 0.108), shirt, Vector3(0, -0.268, 0)))        # 露出来的衬衫袖口
 		el.add_child(_mesh_cyl(Vector3(0.116, 0.060, 0.116), coat.darkened(0.30), Vector3(0, -0.302, 0)))  # 制服袖口
@@ -248,10 +258,11 @@ func _build_body() -> void:
 		var hp := _joint("hip" + sfx, body, Vector3(sgn * 0.11, 0.84, 0))
 		hp.add_child(_mesh_cyl(Vector3(0.192, 0.40, 0.192), dark, Vector3(0, -0.20, 0), 0.074))          # 大腿
 		var kn := _joint("knee" + sfx, hp, Vector3(0, -0.40, 0))
+		kn.add_child(_mesh_cyl(Vector3(0.174, 0.022, 0.174), dark.darkened(0.18), Vector3(0, 0, 0)))   # 膝关节环
 		kn.add_child(_mesh_cyl(Vector3(0.164, 0.36, 0.164), dark, Vector3(0, -0.18, 0), 0.055))          # 小腿
 		kn.add_child(_mesh_box(Vector3(0.124, 0.030, 0.134), dark.darkened(0.35), Vector3(0, -0.330, 0)))  # 裤脚
 		var ft := _joint("foot" + sfx, kn, Vector3(0, -0.36, 0))
-		ft.add_child(_mesh_bevbox(Vector3(0.15, 0.08, 0.28), Color(0.08, 0.09, 0.11), Vector3(0, -0.04, -0.05), 0.014))
+		ft.add_child(_mesh_bevbox(Vector3(0.166, 0.092, 0.300), Color(0.08, 0.09, 0.11), Vector3(0, -0.034, -0.055), 0.018))
 	body.visible = false
 
 func _build_viewarm() -> void:

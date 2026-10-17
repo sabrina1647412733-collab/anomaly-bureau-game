@@ -474,7 +474,7 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	hp.position = Vector3(0, 0.645, 0)          # 世界 y = 1.64（再抬 2cm：领口下面那段脖子才看得见）
 	upper.add_child(hp)
 	# 头 / 发 / 帽（坐标相对头枢轴）
-	_part(hp, "head", Vector3(0, 0, 0), Vector3(0.21, 0.23, 0.20), skin, 0.0, false, Vector3.ZERO, false, 0.020)
+	_part(hp, "head", Vector3(0, 0, 0), Vector3(0.222, 0.225, 0.205), skin, 0.0, false, Vector3.ZERO, false, 0.034)
 	_part(hp, "hairTop", Vector3(0, 0.118, 0.014), Vector3(0.222, 0.045, 0.222), hair, 0.0, false, Vector3.ZERO, false, 0.012)
 	_part(hp, "hairBack", Vector3(0, 0.012, 0.104), Vector3(0.212, 0.212, 0.044), hair, 0.0, false, Vector3.ZERO, false, 0.010)
 	for hx in [-0.104, 0.104]:
@@ -485,15 +485,19 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 	for ex in [-0.106, 0.106]:
 		_part(hp, "ear" + ("L" if ex < 0 else "R"), Vector3(ex, 0.006, 0.008), Vector3(0.018, 0.050, 0.036), skin.darkened(0.12))
 	for bx in [-0.053, 0.053]:
-		_part(hp, "brow" + ("L" if bx < 0 else "R"), Vector3(bx, 0.066, -0.102), Vector3(0.054, 0.011, 0.014), hair.lightened(0.35))
+		_part(hp, "brow" + ("L" if bx < 0 else "R"), Vector3(bx, 0.062, -0.098), Vector3(0.042, 0.009, 0.012), hair.lightened(0.38))
 	for ex2 in [-0.055, 0.055]:
 		var esfx := "L" if ex2 < 0 else "R"
-		_part(hp, "eye" + esfx, Vector3(ex2, 0.024, -0.1005), Vector3(0.038, 0.021, 0.010), Color(0.10, 0.10, 0.12))
-		_part(hp, "eyeW" + esfx, Vector3(ex2, 0.024, -0.1085), Vector3(0.030, 0.015, 0.006), Color(0.90, 0.91, 0.92))
-		_part(hp, "eyeP" + esfx, Vector3(ex2, 0.0235, -0.1125), Vector3(0.016, 0.014, 0.005), Color(0.09, 0.09, 0.12))
-		_part(hp, "eyeH" + esfx, Vector3(ex2 - 0.0035, 0.0265, -0.1145), Vector3(0.0035, 0.0035, 0.004), Color(0.98, 0.98, 1.0), 1.2)
-	_part(hp, "nose", Vector3(0, -0.006, -0.106), Vector3(0.030, 0.050, 0.028), skin.darkened(0.10))
-	var mth := _part(hp, "mouth", Vector3(0, -0.063, -0.101), Vector3(0.044, 0.013, 0.012), Color(0.46, 0.27, 0.26))
+		_part(hp, "eyeS" + esfx, Vector3(ex2, 0.024, -0.094), Vector3(0.030, 0.021, 0.010), Color(0.10, 0.10, 0.12))
+		_part(hp, "eyeW" + esfx, Vector3(ex2, 0.022, -0.094), Vector3(0.042, 0.044, 0.024), Color(0.96, 0.96, 0.97), 0.0, false, Vector3.ZERO, true)
+		_part(hp, "eyeP" + esfx, Vector3(ex2, 0.021, -0.102), Vector3(0.020, 0.022, 0.014), Color(0.13, 0.11, 0.10), 0.0, false, Vector3.ZERO, true)
+		_part(hp, "eyeH" + esfx, Vector3(ex2 - 0.004, 0.030, -0.108), Vector3(0.008, 0.008, 0.006), Color(1.0, 1.0, 1.0), 0.0, false, Vector3.ZERO, true)
+	_part(hp, "nose", Vector3(0, -0.004, -0.101), Vector3(0.014, 0.016, 0.012), skin.darkened(0.14))
+	var mth := _part(hp, "mouth", Vector3(0, -0.056, -0.099), Vector3(0.026, 0.004, 0.008), Color(0.34, 0.20, 0.19))
+	for mx in [-0.013, 0.013]:
+		_part(hp, "lip" + ("L" if mx < 0 else "R"), Vector3(mx, -0.0525, -0.099), Vector3(0.012, 0.004, 0.008), Color(0.34, 0.20, 0.19), 0.0, false, Vector3(0, 0, signf(mx) * 0.26))
+	for cx in [-0.072, 0.072]:
+		_part(hp, "blush" + ("L" if cx < 0 else "R"), Vector3(cx, -0.030, -0.097), Vector3(0.022, 0.013, 0.008), Color(0.93, 0.60, 0.55), 0.0, false, Vector3.ZERO, true)
 	if cap_on:
 		_part(hp, "cap", Vector3(0, 0.152, 0), Vector3(0.243, 0.055, 0.233), cloth2, 0.0, false, Vector3.ZERO, false, 0.013)
 		_part(hp, "visor", Vector3(0, 0.130, -0.152), Vector3(0.233, 0.030, 0.108), cloth2, 0.0, false, Vector3.ZERO, false, 0.009)	# 躯干 + 衣服叠穿（坐标相对上半身枢轴）：内层领口 → 外层领子 → 前襟 → 下摆 → 腰带 → 口袋
@@ -1980,7 +1984,7 @@ func _anim_npcs(delta: float) -> void:
 				opening = 1.0 if fposmod(t * 7.0, 1.0) < 0.45 else 0.18
 			var kk := clampf(delta * 15.0, 0.0, 1.0)
 			mth.scale.y = lerpf(mth.scale.y, 1.0 + opening * 1.10, kk)
-			mth.position.y = lerpf(mth.position.y, -0.063 - opening * 0.008, kk)
+			mth.position.y = lerpf(mth.position.y, -0.056 - opening * 0.008, kk)
 
 # ------------------------------------------------------------------ 值班台回看监控（M）
 ## 站在值班台前按 M：接上站内监控；再按 M 退出。岔区那台机位能看见「红灯晚了半秒」
