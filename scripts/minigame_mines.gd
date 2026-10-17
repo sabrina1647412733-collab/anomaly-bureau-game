@@ -25,6 +25,8 @@ var grid: GridContainer
 var file_view: Label
 var tab_mines: Button
 var tab_file: Button
+var tab_notice: Button
+var file_mode := "accident"
 var style_cell: StyleBoxFlat
 var style_cell_hover: StyleBoxFlat
 
@@ -58,6 +60,8 @@ func _build() -> void:
 	tab_mines.pressed.connect(_show_mines)
 	tab_file = _button("事故名单.txt", Vector2(532, 178), Vector2(190, 38))
 	tab_file.pressed.connect(_show_file)
+	tab_notice = _button("入职须知.txt", Vector2(684, 178), Vector2(190, 38))
+	tab_notice.pressed.connect(_show_notice)
 	var close := _button("关闭", Vector2(1130, 100), Vector2(100, 38))
 	close.pressed.connect(func() -> void: closed.emit())
 	_style_button(close)
@@ -96,7 +100,7 @@ func _build() -> void:
 	file_view = _label("", 17, Color(0.60, 0.95, 0.72), Vector2(400, 230), Vector2(820, 470))
 	file_view.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	file_view.visible = false
-	file_view.text = "事故名单 · 2009.11.03 · 三道\n\n" + _names_text() + "\n\n官方报告：三道无人。\n\n—— 终端本地备份，未同步。"
+	file_view.text = _accident_text()
 	var foot := _label("鼠标左键翻开 · 右键插旗 · Esc 退出", 12, Color(0.30, 0.62, 0.45), Vector2(430, 780), Vector2(700, 24))
 
 func _label(text: String, fs: int, col: Color, pos: Vector2, size: Vector2) -> Label:
@@ -150,6 +154,12 @@ func _names_text() -> String:
 			out += "\n"
 	return out
 
+func _accident_text() -> String:
+	return "事故名单 · 2009.11.03 · 三道\n\n" + _names_text() + "\n\n官方报告：三道无人。\n\n—— 终端本地备份，未同步。"
+
+func _notice_text() -> String:
+	return "诡异事务局 · 临时入职须知（节选）\n\n01  不要相信站内广播的最后一句。\n02  若发现时间重复，请记录，不要纠正。\n03  你的权限是 D。D 级人员只需要活到交班。\n04  本局不存在。若有人问起，请回答：我在岚桥站上班。\n05  遇到 0017，先找那半秒。\n\n—— 外勤支援科 · 档案处\n（此文件不应出现在值班终端）"
+
 func new_game() -> void:
 	mine.clear(); opened.clear(); flagged.clear()
 	for i in range(N * N):
@@ -157,9 +167,13 @@ func new_game() -> void:
 	started = false; over = false; won = false; flag_count = 0
 	grid.visible = true
 	file_view.visible = false
+	file_mode = "accident"
+	file_view.text = _accident_text()
 	if tab_mines != null:
 		tab_mines.disabled = true
 		tab_file.disabled = false
+		if tab_notice != null:
+			tab_notice.disabled = false
 	status.text = "左键翻开 · 右键插旗 · 10 颗雷"
 	for b in buttons:
 		b.text = ""
@@ -170,12 +184,25 @@ func _show_mines() -> void:
 	file_view.visible = false
 	tab_mines.disabled = true
 	tab_file.disabled = false
+	tab_notice.disabled = false
 
 func _show_file() -> void:
 	grid.visible = false
 	file_view.visible = true
+	file_mode = "accident"
+	file_view.text = _accident_text()
 	tab_mines.disabled = false
 	tab_file.disabled = true
+	tab_notice.disabled = false
+
+func _show_notice() -> void:
+	grid.visible = false
+	file_view.visible = true
+	file_mode = "notice"
+	file_view.text = _notice_text()
+	tab_mines.disabled = false
+	tab_file.disabled = false
+	tab_notice.disabled = true
 
 func _idx(x: int, y: int) -> int:
 	return y * N + x

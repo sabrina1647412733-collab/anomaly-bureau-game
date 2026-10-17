@@ -40,6 +40,22 @@ var hud_fade: ColorRect
 var hud_map
 var hud_cam: Label
 var clock_label: Label3D
+var hud_objective: Label
+var prologue_stage := ""
+var prologue_seen: Dictionary = {}
+var prologue_letter_ready := false
+var prologue_letter_read := false
+var prologue_call_done := false
+var prologue_store_done := false
+var prologue_reader_done := false
+var prologue_objective := ""
+var prologue_roots: Dictionary = {}
+var prologue_spots: Array = []
+var prologue_envelope: MeshInstance3D = null
+var prologue_reader_mat: StandardMaterial3D = null
+var prologue_ui: CanvasLayer = null
+var prologue_paper: Control = null
+var prologue_paper_text: Label = null
 
 var clock_min := T_START
 var state := "play"            # play / cutscene / ending
@@ -89,6 +105,9 @@ var tun_lamp_t := 0.0                              # 用累积时间而不是真
 var sub := ""
 var sub_cps := 26.0
 var sub_time := 0.0
+var sub_hold := 3.2
+var sub_queue: Array = []
+var sub_pause := false
 var dialog := []              # 当前对话队列
 var dialog_idx := 0
 var dialog_npc: Variant = null
@@ -166,6 +185,7 @@ func _ready() -> void:
 	_build_world()
 	_spawn_player()
 	_make_hud()
+	_make_prologue_ui()
 	_make_items()
 	_make_doors()
 	_make_clue_board()
@@ -178,6 +198,7 @@ func _ready() -> void:
 	_make_duty_computer()
 	_make_studio_props()
 	_make_tunnel_lamp()
+	_make_prologue_world()
 	train = TrainScript.new(self)
 	train.reset()
 	spots = [
@@ -315,11 +336,14 @@ func _make_hud() -> void:
 	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(dot)
 	hud_clock = _label(root, 0, Vector2(690, 14), Vector2(220, 56), 42, Color(0.88,0.64,0.29))
+	hud_objective = _label(root, 0, Vector2(18, 18), Vector2(560, 28), 16, Color(0.88, 0.64, 0.29))
+	hud_objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	hud_objective.visible = false
 	hud_sub_title = _label(root, 0, Vector2(340, 686), Vector2(920, 22), 13, Color(0.35,0.62,0.83))
 	hud_sub = _label(root, 0, Vector2(240, 708), Vector2(1120, 72), 19, Color(0.92,0.95,0.98))
 	hud_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hud_prompt = _label(root, 0, Vector2(480, 492), Vector2(640, 30), 17, Color(0.88,0.64,0.29))
-	hud_end = _label(root, 0, Vector2(340, 420), Vector2(920, 260), 20, Color(0.86,0.90,0.95))
+	hud_end = _label(root, 0, Vector2(340, 402), Vector2(920, 378), 18, Color(0.86,0.90,0.95))
 	hud_end.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hud_end_title = _label(root, 0, Vector2(340, 320), Vector2(920, 80), 46, Color(0.88,0.64,0.29))
 	hud_end.text = ""
@@ -393,6 +417,456 @@ func _label(parent: Control, preset: int, pos: Vector2, size: Vector2, fs: int, 
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(l)
 	return l
+
+func _make_prologue_ui() -> void:
+	prologue_ui = CanvasLayer.new()
+	prologue_ui.layer = 30
+	add_child(prologue_ui)
+	prologue_paper = Control.new()
+	prologue_paper.set_anchors_preset(Control.PRESET_FULL_RECT)
+	prologue_paper.mouse_filter = Control.MOUSE_FILTER_STOP
+	prologue_paper.visible = false
+	prologue_ui.add_child(prologue_paper)
+	var dim := ColorRect.new()
+	dim.color = Color(0.0, 0.0, 0.0, 0.72)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	prologue_paper.add_child(dim)
+	var edge := ColorRect.new()
+	edge.position = Vector2(372, 82)
+	edge.size = Vector2(856, 736)
+	edge.color = Color(0.88, 0.64, 0.29, 0.88)
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	prologue_paper.add_child(edge)
+	var paper := ColorRect.new()
+	paper.position = Vector2(382, 92)
+	paper.size = Vector2(836, 716)
+	paper.color = Color(0.84, 0.82, 0.72)
+	paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	prologue_paper.add_child(paper)
+	var title := _label(prologue_paper, 0, Vector2(420, 120), Vector2(760, 48), 28, Color(0.16, 0.15, 0.14))
+	title.text = "异 常 事 件 处 置 岗（临 时）"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	prologue_paper_text = _label(prologue_paper, 0, Vector2(420, 182), Vector2(760, 530), 17, Color(0.13, 0.13, 0.12))
+	prologue_paper_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	prologue_paper_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	prologue_paper_text.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	var close := Button.new()
+	close.text = "收 起"
+	close.position = Vector2(700, 738)
+	close.size = Vector2(190, 44)
+	close.focus_mode = Control.FOCUS_NONE
+	close.add_theme_font_override("font", font)
+	close.add_theme_font_size_override("font_size", 18)
+	close.pressed.connect(_close_letter)
+	prologue_paper.add_child(close)
+
+func _show_letter_ui() -> void:
+	if prologue_paper == null:
+		return
+	prologue_paper_text.text = "事件编号：0017\n工作地点：岚桥站\n报酬：足够付清你欠下的三个月房租\n权限：D\n\n背面手写：\n不要相信广播的最后一句。\n\n信封内附：\n旧钞一叠。\n2009.11.03 夜班值班表一张。\n值班人：林远舟。\n\n值班表上，父亲的名字下面有一道被橡皮擦过的痕迹。\n纸被擦破了，仍能看出一个「林」字。"
+	prologue_paper.visible = true
+	state = "prologue_ui"
+	player.can_move = false
+	player.dragging = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+func _close_letter() -> void:
+	if prologue_paper == null:
+		return
+	prologue_paper.visible = false
+	state = "prologue"
+	player.can_move = true
+	player.allow_capture = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	prologue_letter_read = true
+	_say_seq("旁白", "你把通知书折好，放进口袋。")
+	_ring_phone()
+
+func _pro_mat(c: Color, emit := 0.0) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = 0.82
+	if emit > 0.0:
+		m.emission_enabled = true
+		m.emission = c
+		m.emission_energy_multiplier = emit
+	return m
+
+func _pro_box(parent: Node3D, pos: Vector3, size: Vector3, col: Color, collide := true, emit := 0.0) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = size
+	mi.mesh = bm
+	mi.position = pos
+	mi.material_override = _pro_mat(col, emit)
+	parent.add_child(mi)
+	if collide:
+		var body := StaticBody3D.new()
+		var cs := CollisionShape3D.new()
+		var sh := BoxShape3D.new()
+		sh.size = size
+		cs.shape = sh
+		body.add_child(cs)
+		body.position = pos
+		parent.add_child(body)
+	return mi
+
+func _pro_light(parent: Node3D, pos: Vector3, col: Color, energy: float, rng: float) -> void:
+	var l := OmniLight3D.new()
+	l.position = pos
+	l.light_color = col
+	l.light_energy = energy
+	l.omni_range = rng
+	l.shadow_enabled = false
+	parent.add_child(l)
+
+func _make_prologue_world() -> void:
+	prologue_roots.clear()
+	prologue_spots.clear()
+	for stage in ["room", "store", "entrance"]:
+		var root := Node3D.new()
+		root.name = "Prologue_" + String(stage)
+		add_child(root)
+		root.visible = false
+		prologue_roots[stage] = root
+	prologue_roots["room"].position = Vector3(0, 0, 300)
+	prologue_roots["store"].position = Vector3(20, 0, 300)
+	prologue_roots["entrance"].position = Vector3(40, 0, 300)
+	_build_pro_room(prologue_roots["room"])
+	_build_pro_store(prologue_roots["store"])
+	_build_pro_entrance(prologue_roots["entrance"])
+
+func _build_pro_room(root: Node3D) -> void:
+	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.10, 0.11, 0.13))
+	_pro_box(root, Vector3(0, 3.05, 0), Vector3(6, 0.1, 5), Color(0.07, 0.08, 0.10))
+	_pro_box(root, Vector3(0, 1.5, -2.5), Vector3(6, 3.0, 0.1), Color(0.14, 0.15, 0.17))
+	_pro_box(root, Vector3(-3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.13, 0.14, 0.16))
+	_pro_box(root, Vector3(3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.13, 0.14, 0.16))
+	_pro_box(root, Vector3(0, 1.5, 2.5), Vector3(6, 3.0, 0.1), Color(0.13, 0.14, 0.16))
+	_pro_box(root, Vector3(0, 1.1, 2.44), Vector3(1.0, 2.2, 0.08), Color(0.06, 0.06, 0.07), false)
+	_pro_box(root, Vector3(-2.0, 0.30, -1.4), Vector3(1.8, 0.55, 1.1), Color(0.15, 0.18, 0.24))
+	_pro_box(root, Vector3(-2.0, 0.62, -1.75), Vector3(0.7, 0.12, 0.35), Color(0.68, 0.68, 0.64))
+	_pro_box(root, Vector3(1.8, 0.72, 0.7), Vector3(1.6, 0.08, 0.8), Color(0.28, 0.20, 0.14))
+	for lx in [-1.0, 1.0]:
+		for lz in [0.38, 1.02]:
+			_pro_box(root, Vector3(1.8 + lx, 0.36, 0.7 + lz), Vector3(0.07, 0.72, 0.07), Color(0.20, 0.15, 0.11))
+	_pro_box(root, Vector3(1.8, 0.84, 0.7), Vector3(0.26, 0.08, 0.16), Color(0.04, 0.05, 0.06), false)
+	_pro_box(root, Vector3(1.55, 0.88, 0.55), Vector3(0.08, 0.10, 0.08), Color(0.30, 0.85, 0.42), false, 1.4)
+	_pro_box(root, Vector3(-1.5, 0.35, 1.2), Vector3(0.9, 0.7, 0.7), Color(0.36, 0.26, 0.16))
+	_pro_box(root, Vector3(1.2, 1.7, -2.44), Vector3(1.5, 1.1, 0.04), Color(0.42, 0.56, 0.70), false, 0.55)
+	prologue_envelope = _pro_box(root, Vector3(0, 0.03, 2.2), Vector3(0.34, 0.02, 0.22), Color(0.84, 0.82, 0.72), false)
+	prologue_envelope.visible = false
+	_pro_light(root, Vector3(0, 2.7, 0), Color(0.92, 0.74, 0.52), 1.8, 7.0)
+	_pro_light(root, Vector3(1.2, 1.7, -2.2), Color(0.40, 0.52, 0.70), 0.7, 3.0)
+	prologue_spots.append({"stage":"room", "id":"phone", "pos":Vector3(1.8, 0.9, 300.7), "r":1.7})
+	prologue_spots.append({"stage":"room", "id":"box", "pos":Vector3(-1.5, 0.35, 301.2), "r":1.7})
+	prologue_spots.append({"stage":"room", "id":"window", "pos":Vector3(1.2, 1.7, 297.56), "r":1.8})
+	prologue_spots.append({"stage":"room", "id":"door", "pos":Vector3(0, 1.1, 302.44), "r":1.6})
+
+func _build_pro_store(root: Node3D) -> void:
+	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.16, 0.17, 0.16))
+	_pro_box(root, Vector3(0, 3.05, 0), Vector3(6, 0.1, 5), Color(0.10, 0.11, 0.10))
+	_pro_box(root, Vector3(0, 1.5, -2.5), Vector3(6, 3.0, 0.1), Color(0.20, 0.21, 0.19))
+	_pro_box(root, Vector3(-3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.19, 0.20, 0.18))
+	_pro_box(root, Vector3(3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.19, 0.20, 0.18))
+	_pro_box(root, Vector3(0, 1.5, 2.5), Vector3(6, 3.0, 0.1), Color(0.19, 0.20, 0.18))
+	_pro_box(root, Vector3(0, 1.1, 2.44), Vector3(1.0, 2.2, 0.08), Color(0.05, 0.05, 0.06), false)
+	_pro_box(root, Vector3(1.2, 0.55, 0.9), Vector3(3.0, 1.1, 0.8), Color(0.30, 0.22, 0.15))
+	_pro_box(root, Vector3(1.2, 1.13, 0.9), Vector3(3.2, 0.06, 0.9), Color(0.48, 0.36, 0.22))
+	_pro_box(root, Vector3(-1.5, 1.2, -2.0), Vector3(2.5, 2.0, 0.5), Color(0.14, 0.15, 0.15))
+	for i in range(4):
+		_pro_box(root, Vector3(-2.3 + float(i) * 0.55, 1.6, -1.72), Vector3(0.32, 0.42, 0.12), Color(0.55, 0.22 + float(i) * 0.10, 0.16), false)
+	_pro_box(root, Vector3(1.2, 1.22, 0.9), Vector3(0.60, 0.28, 0.50), Color(0.45, 0.22, 0.10), false, 0.45)
+	_pro_box(root, Vector3(2.1, 1.20, 0.9), Vector3(0.25, 0.18, 0.18), Color(0.06, 0.06, 0.06), false)
+	_pro_box(root, Vector3(-1.6, 0.80, -1.45), Vector3(0.45, 1.2, 0.30), Color(0.10, 0.18, 0.16))
+	_pro_box(root, Vector3(-1.6, 1.55, -1.45), Vector3(0.25, 0.25, 0.25), Color(0.72, 0.56, 0.44))
+	_pro_light(root, Vector3(0, 2.8, 0), Color(0.88, 0.94, 0.90), 2.0, 7.0)
+	var sign := Label3D.new()
+	sign.font = font
+	sign.text = "24H"
+	sign.font_size = 96
+	sign.pixel_size = 0.010
+	sign.modulate = Color(0.45, 0.95, 0.65)
+	sign.position = Vector3(0, 2.35, -2.40)
+	root.add_child(sign)
+	prologue_spots.append({"stage":"store", "id":"counter", "pos":Vector3(21.2, 1.0, 300.9), "r":1.8})
+	prologue_spots.append({"stage":"store", "id":"store_door", "pos":Vector3(20.0, 1.1, 302.44), "r":1.5})
+
+func _build_pro_entrance(root: Node3D) -> void:
+	_pro_box(root, Vector3(0, -0.05, 0), Vector3(4, 0.1, 4), Color(0.12, 0.13, 0.14))
+	_pro_box(root, Vector3(0, 3.05, 0), Vector3(4, 0.1, 4), Color(0.08, 0.09, 0.10))
+	_pro_box(root, Vector3(0, 1.5, -2.0), Vector3(4, 3.0, 0.1), Color(0.16, 0.17, 0.18))
+	_pro_box(root, Vector3(-2.0, 1.5, 0), Vector3(0.1, 3.0, 4), Color(0.15, 0.16, 0.17))
+	_pro_box(root, Vector3(2.0, 1.5, 0), Vector3(0.1, 3.0, 4), Color(0.15, 0.16, 0.17))
+	_pro_box(root, Vector3(0, 1.5, 2.0), Vector3(4, 3.0, 0.1), Color(0.15, 0.16, 0.17))
+	_pro_box(root, Vector3(0, 1.1, -1.95), Vector3(1.2, 2.2, 0.08), Color(0.05, 0.06, 0.07), false)
+	prologue_reader_mat = _pro_mat(Color(0.70, 0.12, 0.10), 1.4)
+	var rd := MeshInstance3D.new()
+	var rb := BoxMesh.new()
+	rb.size = Vector3(0.22, 0.32, 0.06)
+	rd.mesh = rb
+	rd.position = Vector3(0.85, 1.3, -1.88)
+	rd.material_override = prologue_reader_mat
+	root.add_child(rd)
+	var sign := Label3D.new()
+	sign.font = font
+	sign.text = "岚桥站 · 员工通道"
+	sign.font_size = 72
+	sign.pixel_size = 0.010
+	sign.modulate = Color(0.72, 0.78, 0.84)
+	sign.position = Vector3(0, 2.1, -1.92)
+	root.add_child(sign)
+	_pro_light(root, Vector3(0, 2.7, 0), Color(0.48, 0.58, 0.72), 1.2, 6.0)
+	prologue_spots.append({"stage":"entrance", "id":"reader", "pos":Vector3(40.85, 1.3, 298.12), "r":1.8})
+
+func _start_prologue() -> void:
+	prologue_seen.clear()
+	prologue_letter_ready = false
+	prologue_letter_read = false
+	prologue_call_done = false
+	prologue_store_done = false
+	prologue_reader_done = false
+	prologue_objective = "看看手机"
+	if player.sitting:
+		player.stand_up()
+	player.cam_mode = 0
+	player.body.visible = false
+	if player.view_arm != null:
+		player.view_arm.visible = true
+	state = "prologue"
+	_show_prologue_stage("room")
+	hud.visible = true
+	hud_clock.visible = false
+	hud_map.visible = false
+	hud_cam.visible = false
+	hud_objective.visible = true
+	hud_objective.text = prologue_objective
+	hud_end.text = ""
+	hud_end_title.text = ""
+	hud_end.modulate.a = 0.0
+	hud_fade.modulate.a = 0.0
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	player.can_move = true
+	player.allow_capture = true
+	_say_seq("旁白", "10 月 18 日。凌晨。")
+	_say_seq("林屿", "……又是这个梦。")
+
+func _show_prologue_stage(stage: String) -> void:
+	for k in prologue_roots.keys():
+		var r: Node3D = prologue_roots[k]
+		r.visible = (String(k) == stage)
+	prologue_stage = stage
+	match stage:
+		"room":
+			player.position = Vector3(0, 0.1, 301.55)
+		"store":
+			player.position = Vector3(20, 0.1, 301.55)
+		"entrance":
+			player.position = Vector3(40, 0.1, 301.2)
+	player.rotation.y = 0.0
+	player.velocity = Vector3.ZERO
+	player.can_move = true
+	safe_pos = player.global_position
+	_prologue_set_objective(prologue_objective)
+
+func _prologue_set_objective(text: String) -> void:
+	prologue_objective = text
+	if hud_objective != null:
+		hud_objective.text = text
+
+func _prologue_mark_seen(key: String) -> void:
+	if not prologue_seen.has(key):
+		prologue_seen[key] = true
+	if prologue_seen.size() >= 2 and not prologue_letter_ready:
+		_prologue_drop_letter()
+
+func _prologue_drop_letter() -> void:
+	prologue_letter_ready = true
+	if prologue_envelope != null:
+		prologue_envelope.visible = true
+	_prologue_set_objective("门缝里有一封信")
+	_say_seq("旁白", "门缝下传来很轻的摩擦声。")
+
+func _ring_phone() -> void:
+	if prologue_call_done:
+		return
+	_prologue_set_objective("接电话")
+	_say_seq("旁白", "手机响了。没有来电显示。")
+	play_chime(0.55, -10.0)
+
+func _prologue_act(id: String) -> void:
+	match id:
+		"phone":
+			if not prologue_letter_read:
+				if not prologue_seen.has("phone"):
+					_prologue_mark_seen("phone")
+					_say_seq("手机", "房东：这个月再不交，你就搬走。")
+					_say_seq("手机", "停职通知：因 10 月 3 日夜班操作失职，暂停岗位。")
+					_say_seq("林屿", "10 月 3 日……那天晚上，我到底在干什么？")
+				else:
+					_say_seq("手机", "余额：83.60 元。")
+			elif not prologue_call_done:
+				prologue_call_done = true
+				_prologue_set_objective("去岚桥站")
+				_say_seq("接线员", "异常事件 0017。")
+				_say_seq("接线员", "处置权限 D。")
+				_say_seq("接线员", "请活到交班。")
+				_say_seq("林屿", "你是谁？")
+				_say_seq("旁白", "电话挂断了。没有“喂”，没有“你好”。")
+			else:
+				_say_seq("手机", "没有信号。")
+		"box":
+			if not prologue_seen.has("box"):
+				_prologue_mark_seen("box")
+				_say_seq("旁白", "纸箱里是父亲的旧物。")
+				_say_seq("旁白", "保温杯、旧工牌、值班表。保温杯底有一道磕痕。")
+				_say_seq("林屿", "这张值班表……2009 年 11 月 3 日。")
+			else:
+				_say_seq("旁白", "保温杯里的水还是温的。")
+		"window":
+			if not prologue_seen.has("window"):
+				_prologue_mark_seen("window")
+				_say_seq("旁白", "窗外在下雨。岚桥站的灯在雨里一亮一灭。")
+				_say_seq("林屿", "那个站不是说早就停了吗？")
+			else:
+				_say_seq("旁白", "雨还在下。岚桥站的灯还亮着。")
+		"door":
+			if not prologue_letter_ready:
+				_say_seq("旁白", "门锁着。门外没有声音。")
+			elif not prologue_letter_read:
+				_show_letter_ui()
+			elif not prologue_call_done:
+				_say_seq("旁白", "电话还在响。先接电话。")
+			else:
+				_prologue_leave_room()
+		"counter":
+			if not prologue_store_done:
+				prologue_store_done = true
+				_prologue_set_objective("离开便利店")
+				_say_seq("店员", "今晚还上班？")
+				_say_seq("林屿", "嗯。")
+				_say_seq("店员", "岚桥站？")
+				_say_seq("林屿", "……你怎么知道？")
+				_say_seq("店员", "你工牌露出来了。")
+				_say_seq("旁白", "你用旧钞买了一份关东煮。收据上的时间印着 00:17。")
+			else:
+				_say_seq("店员", "关东煮要凉了。")
+		"store_door":
+			if not prologue_store_done:
+				_say_seq("旁白", "店员看了你一眼，没有拦你。")
+			_prologue_leave_store()
+		"reader":
+			if prologue_reader_done:
+				return
+			prologue_reader_done = true
+			_prologue_use_badge()
+
+func _prologue_leave_room() -> void:
+	state = "prologue_transition"
+	player.can_move = false
+	_fade_to(1.0, 0.5)
+	await get_tree().create_timer(0.65).timeout
+	_show_prologue_stage("store")
+	prologue_objective = "买点吃的"
+	_fade_to(0.0, 0.5)
+	state = "prologue"
+	_say_seq("旁白", "楼下有一家 24 小时便利店。灯管在闪。")
+
+func _prologue_leave_store() -> void:
+	state = "prologue_transition"
+	player.can_move = false
+	_fade_to(1.0, 0.5)
+	await get_tree().create_timer(0.65).timeout
+	_show_prologue_stage("entrance")
+	prologue_objective = "刷工牌进站"
+	_fade_to(0.0, 0.5)
+	state = "prologue"
+	_say_seq("旁白", "岚桥站员工通道。门是旧的，读卡器也是旧的。")
+
+func _prologue_use_badge() -> void:
+	state = "prologue_transition"
+	player.can_move = false
+	_say_seq("读卡器", "林远舟。权限 D。状态：已过期。")
+	await get_tree().create_timer(2.8).timeout
+	if prologue_reader_mat != null:
+		prologue_reader_mat.emission = Color(0.25, 0.95, 0.45)
+		prologue_reader_mat.emission_energy_multiplier = 2.2
+	_say_seq("读卡器", "林屿。权限 D。请进。")
+	await get_tree().create_timer(2.4).timeout
+	_prologue_enter_station()
+
+func _prologue_enter_station() -> void:
+	_fade_to(1.0, 0.8)
+	await get_tree().create_timer(0.9).timeout
+	for k in prologue_roots.keys():
+		var r: Node3D = prologue_roots[k]
+		r.visible = false
+	if prologue_paper != null:
+		prologue_paper.visible = false
+	hud_objective.visible = false
+	hud_clock.visible = true
+	hud_map.visible = true
+	state = "play"
+	player.position = Vector3(-15.05, 0.15, -12.90)
+	player.rotation.y = PI * 0.5
+	player.velocity = Vector3.ZERO
+	player.can_move = true
+	player.allow_capture = true
+	round = -2
+	_start_round()
+	_fade_to(0.0, 1.2)
+
+func _update_prologue_interaction() -> void:
+	prompt = null
+	hud_prompt.text = ""
+	if state != "prologue":
+		return
+	var eye: Vector3 = player.eye()
+	var fwd: Vector3 = player.forward()
+	var best := -1.0
+	for sp in prologue_spots:
+		if String(sp["stage"]) != prologue_stage:
+			continue
+		var p: Vector3 = sp["pos"]
+		var v := p - eye
+		var d := v.length()
+		if d > float(sp["r"]):
+			continue
+		var dot := v.normalized().dot(fwd)
+		if dot < 0.55:
+			continue
+		var s := dot - d * 0.05
+		if s > best:
+			best = s
+			prompt = {"kind":"prologue", "id":String(sp["id"]), "text":_prologue_label(sp), "pos":p}
+	if prompt != null:
+		hud_prompt.text = "[E]  " + String(prompt["text"])
+
+func _prologue_label(sp: Dictionary) -> String:
+	var id := String(sp["id"])
+	match id:
+		"phone":
+			return "接电话" if prologue_letter_read and not prologue_call_done else "查看手机"
+		"box":
+			return "父亲的纸箱"
+		"window":
+			return "窗外"
+		"door":
+			if not prologue_letter_ready:
+				return "门"
+			if not prologue_letter_read:
+				return "捡起信封"
+			if not prologue_call_done:
+				return "先接电话"
+			return "出门"
+		"counter":
+			return "便利店柜台"
+		"store_door":
+			return "离开便利店"
+		"reader":
+			return "刷工牌"
+	return "查看"
 
 func _make_items() -> void:
 	for d in ITEM_DEFS:
@@ -763,6 +1237,7 @@ func _make_buttons() -> void:
 func _start_round() -> void:
 	cut_phase = ""
 	stop_train()
+	_clear_sub()
 	got_this_round.clear()
 	if round_summary != null:
 		round_summary.visible = false
@@ -776,36 +1251,38 @@ func _start_round() -> void:
 	player.position = Vector3(-15.05, 0.15, -12.90)
 	player.rotation.y = PI * 0.5
 	player.velocity = Vector3.ZERO
-	_restore_player_cam()      # 释放过场机位、交还控制权
+	_restore_player_cam()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_fade_to(0.0, 1.2)
 	_show_round_card()
-	# 人物出现
 	for np in npcs:
 		np["node"].visible = (np["show_round"] >= 0 and np["show_round"] <= round)
-	# 物品出现
 	for it in items:
 		it["node"].visible = (int(it["def"]["round"]) <= round and not it["got"])
-	# 序章
 	if round == -1:
-		_say("旁白", "十七年前，父亲在事故责任书上签了字。今晚，你第一次坐进他的调度席。")
-		_say("站内广播", "23:50。岚桥站最后一班车即将进站。……你接管夜班调度席。0017 次，进二道。")
-		_say("旁白", "按流程做完交接：确认进路，签值班簿，然后等车。林岚——你妹妹——还在信号室。")
+		_say_seq("旁白", "23:50。岚桥站最后一班车即将进站。你坐在父亲的调度席前。")
+		_say_seq("站内广播", "0017 次，进二道。……你接管夜班调度席。")
+		_say_seq("旁白", "桌上的保温杯还是温的。值班簿上，上一班签名是林远舟。")
+		_say_seq("旁白", "按流程做完交接：确认进路，签值班簿，然后等车。林岚还在信号室。")
 	elif round == 0:
-		_say("旁白", "23:50。还是那个时间。广播里那句「按调度席指令执行」，是父亲的声音。")
-		_say("旁白", "站台上只有一个人没有在等车。她拎着一个工具盒，站在信号室门口——林岚，你妹妹。")
+		_say_seq("旁白", "23:50。还是那个时间。广播里那句「按调度席指令执行」，是父亲的声音。")
+		_say_seq("旁白", "站台上只有一个人没有在等车。她拎着一个工具盒，站在信号室门口——林岚，你妹妹。")
+		_say_seq("旁白", "她看见你，没有挥手。她先看了一眼调度台，像在确认你有没有坐错位置。")
 	elif round == 1:
-		_say("旁白", "23:50。纸上的字还在，别的东西都回到原位。站台另一头，多了一个拎着录音笔的男人。")
+		_say_seq("旁白", "23:50。纸上的字还在，别的东西都回到原位。")
+		_say_seq("旁白", "站台另一头，多了一个拎着录音笔的男人。他也在看你，像在确认你是不是节目里那个人。")
 	elif round == 2:
-		_say("旁白", "23:50。三个人现在都有了模糊的熟悉感——他们不记得循环，但记得你。")
+		_say_seq("旁白", "23:50。三个人现在都有了模糊的熟悉感——他们不记得循环，但记得你。")
+		_say_seq("旁白", "陈默站在北隧道口，脚边那圈地面没有灰。像有人在那里站了十七年。")
 	else:
-		_say("旁白", "23:50。最后一次。0017 次已经在进站信号里。你只有这 27 分钟。")
+		_say_seq("旁白", "23:50。最后一次。0017 次已经在进站信号里。你只有这 27 分钟。")
+		_say_seq("旁白", "广播里传来父亲的声音。这一次，他没有念车次，只说了一句：别替我签字。")
 
 func _process(delta: float) -> void:
 	_anim_npcs(delta)
 
 	t_now += delta
-	var reading := dialog.size() > 0 or bag_open or choice != null or (round_card != null and round_card.visible)
+	var reading := dialog.size() > 0 or bag_open or choice != null or sub_pause or (round_card != null and round_card.visible)
 	if state == "play" and not reading:
 		round_elapsed += delta
 		clock_min += delta / SEC_PER_MIN
@@ -999,13 +1476,13 @@ func _after_cutscene() -> void:
 	stop_train()
 	var hook := ""
 	if round == -1:
-		hook = "列车没有停。它驶进了废弃四道。\n……已按调度席指令执行。\n\n0017 次　位置未知"
+		hook = "列车没有停。它驶进了废弃四道。\n……已按调度席指令执行。\n\n0017 次　位置未知\n\n打印机吐出一张纸：异常事件 0017 · 第 1 次记录失败。"
 	elif round == 0:
-		hook = "00:17。0017 次没有进站。\n屏幕只留下一行灰字：列车位置未知。\n\n「又是半秒。和十七年前一模一样。」——林岚"
+		hook = "00:17。0017 次没有进站。\n屏幕只留下一行灰字：列车位置未知。\n\n「又是半秒。和十七年前一模一样。」——林岚\n\n林岚没有再看你。她只是把工牌握得更紧。"
 	elif round == 1:
-		hook = "把带子倒过来，里面是一句被埋掉的话：\n「三道有人，改四道。」\n\n可官方报告写着——三道无人。"
+		hook = "把带子倒过来，里面是一句被埋掉的话：\n「三道有人，改四道。」\n\n可官方报告写着——三道无人。\n\n周砚说：这不是结尾，是有人把结尾剪掉了。"
 	elif round == 2:
-		hook = "「三道有人。不是车，是人。」\n他救了人，可十九个人还是没出来——中间少了什么？"
+		hook = "「三道有人。不是车，是人。」\n他救了人，可十九个人还是没出来——中间少了什么？\n\n钥匙是冷的。锁孔里却传来一声很轻的回应。"
 	if round >= 3:
 		_restore_player_cam()
 		if divert:
@@ -1044,6 +1521,7 @@ func _round_reset_reason() -> String:
 		_: return ""
 
 func _show_round_summary(text: String) -> void:
+	_clear_sub()
 	if round_summary == null:
 		_show_hook(text)
 		return
@@ -1059,6 +1537,7 @@ func _show_round_summary(text: String) -> void:
 	var tw := create_tween()
 	tw.tween_property(round_summary, "modulate:a", 1.0, 0.5)
 func _show_hook(text: String) -> void:
+	_clear_sub()
 	hud_end_title.text = ""
 	hud_end.text = text
 	hud_end.add_theme_color_override("font_color", Color(0.82, 0.86, 0.92))
@@ -1074,11 +1553,12 @@ func _resolve_final() -> void:
 		_show_end("C")
 
 func _show_final_choice() -> void:
+	_clear_sub()
 	if round_summary != null:
 		round_summary.visible = false
 	_fade_to(0.0, 0.7)
 	hud_end_title.text = "最后的决定"
-	hud_end.text = "列车停住了。天亮之前，只剩一件事要你决定。\n\n公开真相：19 个名字会被看见，父亲可以洗清；但这条线会被关掉，林岚和陈默会失去现在的生活。\n封存：车站和活下来的人可以继续；但 19 个人会永远「失踪」，父亲永远背着那份报告。\n\n[E] 公开真相　　[R] 封存"
+	hud_end.text = "列车停住了。天亮之前，只剩一件事要你决定。\n\n五件记录拼成一句话：\n十七年前，三道有人；有人把进路改到四道；红灯晚了半秒；钥匙和巡检簿证明这是手动操作；五号继电器让同一个半秒在今晚重演。\n\n公开真相：19 个名字会被看见，父亲可以洗清；但这条线会被关掉，林岚和陈默会失去现在的生活。\n封存：车站和活下来的人可以继续；但 19 个人会永远「失踪」，父亲永远背着那份报告。\n\n[E] 公开真相　　[R] 封存"
 	hud_end.add_theme_color_override("font_color", Color(0.92, 0.95, 0.98))
 	choice = {"key_a": KEY_E, "key_b": KEY_R}
 	chooser_a = "A"
@@ -1143,11 +1623,11 @@ func _skip_cutscene() -> void:
 			pass
 
 func _show_end(kind: String) -> void:
+	_clear_sub()
 	stop_train()
 	if round_summary != null:
 		round_summary.visible = false
 	_fade_to(0.0, 0.7)
-	# 彩蛋：结局文字里那把钥匙的去向，在场景里真的出现
 	if ending_key_cab != null:
 		ending_key_cab.visible = (kind == "B")
 	if ending_key_desk != null:
@@ -1155,21 +1635,21 @@ func _show_end(kind: String) -> void:
 	shown_end = kind
 	state = "ending"
 	hud_end_title.add_theme_color_override("font_color", Color(0.88, 0.64, 0.29))
-	var lan_a := "林岚站了出来，把工牌放在桌上。" if lan_trust else "林岚没有来。她的工位空着。"
-	var tape_a := "周砚把录音播了出去，节目开头第一次没有配乐。" if tape_air else "周砚把录音锁进了抽屉。"
-	var bag_a := "陈默走进调查室时，把停用钥匙放在了桌上。" if bag_return else "陈默带着钥匙离开了。"
+	var lan_a := "林岚站了出来，把工牌放在桌上。她说：这次，换我签字。" if lan_trust else "林岚没有来。她的工位空着，工具盒也不见了。"
+	var tape_a := "周砚把录音播了出去。节目开头第一次没有配乐。" if tape_air else "周砚把录音锁进抽屉。他在节目里放了一首很旧的歌。"
+	var bag_a := "陈默走进调查室时，把停用钥匙放在桌上。" if bag_return else "陈默带着钥匙离开了。失物招领柜里只剩一只旧包。"
 	var lan_b := "林岚在清晨第一班车前重新校准五号继电器。" if not lan_trust else "林岚把工牌收进抽屉，没再看你。"
-	var tape_b := "周砚删掉了录音。" if not tape_air else "周砚把那段录音留在了自己的硬盘里，没有播。"
-	var bag_b := "陈默把钥匙留在失物招领柜。" if not bag_return else "陈默把钥匙带回了隧道。"
+	var tape_b := "周砚删掉了录音。第二天，他的节目停播了。" if not tape_air else "周砚把那段录音留在硬盘里，没有播。"
+	var bag_b := "陈默把钥匙留在失物招领柜。" if not bag_return else "陈默把钥匙带回了隧道，再没有出来。"
 	if kind == "A":
 		hud_end_title.text = "结局 A · 零点之后"
-		hud_end.text = "00:16:43，手动进路被取消。\n00:17，工程车与三道隔离。0017 在二道停稳，车门没有打开。\n\n「本次列车暂停服务。今晚的延误不是故障，是一份迟到了十七年的记录。」\n\n第二天，林远舟的名字从事故责任人一栏移出。\n" + lan_a + "\n" + tape_a + "\n" + bag_a
+		hud_end.text = "00:16:43，手动进路被取消。\n00:17，工程车与三道隔离。0017 在二道停稳，车门没有打开。\n\n「今晚的延误不是故障，是一份迟到了十七年的记录。」\n\n第二天，林远舟的名字从事故责任人一栏移出。\n" + lan_a + "\n" + tape_a + "\n" + bag_a + "\n\n三天后，第二封没有寄件人的信到了。\n落款：诡异事务局。"
 	elif kind == "B":
 		hud_end_title.text = "结局 B · 最后一班"
-		hud_end.text = "00:16:50，0017 被手动送进检修环线。空工程车驶入四道。\n\n「设备故障已排除，0017 次取消运行。请乘客改乘接驳车辆，感谢配合。」\n\n今晚没有人伤亡。公开通报没有出现任何人的名字。\n" + lan_b + "\n" + tape_b + "\n" + bag_b
+		hud_end.text = "00:16:50，0017 被手动送进检修环线。空工程车驶入四道。\n\n「设备故障已排除，0017 次取消运行。请乘客改乘接驳车辆，感谢配合。」\n\n今晚没有人伤亡。公开通报没有出现任何人的名字。\n" + lan_b + "\n" + tape_b + "\n" + bag_b + "\n\n你在保密协议上签字。抬头印着：\n诡异事务局 · 外勤支援科。"
 	elif kind == "C":
 		hud_end_title.text = "结局 C · 第二十八个 00:17"
-		hud_end.text = "00:17。0017 次没有停。\n\n你又一次回到 23:50。钟还在走，五号继电器还在慢半拍。\n\n这一次，你连那 19 个名字都没能带出来。"
+		hud_end.text = "00:17。0017 次没有停。\n\n你又一次回到 23:50。钟还在走，五号继电器还在慢半拍。\n\n这一次，你连那 19 个名字都没能带出来。\n\n你在 23:50 醒来。入职通知书背面多了一行：\n「不要相信 00:17。」"
 	hud_end.modulate.a = 0.0
 	var tw := create_tween()
 	tw.tween_property(hud_end, "modulate:a", 1.0, 0.8)
@@ -1178,6 +1658,7 @@ func _show_end(kind: String) -> void:
 		player.allow_capture = false
 
 # ------------------------------------------------------------------ 对话 / 交互
+
 func _interact() -> void:
 	if prompt != null:
 		ring_flash = 1.0      # 目标脚下那一圈闪一下，确认这一下按下去了
@@ -1198,6 +1679,9 @@ func _interact() -> void:
 		dialog_idx += 1
 		_advance_dialog()
 		return
+	if (sub != "" or not sub_queue.is_empty()) and prompt == null:
+		_skip_sub_line()
+		return
 	if prompt == null:
 		return
 	if prompt["kind"] == "stand":
@@ -1212,6 +1696,8 @@ func _interact() -> void:
 		_press_button(prompt["idx"])
 	elif prompt["kind"] == "door":
 		_toggle_door(prompt["door"])
+	elif prompt["kind"] == "prologue":
+		_prologue_act(String(prompt["id"]))
 	else:
 		_act(prompt["id"])
 
@@ -1221,27 +1707,33 @@ func _resolve_choice(allow: bool) -> void:
 		choice_text = ""
 		if allow:
 			_give_clue(0)
-			_say("林岚", "工牌划过端口的一瞬间，红灯迟了半秒才亮。")
-			_say("旁白", "获得「红灯延迟记录」。")
+			_say_seq("林岚", "工牌划过端口的一瞬间，红灯迟了半秒才亮。")
+			_say_seq("旁白", "获得「红灯延迟记录」。")
+			_say_seq("林岚", "这次别再替他们签字。")
 		else:
-			_say("林岚", "你最好记住这半秒。")
+			_say_seq("林岚", "你最好记住这半秒。")
+			_say_seq("林岚", "你可以不让我进去，但你拦不住那趟车。")
 			dialog_npc["said"] = false
 	elif chooser_a == "air":
 		tape_air = allow
 		choice_text = ""
 		play_click()
 		if allow:
-			_say("周砚", "……好。我会播。但你别指望所有人都会感谢你。")
+			_say_seq("周砚", "……好。我会播。但你别指望所有人都会感谢你。")
+			_say_seq("周砚", "节目播出后，如果我先消失，记得去听重播。")
 		else:
-			_say("周砚", "我把带子删掉。今晚之后，没有人会再听见它。")
+			_say_seq("周砚", "我把带子删掉。今晚之后，没有人会再听见它。")
+			_say_seq("旁白", "删除进度走到 100%。周砚没有备份。")
 	elif chooser_a == "return":
 		bag_return = allow
 		choice_text = ""
 		play_click()
 		if allow:
-			_say("陈默", "……谢谢。至少让我把包还给他。")
+			_say_seq("陈默", "……谢谢。至少让我把包还给他。")
+			_say_seq("陈默", "包里的工牌还在。名字被水泡花了，但还能认出来。")
 		else:
-			_say("陈默", "钥匙我带走。它不该留在这里。")
+			_say_seq("陈默", "钥匙我带走。它不该留在这里。")
+			_say_seq("旁白", "陈默看了你很久，最后只说了两个字：小心。")
 
 func _give_clue(idx: int) -> void:
 	var it: Dictionary = items[idx]
@@ -1264,7 +1756,8 @@ func _talk(np: Dictionary) -> void:
 		dialog = [
 			"你回来了。爸的名字还挂在事故责任栏里。",
 			"五号继电器的反馈慢了半秒。和十七年前一样。",
-			"让我进控制室——那个端口十七年前就封了，我的工牌能打开它。",
+			"爸交班前总把钥匙放在左边第二个抽屉。他说，右手要留给刹车。",
+			"让我进控制室。那个端口十七年前就封了，我的工牌能打开它。",
 		]
 		dialog_npc = np
 		dialog_idx = -1
@@ -1272,12 +1765,14 @@ func _talk(np: Dictionary) -> void:
 	elif round == 1 and np["name"] == "周砚":
 		dialog = [
 			"别关站内广播。我在做一期节目，叫《谁弄丢了 0017》。",
+			"三天前，有人把一盘磁带塞进我台里的信箱。寄件人那一栏，写着你父亲的名字。",
 			"刚才那声不是电流，是有人在喊车次。让我听完整的。",
 		]
 		dialog_npc = np; dialog_idx = -1; _advance_dialog()
 	elif round == 2 and np["name"] == "陈默":
 		dialog = [
-			"十七年前，我叫邵国安。三道里那 19 个人，有我弟弟。只有我出来了。",
+			"十七年前，我叫邵国安。三道里那 19 个人，有我弟弟，邵国平。",
+			"那天他替我值最后一班。他说，哥，你回去陪妈吃面。",
 			"这只包在失物柜里放了十七年。今天有人用我的名字把它取出来，我得送回去。",
 			"一把旧钥匙而已。站里换了系统，这样的东西早就没用了。",
 		]
@@ -1299,23 +1794,26 @@ func _after_talk() -> void:
 	if nm == "林岚":
 		choice = {"key_a": KEY_E, "key_b": KEY_R}
 		chooser_a = "A"; chooser_b = "no"
-		choice_text = "[E] 允许她接入旧继电器端口　[R] 拒绝"
+		choice_text = "[E] 让她接入旧继电器端口　[R] 把她挡在门外"
 		hud_prompt.text = choice_text
 	elif nm == "周砚":
 		_give_clue(1)
-		_say("周砚", "三道有人，改四道。")
-		_say("旁白", "可官方报告写着——三道无人。获得「倒放广播」。")
+		_say_seq("周砚", "三道有人，改四道。")
+		_say_seq("旁白", "可官方报告写着——三道无人。获得「倒放广播」。")
+		_say_seq("周砚", "这不是鬼故事。是有人把 19 条人命从记录里剪掉了。")
 		choice = {"key_a": KEY_E, "key_b": KEY_R}
 		chooser_a = "air"; chooser_b = "delete"
-		choice_text = "[E] 让他把录音播出去　[R] 让他删掉"
+		choice_text = "[E] 让录音播出　[R] 删掉带子"
 		hud_prompt.text = choice_text
 	elif nm == "陈默":
 		_give_clue(2); _give_clue(3)
-		_say("陈默", "三道有人。不是车，是人。十七年前我叫邵国安；那 19 个人里，有我弟弟。只有我出来了。")
-		_say("旁白", "获得「停用钥匙」和「巡检簿」。")
+		_say_seq("陈默", "三道有人。不是车，是人。十七年前我叫邵国安；那 19 个人里，有我弟弟。只有我出来了。")
+		_say_seq("旁白", "获得「停用钥匙」和「巡检簿」。")
+		_say_seq("陈默", "我跑到三道口的时候，门已经从里面锁上了。")
+		_say_seq("陈默", "这十七年，我每天都在想，那把锁是谁锁的。")
 		choice = {"key_a": KEY_E, "key_b": KEY_R}
 		chooser_a = "return"; chooser_b = "keep"
-		choice_text = "[E] 把包还给他　[R] 留下钥匙"
+		choice_text = "[E] 把包还给他　[R] 收起钥匙"
 		hud_prompt.text = choice_text
 
 func _press_button(idx: int) -> void:
@@ -1341,73 +1839,80 @@ func _act(id: String) -> void:
 			power = true
 			play_relay(0.82)
 			_cost(45)
-			_say("旁白", "闸刀合上的一瞬间，整条站台的灯都暗了一下，再亮起来。")
+			_say_seq("旁白", "闸刀合上的一瞬间，整条站台的灯都暗了一下，再亮起来。")
 		"console":
 			_cost(15)
-			_say("调度台", "进路表上一次被人改过，改的时间被涂掉了——只留下一行小字：按调度席指令执行。")
+			_say_seq("调度台", "进路表上一次被人改过，改的时间被涂掉了——只留下一行小字：按调度席指令执行。")
+			if _has_clue(0) or saw_lag:
+				_say_seq("旁白", "你把红灯记录和监控里的那半秒对在一起。不是设备慢，是有人在那半秒里动了手。")
 		"seat":
 			player.sit_at(prompt["spot"]["seat"]["pos"], float(prompt["spot"]["seat"]["yaw"]))
-			_say("旁白", "你坐了下来。按 E 或方向键起身。")
+			_say_seq("旁白", "你坐了下来。按 E 或方向键起身。")
 		"handle":
 			if _got_count() < 5:
 				play_relay(0.62)
-				_say("旁白", "手柄推不动。继电器没有响。")
+				_say_seq("旁白", "手柄推不动。继电器没有响。")
 				return
 			play_relay(1.08)
 			_cost(60)
 			if clock_min >= T_LOCK:
 				late = true
-				_say("旁白", "手柄推到底了。可继电器没有响——它比它该有的时间，慢了半秒。")
+				_say_seq("旁白", "手柄推到底了。可继电器没有响——它比它该有的时间，慢了半秒。")
 			else:
 				handle = true
-				_say("调度台", "进路已锁。0017 次，二道停车。")
+				_say_seq("调度台", "进路已锁。0017 次，二道停车。")
 		"board":
 			_read_board()
 		"divert":
 			if not (_has_clue(2) or _has_clue(3)):
-				_say("旁白", "道岔锁着。锁扣上刻着两个字：停用。得有那把钥匙，或者巡检簿上的记录。")
+				_say_seq("旁白", "道岔锁着。锁扣上刻着两个字：停用。得有那把钥匙，或者巡检簿上的记录。")
 				return
 			divert = true
 			_cost(35)
 			play_relay(0.90)
 			_set_switch_green(true)
-			_say("旁白", "钥匙插进锁孔，锁扣弹开。道岔扳过去的时候，钢轨在黑暗里挪了一寸。")
-			_say("站内广播", "进路变更。0017 次，改走检修环线。")
+			_say_seq("旁白", "钥匙插进锁孔，锁扣弹开。道岔扳过去的时候，钢轨在黑暗里挪了一寸。")
+			_say_seq("站内广播", "进路变更。0017 次，改走检修环线。")
+			_say_seq("旁白", "轨道在黑暗里挪了一寸。你听见远处传来一声很轻的刹车。")
 		"pc":
 			_open_pc()
 		"studio_mic":
 			play_chime(0.55, -12.0)
-			_say("广播台", "……电流声。麦克风还开着。")
+			_say_seq("广播台", "……电流声。麦克风还开着。")
 			if round == 1:
-				_say("周砚", "别对着它说话。它会录下来。")
+				_say_seq("周砚", "别对着它说话。它会录下来。")
+				_say_seq("旁白", "你看见录音键自己弹了起来。")
 		"studio_dial":
 			studio_freq_idx = (studio_freq_idx + 1) % 3
 			play_relay(0.70)
 			if studio_freq_idx == 2:
 				if round >= 1:
-					_say("广播台", "……0017。无信号。\n……三道有人。改四道。")
+					_say_seq("广播台", "……0017。无信号。\n……三道有人。改四道。")
 					if not _has_clue(1):
 						_give_clue(1)
-						_say("旁白", "收音机里传来一句倒放的话。获得「倒放广播」。")
+						_say_seq("旁白", "收音机里传来一句倒放的话。获得「倒放广播」。")
+					_say_seq("旁白", "频率刻度停在 0017。旋钮冷得像一块冰。")
 				else:
-					_say("广播台", "……0017。无信号。……三道有人。改四道。")
-					_say("旁白", "你听见了一句不该出现在这个时间的话。")
+					_say_seq("广播台", "……0017。无信号。……三道有人。改四道。")
+					_say_seq("旁白", "你听见了一句不该出现在这个时间的话。")
 			elif studio_freq_idx == 0:
-				_say("广播台", "88.7 岚桥交通台：……末班车……")
+				_say_seq("广播台", "88.7 岚桥交通台：……末班车……")
 			else:
-				_say("广播台", "101.7 夜间节目：……谁弄丢了 0017……")
+				_say_seq("广播台", "101.7 夜间节目：……谁弄丢了 0017……")
 		"studio_onair":
 			studio_onair_on = not studio_onair_on
 			play_relay(0.90)
 			if studio_onair_mat != null:
 				studio_onair_mat.emission_energy_multiplier = 2.6 if studio_onair_on else 0.2
-			_say("广播台", "ON AIR 灯亮了。整座站台都能听见你。" if studio_onair_on else "ON AIR 灯灭了。")
+			_say_seq("广播台", "ON AIR 灯亮了。整座站台都能听见你。" if studio_onair_on else "ON AIR 灯灭了。")
+			if studio_onair_on:
+				_say_seq("旁白", "你听见自己的呼吸从站台尽头传回来，延迟了半秒。")
 		"studio_tape":
 			if not _has_clue(1):
-				_say("广播台", "磁带架最上层有一盘没有标签的带子。背面写着：2009.11.03 / 三道。")
-				_say("旁白", "把频率调到 0017，也许能听见它。")
+				_say_seq("广播台", "磁带架最上层有一盘没有标签的带子。背面写着：2009.11.03 / 三道。")
+				_say_seq("旁白", "把频率调到 0017，也许能听见它。")
 			else:
-				_say("广播台", "磁带架上空了一格。标签还在：2009.11.03 / 三道。")
+				_say_seq("广播台", "磁带架上空了一格。标签还在：2009.11.03 / 三道。")
 
 func _cost(sec: float) -> void:
 	clock_min += sec / 60.0
@@ -1425,6 +1930,13 @@ func _got_count() -> int:
 
 # ------------------------------------------------------------------ 交互检测
 func _update_interaction() -> void:
+	if state == "prologue":
+		_update_prologue_interaction()
+		return
+	if state.begins_with("prologue"):
+		prompt = null
+		hud_prompt.text = ""
+		return
 	if choice != null and state == "play":
 		hud_prompt.text = choice_text
 		return
@@ -1563,6 +2075,9 @@ func _update_prompt_ring(delta: float) -> void:
 				ok = true
 			"spot":
 				p = prompt["spot"]["pos"]
+				ok = true
+			"prologue":
+				p = prompt["pos"]
 				ok = true
 	if not ok:
 		prompt_ring.visible = false
@@ -1734,6 +2249,17 @@ func _animate_items(delta: float) -> void:
 		i += 1
 
 func _update_hud() -> void:
+	if state.begins_with("prologue"):
+		hud_clock.visible = false
+		hud_cam.visible = false
+		hud_map.visible = false
+		hud_objective.visible = true
+		hud_objective.text = prologue_objective
+		return
+	if state != "menu":
+		hud_objective.visible = false
+		hud_clock.visible = true
+		hud_map.visible = true
 	var m := int(floor(clock_min))
 	var mm := ((m % 1440) + 1440) % 1440
 	var ss := int((clock_min - floor(clock_min)) * 60.0)
@@ -1808,24 +2334,65 @@ func _has_clue(i: int) -> bool:
 	return items[i]["got"]
 
 # ------------------------------------------------------------------ 字幕
-func _say(who: String, text: String) -> void:
+func _clear_sub() -> void:
+	sub = ""
+	sub_queue.clear()
+	sub_pause = false
+	hud_sub.text = ""
+	hud_sub_title.text = ""
+
+func _show_sub(who: String, text: String, hold: float, pause := false) -> void:
 	hud_sub_title.text = who
 	sub = text
 	sub_time = 0.0
+	sub_hold = hold
+	sub_pause = pause
 	hud_sub.text = ""
 	print("[", who, "] ", text)
 
+func _say(who: String, text: String, hold := 3.5) -> void:
+	sub_queue.clear()
+	sub_pause = false
+	_show_sub(who, text, hold, false)
+
+func _say_seq(who: String, text: String, hold := 2.2, pause := true) -> void:
+	if sub == "" and sub_queue.is_empty():
+		_show_sub(who, text, hold, pause)
+	else:
+		sub_queue.append({"who": who, "text": text, "hold": hold, "pause": pause})
+
+func _next_sub() -> void:
+	if sub_queue.is_empty():
+		sub = ""
+		sub_pause = false
+		hud_sub.text = ""
+		hud_sub_title.text = ""
+		return
+	var n: Dictionary = sub_queue.pop_front()
+	_show_sub(String(n["who"]), String(n["text"]), float(n.get("hold", 2.2)), bool(n.get("pause", true)))
+
+func _skip_sub_line() -> void:
+	if sub == "":
+		_next_sub()
+		return
+	var shown := int(sub_time * sub_cps)
+	if shown < sub.length():
+		sub_time = sub.length() / sub_cps + 0.01
+		hud_sub.text = sub
+	else:
+		_next_sub()
+
 func _update_sub(delta: float) -> void:
 	if sub == "":
+		if not sub_queue.is_empty():
+			_next_sub()
 		return
 	sub_time += delta
 	var shown := int(sub_time * sub_cps)
 	shown = mini(shown, sub.length())
 	hud_sub.text = sub.substr(0, shown)
-	if shown >= sub.length() and sub_time > sub.length() / sub_cps + 3.5:
-		sub = ""
-		hud_sub.text = ""
-		hud_sub_title.text = ""
+	if shown >= sub.length() and sub_time > sub.length() / sub_cps + sub_hold:
+		_next_sub()
 
 func _fade_to(a: float, dur: float) -> void:
 	var tw := create_tween()
@@ -1860,7 +2427,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if state == "play":
 				_toggle_cctv_review()
 		elif event.physical_keycode == KEY_B:
-			_toggle_bag(not bag_open)
+			if state == "play":
+				_toggle_bag(not bag_open)
 		elif event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_5:
 			_set_sel(event.physical_keycode - KEY_1)
 			_refresh_items_ui()
@@ -1870,7 +2438,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				clock_min = T_ARRIVE
 				_say("旁白", "你决定提前结束这班。")
 		elif event.physical_keycode == KEY_ESCAPE:
-			if bag_open:
+			if state == "prologue_ui":
+				_close_letter()
+			elif state == "prologue" or state == "prologue_transition":
+				pass
+			elif bag_open:
 				_toggle_bag(false)
 			elif state == "play":
 				state = "paused"
@@ -2168,7 +2740,7 @@ func _make_menu() -> void:
 	warn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	warn.text = "当前浏览器使用软件渲染（SwiftShader），帧率会很低。请在浏览器设置中开启「使用图形加速」后重开页面。"
 	warn.visible = web_gpu_is_software
-	menu.start_game.connect(_on_start)
+	menu.start_game.connect(_on_new_game)
 	menu.load_slot.connect(_on_load_slot)
 	menu.save_slot.connect(_on_save_slot)
 	menu._pause_wants_save.connect(func():
@@ -2213,10 +2785,12 @@ func _show_menu() -> void:
 		player.allow_capture = false
 		player.dragging = false
 
-func _on_start() -> void:
+func _reset_case() -> void:
 	if round_summary != null:
 		round_summary.visible = false
 	stop_train()
+	if player != null and player.sitting:
+		player.stand_up()
 	round = -2
 	_once_flags.clear()
 	power = false; sr_open = false; handle = false; late = false; divert = false; shown_end = ""
@@ -2225,6 +2799,14 @@ func _on_start() -> void:
 	_set_switch_green(false)
 	for it in items: it["got"] = false
 	for b in buttons: b["done"] = false
+
+func _on_new_game() -> void:
+	_reset_case()
+	_start_prologue()
+	_hide_menu()
+
+func _on_start() -> void:
+	_reset_case()
 	_start_round()
 	state = "play"
 	_hide_menu()
@@ -2544,11 +3126,12 @@ func _read_board() -> void:
 			txt += "\n· " + String(ITEM_DEFS[i]["name"])
 	if saw_lag:
 		txt += "\n· 监控里那半秒（CAM 07 岔区）"
+	_say_seq("旁白", txt)
 	if got_n >= 5:
-		txt += "\n\n五条记录连起来：00:16:43 那道手动进路，本来就不该存在。"
-	_say("旁白", txt)
+		_say_seq("旁白", "五条记录连起来：十七年前，三道有人；进路被改到四道；红灯晚了半秒；钥匙和巡检簿证明这是手动操作；五号继电器让同一个半秒在今晚重演。")
 
 ## 彩蛋：两把「停用钥匙」的落点。A 结局放回调度台面（原文「放在桌上」），B 结局留在失物招领柜格子（原文「留在失物招领柜」）
+
 func _make_ending_props() -> void:
 	var kd := {"id": "key", "col": Color(0.88, 0.64, 0.29)}
 	ending_key_cab = _make_item_model(kd)

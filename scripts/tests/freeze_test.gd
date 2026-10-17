@@ -8,6 +8,9 @@ func _process(_d: float) -> bool:
     f += 1
     if f == 20:
         game._on_start()
+        game.sub = ""
+        game.sub_queue.clear()
+        game.sub_pause = false
         game.clock_min = 1456.95
     elif f == 300:
         print("[F] 预览中 phase=", game.cut_phase, " can_move=", game.player.can_move, " 过场机位在用=", (game.cutcam != null and game.cutcam.current))

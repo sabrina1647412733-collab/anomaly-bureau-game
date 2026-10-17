@@ -10,6 +10,9 @@ func _process(_d: float) -> bool:
     f += 1
     if f == 20:
         game._on_start()
+        game.sub = ""
+        game.sub_queue.clear()
+        game.sub_pause = false
         game.clock_min = 1456.95
     elif f > 40:
         if t0 < 0:

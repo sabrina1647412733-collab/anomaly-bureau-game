@@ -12,6 +12,9 @@ func _run() -> void:
 		await process_frame
 	game._on_start()
 	game.round_card.visible = false
+	game.sub = ""
+	game.sub_queue.clear()
+	game.sub_pause = false
 	game.clock_min = 1457.1
 	var t0 := Time.get_ticks_msec()
 	while game.state != "cutscene" and Time.get_ticks_msec() - t0 < 3000:

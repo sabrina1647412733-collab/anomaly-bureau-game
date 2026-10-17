@@ -75,6 +75,9 @@ func _process(_d: float) -> bool:
                 print("  车头在 z=%.0f → %s" % [z, _cars()])
             print("  路径总长=", game.train.total_len(), " 终点 s=", game._dv_end_s)
         160:
+            game.sub = ""
+            game.sub_queue.clear()
+            game.sub_pause = false
             game.clock_min = 1457.2
         260:
             print("[B] 过场中 state=", game.state, " phase=", game.cut_phase, " 车头 z=%.1f" % game.train.cars[0].position.z)

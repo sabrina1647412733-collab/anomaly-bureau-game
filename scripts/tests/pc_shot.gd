@@ -25,4 +25,10 @@ func _run() -> void:
 	var img2: Image = root.get_texture().get_image()
 	img2.save_png("res://_预览/look/pc_事故名单.png")
 	print("[SHOT] pc_事故名单 ", img2.get_width(), "x", img2.get_height())
+	game.pc_overlay.call("_show_notice")
+	for i in range(10): await process_frame
+	await RenderingServer.frame_post_draw
+	var img3: Image = root.get_texture().get_image()
+	img3.save_png("res://_预览/look/pc_入职须知.png")
+	print("[SHOT] pc_入职须知 ", img3.get_width(), "x", img3.get_height())
 	quit()

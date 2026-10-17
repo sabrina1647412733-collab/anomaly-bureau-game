@@ -26,6 +26,9 @@ func _run() -> void:
 	game._on_start()
 	for i in range(10):
 		await process_frame
+	game.sub = ""
+	game.sub_queue.clear()
+	game.sub_pause = false
 	game.clock_min = 1457.01
 	var t0 := Time.get_ticks_msec()
 	while game.state != "cutscene" and Time.get_ticks_msec() - t0 < 3000:
