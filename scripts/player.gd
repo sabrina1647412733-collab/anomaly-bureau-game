@@ -239,7 +239,12 @@ func _build_body() -> void:
 		el.add_child(_mesh_cyl(Vector3(0.120, 0.34, 0.120), coat, Vector3(0, -0.17, 0), 0.044))          # 小臂
 		el.add_child(_mesh_cyl(Vector3(0.108, 0.024, 0.108), shirt, Vector3(0, -0.268, 0)))        # 露出来的衬衫袖口
 		el.add_child(_mesh_cyl(Vector3(0.116, 0.060, 0.116), coat.darkened(0.30), Vector3(0, -0.302, 0)))  # 制服袖口
-		el.add_child(_mesh_box(Vector3(0.086, 0.106, 0.094), skin, Vector3(0, -0.372, -0.008)))    # 手（缩小内收，被袖口压住上沿）
+		# 手：掌 + 四指 + 拇指（原来是一块 8.6x10.6x9.4cm 的皮肤色方块，像戴了拳击手套）
+		el.add_child(_mesh_bevbox(Vector3(0.078, 0.080, 0.046), skin, Vector3(0, -0.390, -0.008), 0.008))
+		for fi in range(4):
+			var fx := -0.026 + float(fi) * 0.017
+			el.add_child(_mesh_bevbox(Vector3(0.015, 0.052, 0.022), skin, Vector3(fx, -0.442, -0.008), 0.005))
+		el.add_child(_mesh_bevbox(Vector3(0.020, 0.046, 0.024), skin, Vector3(-sgn * 0.046, -0.408, -0.020), 0.006))
 		var hp := _joint("hip" + sfx, body, Vector3(sgn * 0.11, 0.84, 0))
 		hp.add_child(_mesh_cyl(Vector3(0.192, 0.40, 0.192), dark, Vector3(0, -0.20, 0), 0.074))          # 大腿
 		var kn := _joint("knee" + sfx, hp, Vector3(0, -0.40, 0))

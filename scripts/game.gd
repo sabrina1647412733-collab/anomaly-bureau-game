@@ -530,7 +530,11 @@ func _npc(nm: String, pos: Vector3, accent: Color, show_round: int) -> Dictionar
 		_part(upper, "armL" + sfx, Vector3(sgn * 0.250, -0.010, -0.030), Vector3(0.110, 0.31, 0.118), cloth, 0.0, true, Vector3.ZERO, false, 0.0, 0.044)
 		# 袖口：袖管压住手掌上沿 2cm，手不再是一块飘在袖子下面的浅色方块
 		_part(upper, "cuff" + sfx, Vector3(sgn * 0.250, -0.132, -0.030), Vector3(0.104, 0.058, 0.112), cloth.darkened(0.28), 0.0, true)
-		_part(upper, "hand" + sfx, Vector3(sgn * 0.250, -0.196, -0.046), Vector3(0.088, 0.108, 0.096), skin)
+		# 手：掌 + 四指 + 拇指
+		_part(upper, "palm" + sfx, Vector3(sgn * 0.250, -0.205, -0.046), Vector3(0.078, 0.080, 0.046), skin, 0.0, false, Vector3.ZERO, false, 0.008)
+		for fi in range(4):
+			_part(upper, "finger" + sfx + str(fi), Vector3(sgn * 0.250 - 0.026 + float(fi) * 0.017, -0.257, -0.046), Vector3(0.015, 0.052, 0.022), skin, 0.0, false, Vector3.ZERO, false, 0.005)
+		_part(upper, "thumb" + sfx, Vector3(sgn * 0.250 - sgn * 0.046, -0.223, -0.058), Vector3(0.020, 0.046, 0.024), skin, 0.0, false, Vector3.ZERO, false, 0.006)
 	# 及膝长大衣下摆（挂在躯干节点上；上沿顶到躯干底 1.03，下摆底 0.60，大腿在这个深度只摆 ±0.15，包得住）
 	if long_coat:
 		_part(upper, "coatSkirt", Vector3(0, -0.180, 0), Vector3(0.402, 0.430, 0.288), cloth, 0.0, false, Vector3.ZERO, false, 0.024)
