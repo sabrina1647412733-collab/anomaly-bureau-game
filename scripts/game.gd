@@ -54,6 +54,16 @@ var prologue_spots: Array = []
 var prologue_envelope: MeshInstance3D = null
 var prologue_reader_mat: StandardMaterial3D = null
 var prologue_room_facade_window: MeshInstance3D = null
+var prologue_mat_cache: Dictionary = {}
+const PRO_PALETTE := [
+	Color(0.10, 0.10, 0.11), Color(0.16, 0.16, 0.17), Color(0.22, 0.20, 0.18), Color(0.30, 0.28, 0.25),
+	Color(0.40, 0.38, 0.34), Color(0.52, 0.48, 0.42), Color(0.70, 0.68, 0.62), Color(0.86, 0.84, 0.76),
+	Color(0.24, 0.18, 0.14), Color(0.40, 0.28, 0.18), Color(0.58, 0.42, 0.26),
+	Color(0.16, 0.22, 0.28), Color(0.26, 0.36, 0.46), Color(0.42, 0.56, 0.70),
+	Color(0.18, 0.26, 0.20), Color(0.30, 0.46, 0.34),
+	Color(0.42, 0.18, 0.16), Color(0.66, 0.30, 0.22),
+	Color(0.80, 0.66, 0.38), Color(0.95, 0.78, 0.48), Color(0.60, 0.62, 0.60),
+]
 var prologue_ui: CanvasLayer = null
 var prologue_paper: Control = null
 var prologue_paper_text: Label = null
@@ -485,6 +495,29 @@ func _close_letter() -> void:
 	_ring_phone()
 
 func _pro_mat(c: Color, emit := 0.0) -> StandardMaterial3D:
+	var ci := 0
+	var best := 1e9
+	for i in range(PRO_PALETTE.size()):
+		var p: Color = PRO_PALETTE[i]
+		var d := (p.r - c.r) * (p.r - c.r) + (p.g - c.g) * (p.g - c.g) + (p.b - c.b) * (p.b - c.b)
+		if d < best:
+			best = d
+			ci = i
+	var key := "%d|%.1f" % [ci, emit]
+	if prologue_mat_cache.has(key):
+		return prologue_mat_cache[key]
+	var pc: Color = PRO_PALETTE[ci]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = pc
+	m.roughness = 0.82
+	if emit > 0.0:
+		m.emission_enabled = true
+		m.emission = pc
+		m.emission_energy_multiplier = emit
+	prologue_mat_cache[key] = m
+	return m
+
+func _pro_mat_unique(c: Color, emit := 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
 	m.roughness = 0.82
@@ -543,6 +576,8 @@ func _make_prologue_world() -> void:
 	prologue_roots["street"].position = Vector3.ZERO
 	_build_pro_room(prologue_roots["room"])
 	_build_pro_street(prologue_roots["street"])
+	_merge_static_meshes(prologue_roots["room"])
+	_merge_static_meshes(prologue_roots["street"])
 
 func _build_pro_room(root: Node3D) -> void:
 	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.22, 0.20, 0.18))
@@ -571,6 +606,31 @@ func _build_pro_room(root: Node3D) -> void:
 	_pro_box(root, Vector3(-1.62, 1.65, 2.38), Vector3(0.18, 1.55, 0.08), Color(0.22, 0.25, 0.30), false)
 	_pro_box(root, Vector3(1.62, 1.65, 2.38), Vector3(0.18, 1.55, 0.08), Color(0.22, 0.25, 0.30), false)
 	_pro_box(root, Vector3(0, 0.38, 2.36), Vector3(1.8, 0.46, 0.16), Color(0.32, 0.32, 0.31), false)
+	# 踢脚线 / 门把手 / 开关 / 插座 / 暖气管道 / 生活杂物
+	_pro_box(root, Vector3(0, 0.10, -2.43), Vector3(5.9, 0.12, 0.05), Color(0.62, 0.58, 0.50), false)
+	_pro_box(root, Vector3(-2.93, 0.10, 0), Vector3(0.05, 0.12, 4.9), Color(0.62, 0.58, 0.50), false)
+	_pro_box(root, Vector3(2.93, 0.10, 0), Vector3(0.05, 0.12, 4.9), Color(0.62, 0.58, 0.50), false)
+	_pro_box(root, Vector3(0.42, 1.05, -2.37), Vector3(0.10, 0.05, 0.05), Color(0.72, 0.58, 0.30), false, 0.35)
+	_pro_box(root, Vector3(0.62, 1.32, -2.42), Vector3(0.12, 0.18, 0.04), Color(0.82, 0.80, 0.72), false)
+	_pro_box(root, Vector3(0.62, 1.32, -2.39), Vector3(0.05, 0.06, 0.02), Color(0.40, 0.38, 0.34), false)
+	_pro_box(root, Vector3(-1.42, 0.42, 2.36), Vector3(0.05, 0.64, 0.05), Color(0.34, 0.32, 0.30), false)
+	_pro_box(root, Vector3(1.42, 0.42, 2.36), Vector3(0.05, 0.64, 0.05), Color(0.34, 0.32, 0.30), false)
+	_pro_box(root, Vector3(0.80, 0.28, 2.34), Vector3(0.12, 0.14, 0.10), Color(0.55, 0.42, 0.26), false)
+	_pro_box(root, Vector3(1.95, 0.42, 0.94), Vector3(0.10, 0.12, 0.06), Color(0.74, 0.72, 0.64), false)
+	_pro_box(root, Vector3(1.45, 0.42, 0.94), Vector3(0.10, 0.12, 0.06), Color(0.74, 0.72, 0.64), false)
+	_pro_box(root, Vector3(2.40, 0.22, 1.70), Vector3(0.40, 0.44, 0.40), Color(0.16, 0.20, 0.18))
+	_pro_box(root, Vector3(2.40, 0.46, 1.70), Vector3(0.44, 0.06, 0.44), Color(0.10, 0.14, 0.12), false)
+	_pro_box(root, Vector3(-2.62, 0.18, 1.75), Vector3(0.55, 0.36, 0.55), Color(0.24, 0.25, 0.27))
+	_pro_box(root, Vector3(-2.62, 0.38, 1.75), Vector3(0.48, 0.08, 0.48), Color(0.35, 0.32, 0.30), false)
+	_pro_box(root, Vector3(-2.58, 0.46, 1.74), Vector3(0.28, 0.10, 0.22), Color(0.52, 0.30, 0.24), false)
+	_pro_box(root, Vector3(-2.40, 0.52, 1.72), Vector3(0.18, 0.08, 0.18), Color(0.30, 0.42, 0.48), false)
+	_pro_box(root, Vector3(1.12, 0.82, 0.44), Vector3(0.22, 0.04, 0.16), Color(0.58, 0.30, 0.24), false)
+	_pro_box(root, Vector3(1.08, 0.87, 0.42), Vector3(0.22, 0.03, 0.16), Color(0.30, 0.42, 0.52), false)
+	_pro_box(root, Vector3(-1.50, 0.84, -1.70), Vector3(0.12, 0.08, 0.10), Color(0.76, 0.74, 0.68), false)
+	_pro_box(root, Vector3(-1.50, 0.90, -1.70), Vector3(0.08, 0.10, 0.08), Color(0.56, 0.34, 0.24), false)
+	_pro_box(root, Vector3(1.42, 1.15, 0.20), Vector3(0.50, 0.06, 0.50), Color(0.34, 0.31, 0.28), false)
+	_pro_box(root, Vector3(1.42, 1.12, 0.20), Vector3(0.38, 0.03, 0.38), Color(0.16, 0.16, 0.16), false, 0.8)
+	_pro_box(root, Vector3(0, 2.42, 2.34), Vector3(3.2, 0.04, 0.04), Color(0.22, 0.20, 0.18), false)
 	# 床：单人床架 + 床垫 + 床单 + 被子 + 枕头 + 床头板 + 床下收纳
 	for lx in [-2.88, -1.82]:
 		for lz in [-2.04, -0.16]:
@@ -694,6 +754,37 @@ func _build_pro_street_residential(root: Node3D) -> void:
 	addr.modulate = Color(0.95, 0.80, 0.52)
 	addr.position = Vector3(0, 2.85, 324.70)
 	root.add_child(addr)
+	# 窗框 / 空调外机 / 落水管 / 阳台 / 入口雨棚 / 信箱 / 门灯
+	for fl in range(3):
+		var wy := 1.7 + float(fl) * 3.0
+		for wx in [-4.0, -1.0, 2.0]:
+			_pro_box(root, Vector3(wx, wy, 324.80), Vector3(1.28, 0.06, 0.05), Color(0.20, 0.18, 0.16), false)
+			_pro_box(root, Vector3(wx, wy, 324.80), Vector3(0.06, 1.48, 0.05), Color(0.20, 0.18, 0.16), false)
+			_pro_box(root, Vector3(wx, wy - 0.78, 324.72), Vector3(1.35, 0.08, 0.18), Color(0.30, 0.27, 0.23), false)
+	for ac in [Vector3(-4.0, 2.6, 324.62), Vector3(2.0, 5.6, 324.62)]:
+		_pro_box(root, ac, Vector3(0.72, 0.48, 0.28), Color(0.65, 0.64, 0.58))
+		_pro_box(root, ac + Vector3(0, -0.30, 0), Vector3(0.80, 0.06, 0.34), Color(0.22, 0.22, 0.22), false)
+		_pro_box(root, ac + Vector3(0, -0.02, 0.16), Vector3(0.56, 0.06, 0.03), Color(0.24, 0.24, 0.22), false)
+	_pro_box(root, Vector3(-5.65, 7.8, 324.80), Vector3(0.10, 15.2, 0.10), Color(0.26, 0.24, 0.21))
+	for cy in [2.0, 5.0, 8.0, 11.0, 14.0]:
+		_pro_box(root, Vector3(-5.65, cy, 324.74), Vector3(0.18, 0.06, 0.16), Color(0.18, 0.18, 0.17), false)
+	_pro_box(root, Vector3(-1.0, 3.05, 326.0), Vector3(2.2, 0.10, 0.85), Color(0.30, 0.27, 0.23))
+	for bx in [-1.86, -0.14]:
+		_pro_box(root, Vector3(bx, 3.65, 325.82), Vector3(0.04, 1.1, 0.04), Color(0.18, 0.18, 0.18), false)
+	_pro_box(root, Vector3(-1.0, 4.18, 325.82), Vector3(2.2, 0.04, 0.04), Color(0.18, 0.18, 0.18), false)
+	for px in [-1.7, -1.0, -0.3]:
+		_pro_box(root, Vector3(px, 3.65, 325.82), Vector3(0.04, 0.96, 0.04), Color(0.18, 0.18, 0.18), false)
+	_pro_box(root, Vector3(-1.0, 3.85, 325.62), Vector3(0.46, 0.42, 0.03), Color(0.52, 0.34, 0.26), false)
+	_pro_box(root, Vector3(-0.45, 3.85, 325.62), Vector3(0.36, 0.42, 0.03), Color(0.30, 0.42, 0.52), false)
+	_pro_box(root, Vector3(0, 2.75, 326.15), Vector3(1.9, 0.10, 0.85), Color(0.20, 0.18, 0.16))
+	_pro_box(root, Vector3(0, 2.40, 324.70), Vector3(0.28, 0.22, 0.12), Color(0.80, 0.66, 0.38), false, 0.9)
+	_pro_box(root, Vector3(-1.18, 1.25, 324.70), Vector3(0.55, 0.72, 0.10), Color(0.24, 0.28, 0.24))
+	for my in [1.08, 1.28, 1.48]:
+		_pro_box(root, Vector3(-1.18, my, 324.64), Vector3(0.42, 0.02, 0.03), Color(0.10, 0.10, 0.10), false)
+	_pro_box(root, Vector3(0.95, 1.30, 324.70), Vector3(0.18, 0.28, 0.06), Color(0.78, 0.76, 0.66), false)
+	_pro_box(root, Vector3(0.95, 1.36, 324.66), Vector3(0.07, 0.04, 0.02), Color(0.20, 0.20, 0.18), false)
+	_pro_box(root, Vector3(3.2, 17.6, 325.0), Vector3(0.04, 2.0, 0.04), Color(0.18, 0.18, 0.18), false)
+
 func _build_pro_street_shops(root: Node3D) -> void:
 	_pro_box(root, Vector3(10.5, 1.45, 324.85), Vector3(4.6, 2.5, 0.10), Color(0.20, 0.17, 0.14), false)
 	_pro_box(root, Vector3(10.5, 1.40, 324.78), Vector3(4.2, 2.2, 0.04), Color(0.95, 0.66, 0.30), false, 0.85)
@@ -712,6 +803,27 @@ func _build_pro_street_shops(root: Node3D) -> void:
 	shop.modulate = Color(0.55, 0.95, 0.65)
 	shop.position = Vector3(10.5, 3.45, 324.75)
 	root.add_child(shop)
+	# 便利店内部：地砖 / 吊灯 / 冷柜 / 收银机 / 价签 / 菜单 / 门垫
+	for tx in range(4):
+		for tz in range(2):
+			var tc := Color(0.44, 0.42, 0.37) if (tx + tz) % 2 == 0 else Color(0.36, 0.35, 0.32)
+			_pro_box(root, Vector3(9.2 + float(tx) * 0.72, 0.065, 324.25 + float(tz) * 0.62), Vector3(0.68, 0.02, 0.58), tc, false)
+	for lx in [9.2, 10.5, 11.8]:
+		_pro_box(root, Vector3(lx, 2.62, 324.55), Vector3(0.90, 0.06, 0.18), Color(0.92, 0.88, 0.74), false, 1.1)
+	_pro_box(root, Vector3(8.35, 1.05, 324.45), Vector3(1.05, 2.0, 0.60), Color(0.18, 0.22, 0.24))
+	_pro_box(root, Vector3(8.90, 1.10, 324.12), Vector3(0.78, 1.72, 0.03), Color(0.36, 0.52, 0.62), false, 0.30)
+	for fy in [0.62, 1.06, 1.50, 1.92]:
+		_pro_box(root, Vector3(8.90, fy, 324.08), Vector3(0.76, 0.04, 0.04), Color(0.66, 0.68, 0.66), false)
+		for fx in [8.62, 8.90, 9.18]:
+			_pro_box(root, Vector3(fx, fy + 0.12, 324.05), Vector3(0.12, 0.20, 0.06), Color(0.58, 0.22, 0.16) if fx < 8.8 else Color(0.24, 0.48, 0.30), false)
+	_pro_box(root, Vector3(11.48, 1.47, 325.44), Vector3(0.42, 0.30, 0.30), Color(0.12, 0.12, 0.12))
+	_pro_box(root, Vector3(11.48, 1.62, 325.44), Vector3(0.30, 0.08, 0.04), Color(0.30, 0.50, 0.42), false, 0.4)
+	_pro_box(root, Vector3(10.5, 2.22, 324.62), Vector3(1.65, 0.58, 0.05), Color(0.12, 0.14, 0.13))
+	for my in [2.06, 2.20, 2.34]:
+		_pro_box(root, Vector3(10.5, my, 324.58), Vector3(1.40, 0.025, 0.03), Color(0.70, 0.68, 0.56), false)
+	_pro_box(root, Vector3(10.5, 0.02, 326.10), Vector3(1.6, 0.02, 0.55), Color(0.20, 0.24, 0.22), false)
+	for px in [9.3, 9.8, 10.3, 10.8, 11.3, 11.7]:
+		_pro_box(root, Vector3(px, 1.03, 325.80), Vector3(0.22, 0.10, 0.04), Color(0.80, 0.74, 0.52), false, 0.25)
 	_pro_box(root, Vector3(18.5, 3.0, 325.1), Vector3(6.0, 6.0, 0.45), Color(0.22, 0.23, 0.25))
 	_pro_box(root, Vector3(18.5, 1.1, 324.82), Vector3(1.5, 2.2, 0.08), Color(0.08, 0.08, 0.09), false)
 	_pro_box(root, Vector3(18.5, 3.7, 324.72), Vector3(4.2, 0.34, 0.10), Color(0.35, 0.42, 0.48), false, 0.35)
@@ -723,7 +835,7 @@ func _build_pro_street_shops(root: Node3D) -> void:
 	st.modulate = Color(0.62, 0.78, 0.92)
 	st.position = Vector3(18.5, 4.2, 324.68)
 	root.add_child(st)
-	prologue_reader_mat = _pro_mat(Color(0.70, 0.12, 0.10), 1.4)
+	prologue_reader_mat = _pro_mat_unique(Color(0.70, 0.12, 0.10), 1.4)
 	var rd := MeshInstance3D.new()
 	var rb := BoxMesh.new()
 	rb.size = Vector3(0.24, 0.34, 0.07)
@@ -731,6 +843,21 @@ func _build_pro_street_shops(root: Node3D) -> void:
 	rd.position = Vector3(19.55, 1.32, 324.72)
 	rd.material_override = prologue_reader_mat
 	root.add_child(rd)
+	# 员工通道：瓷砖缝 / 告示栏 / 摄像头 / 黄线 / 台阶 / 门把手 / 对讲机
+	for tx in [15.8, 16.6, 17.4, 18.2, 19.0, 19.8, 20.6, 21.4]:
+		_pro_box(root, Vector3(tx, 3.0, 324.86), Vector3(0.025, 5.8, 0.02), Color(0.30, 0.32, 0.33), false)
+	for ty in [0.4, 1.0, 1.6, 2.2, 2.8, 3.4, 4.0, 4.6, 5.2]:
+		_pro_box(root, Vector3(18.5, ty, 324.86), Vector3(5.8, 0.025, 0.02), Color(0.30, 0.32, 0.33), false)
+	_pro_box(root, Vector3(17.0, 1.65, 324.78), Vector3(1.1, 0.85, 0.05), Color(0.68, 0.66, 0.58), false)
+	_pro_box(root, Vector3(17.0, 1.65, 324.74), Vector3(0.92, 0.66, 0.02), Color(0.82, 0.80, 0.68), false)
+	for ny in [1.50, 1.62, 1.74]:
+		_pro_box(root, Vector3(17.0, ny, 324.72), Vector3(0.72, 0.012, 0.02), Color(0.30, 0.30, 0.26), false)
+	_pro_box(root, Vector3(20.75, 4.0, 324.64), Vector3(0.18, 0.12, 0.12), Color(0.10, 0.10, 0.10), false)
+	_pro_box(root, Vector3(20.75, 3.98, 324.56), Vector3(0.06, 0.06, 0.03), Color(0.60, 0.18, 0.14), false, 1.0)
+	_pro_box(root, Vector3(18.5, 0.02, 326.0), Vector3(5.0, 0.02, 0.08), Color(0.90, 0.70, 0.18), false, 0.2)
+	_pro_box(root, Vector3(18.5, 0.08, 325.35), Vector3(3.0, 0.16, 0.85), Color(0.40, 0.40, 0.37))
+	_pro_box(root, Vector3(19.05, 1.05, 324.74), Vector3(0.06, 0.06, 0.05), Color(0.72, 0.58, 0.30), false)
+	_pro_box(root, Vector3(20.25, 1.40, 324.72), Vector3(0.18, 0.30, 0.05), Color(0.76, 0.74, 0.64), false)
 	for bx in [-9.0, 1.0, 11.0, 21.0]:
 		var bh := 9.0 + float(int(abs(bx)) % 4) * 2.2
 		_pro_box(root, Vector3(bx, bh * 0.5, 337.2), Vector3(8.2, bh, 2.4), Color(0.16, 0.17, 0.19))
@@ -762,6 +889,72 @@ func _build_pro_street_props(root: Node3D) -> void:
 		_pro_box(root, Vector3(px, 0.012, 330.2), Vector3(2.2, 0.01, 0.8), Color(0.10, 0.16, 0.22), false, 0.18)
 	_pro_box(root, Vector3(-2.8, 2.0, 327.0), Vector3(0.08, 1.2, 0.8), Color(0.34, 0.28, 0.22), false)
 	_pro_box(root, Vector3(22.8, 1.2, 327.0), Vector3(0.08, 2.4, 0.6), Color(0.18, 0.20, 0.22), false)
+func _merge_static_meshes(root: Node3D) -> void:
+	var groups := {}
+	for child in root.get_children():
+		if not (child is MeshInstance3D):
+			continue
+		var mi: MeshInstance3D = child
+		if mi.mesh == null or mi.material_override == null or not mi.visible:
+			continue
+		if mi == prologue_envelope or mi == prologue_room_facade_window:
+			continue
+		if mi.material_override == prologue_reader_mat:
+			continue
+		var key: Material = mi.material_override
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(mi)
+	for mat in groups.keys():
+		var list: Array = groups[mat]
+		if list.size() < 2:
+			continue
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for mi in list:
+			var src: Mesh = mi.mesh
+			for surf in range(src.get_surface_count()):
+				st.append_from(src, surf, mi.transform)
+		var merged := ArrayMesh.new()
+		st.commit(merged)
+		var out := MeshInstance3D.new()
+		out.name = "MergedStatic"
+		out.mesh = merged
+		out.material_override = mat
+		root.add_child(out)
+		for mi in list:
+			mi.visible = false
+
+	# 排水沟 / 井盖 / 电缆 / 垃圾袋 / 街牌 / 卷帘门
+	for gx in [-5.0, 4.0, 13.0, 22.0]:
+		_pro_box(root, Vector3(gx, 0.02, 327.80), Vector3(0.55, 0.02, 0.22), Color(0.08, 0.09, 0.09), false)
+		for gy in [-0.18, 0.0, 0.18]:
+			_pro_box(root, Vector3(gx, 0.035, 327.80 + gy), Vector3(0.50, 0.02, 0.03), Color(0.22, 0.23, 0.22), false)
+	for mx in [1.0, 16.0]:
+		_pro_box(root, Vector3(mx, 0.025, 330.0), Vector3(0.62, 0.02, 0.62), Color(0.10, 0.11, 0.11), false, 0.1)
+	for cy in [5.6, 5.85, 6.1]:
+		_pro_box(root, Vector3(9.0, cy, 328.35), Vector3(22.0, 0.025, 0.025), Color(0.08, 0.08, 0.08), false)
+	_pro_box(root, Vector3(-1.6, 0.22, 326.2), Vector3(0.34, 0.34, 0.34), Color(0.16, 0.18, 0.16))
+	_pro_box(root, Vector3(-1.25, 0.16, 326.35), Vector3(0.26, 0.26, 0.26), Color(0.12, 0.14, 0.12))
+	_pro_box(root, Vector3(3.2, 2.4, 327.3), Vector3(0.06, 2.2, 0.06), Color(0.18, 0.18, 0.18))
+	_pro_box(root, Vector3(3.2, 3.4, 327.3), Vector3(0.52, 0.72, 0.05), Color(0.28, 0.32, 0.30), false)
+	var road_sign := Label3D.new()
+	road_sign.font = font
+	road_sign.text = "临江里"
+	road_sign.font_size = 48
+	road_sign.pixel_size = 0.010
+	road_sign.modulate = Color(0.78, 0.82, 0.80)
+	road_sign.position = Vector3(3.2, 3.4, 327.25)
+	root.add_child(road_sign)
+	_pro_box(root, Vector3(5.4, 1.5, 324.90), Vector3(2.0, 2.6, 0.10), Color(0.20, 0.20, 0.19))
+	for sy in [0.75, 1.05, 1.35, 1.65, 1.95, 2.25]:
+		_pro_box(root, Vector3(5.4, sy, 324.83), Vector3(1.9, 0.035, 0.03), Color(0.30, 0.30, 0.28), false)
+	_pro_box(root, Vector3(13.8, 0.48, 326.2), Vector3(1.1, 0.08, 0.08), Color(0.18, 0.18, 0.18), false)
+	for bx in [13.35, 14.25]:
+		_pro_box(root, Vector3(bx, 0.25, 326.2), Vector3(0.05, 0.50, 0.50), Color(0.18, 0.18, 0.18), false)
+	_pro_box(root, Vector3(18.0, 1.0, 327.0), Vector3(0.08, 2.0, 0.08), Color(0.18, 0.20, 0.22), false)
+	_pro_box(root, Vector3(18.0, 2.15, 327.0), Vector3(0.70, 0.40, 0.06), Color(0.30, 0.40, 0.46), false)
+
 func _start_prologue() -> void:
 	prologue_seen.clear()
 	prologue_letter_ready = false

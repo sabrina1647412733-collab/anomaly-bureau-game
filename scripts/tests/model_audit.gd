@@ -5,7 +5,7 @@ func _initialize() -> void:
 	root.add_child(game)
 	_run()
 func _count(n: Node, acc: Dictionary) -> void:
-	if n is MeshInstance3D:
+	if n is MeshInstance3D and n.visible:
 		acc.mesh += 1
 		var mi: MeshInstance3D = n
 		if mi.mesh != null:

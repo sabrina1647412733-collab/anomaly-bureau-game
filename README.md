@@ -1218,3 +1218,13 @@ Web 低画质档（只在 `OS.has_feature("web")` 生效）：
 - `prologue_test`：出租屋 → 信件 UI → 接线员 → 临江里街道 → 便利店 → 车站入口 → 第 1 轮，PASS。
 - `flow_test`、`skip_test`、`roundsummary`、`feature_test`、`audio_test`、`ending_a_test`、`narrative_test`、`audit` 全部 PASS。
 - 截图：`_预览/look/prologue_room.png`、`prologue_letter.png`、`prologue_street.png`、`prologue_store.png`、`prologue_station.png`。
+
+#### 51-1 · 序章建模精修（材质合批 + 生活细节）
+
+- 材质：新增序章调色板与材质缓存，227 个独立材质压到 46 个；静态同材质网格自动合批，序章可见网格从 227 降到 135，同时新增了大量细节。
+- 出租屋：新增踢脚线、门把手、开关、插座、暖气管道/阀门、垃圾桶、洗衣篮、床头柜、台灯、窗帘杆、书本、杯子、床下收纳、床头螺栓；床重做为单人床架 + 床垫 + 床单 + 被子 + 枕头 + 床头板。
+- 临江里 17 号：新增窗框/窗台、空调外机、落水管、阳台栏杆、晾衣、入口雨棚、信箱、门灯、屋顶天线。
+- 街道：新增排水沟、井盖、电缆、垃圾袋、街牌、卷帘门、自行车、水洼、路缘与车道线。
+- 便利店：新增地砖、吊灯、冷柜、饮料、收银机、菜单、价签、门垫、货架商品。
+- 员工通道：新增瓷砖缝、告示栏、摄像头、黄线、台阶、门把手、对讲机。
+- 验收：`prologue_test`、`flow_test`、`skip_test`、`roundsummary`、`feature_test`、`audio_test`、`ending_a_test`、`narrative_test`、`audit` 全部 PASS。
