@@ -1330,3 +1330,12 @@ Web 低画质档（只在 `OS.has_feature("web")` 生效）：
 
 - `prologue_test`、`store_flow_test`、`flow_test`、`skip_test`、`roundsummary`、`feature_test`、`audio_test`、`ending_a_test`、`narrative_test`、`layout_check`、`audit` 全部 PASS。
 - 截图：`rail_01_side.png`、`rail_02_along.png`、`rail_03_tunnel.png`、`rail_04_branch.png`、`train_01_side.png`、`train_02_platform.png`、`train_03_front.png`。
+
+### 56 · Web 贴图压缩与包体收尾
+
+- 背景：序章 Hero 资产接入后，Web 包体从 23 MB 涨到 151 MB，主要原因是出租屋的 2K PBR 贴图全部按原尺寸进包，网页首次加载过重。
+- 处理：把 `assets/` 下所有最长边大于 1024 的 JPG/PNG 统一缩到 1024 并重新压缩；共 24 张贴图，源文件 68.42 MB → 5.46 MB，节省 62.95 MB。布局、UV、材质引用均未改动。
+- 重新导出：`deploy/game/index.pck` 73.84 MB，`0017-网页版.zip` 83.12 MB；`NotoSansSC-Regular.otf` 的 7.39 MB 仍随包内嵌，保证 Web 中文正常。
+- 验收：`prologue_test` / `store_flow_test` PASS；`audit` 0 座位异常、0 物品异常；headless 30 秒无 `SCRIPT ERROR`；`webverify.ps1` 报告 WebGL 2.0 / Compatibility / 场景就绪。
+- 备注：这一轮只压贴图，不改模型、剧情、UI、存档与交互。若还要继续降包体，优先处理 `potted_plant_01` 的 5.3 MB 网格，并对字体做子集化。
+
