@@ -35,13 +35,18 @@ const MATS := {
     "glass":  {"color":Color(0.12,0.18,0.22), "rough":0.06, "metal":0.06, "spec":0.8, "alpha":0.34},   # 玻璃：半透明，走 glass_panel.gdshader
     "dark":   {"color":Color(0.12,0.13,0.15), "rough":0.75, "metal":0},
     "rust":   {"color":Color(0.31,0.29,0.27), "rough":0.9, "metal":0},
+    "ballast":{"color":Color(0.24,0.23,0.21), "rough":0.97, "metal":0},
+    "sleeper":{"color":Color(0.41,0.41,0.39), "rough":0.90, "metal":0},
+    "railrust":{"color":Color(0.36,0.27,0.19), "rough":0.82, "metal":0.18},
+    "third":  {"color":Color(0.50,0.43,0.30), "rough":0.45, "metal":0.45},
+    "insulator":{"color":Color(0.52,0.30,0.16), "rough":0.50, "metal":0},
     "lamp":   {"color":Color(0.85,0.72,0.42), "emission":Color(0.95,0.72,0.34), "energy":1.35, "rough":0.45, "metal":0},
     "lampC":  {"color":Color(0.55,0.70,0.86), "emission":Color(0.45,0.70,0.95), "energy":0.905, "rough":0.35, "metal":0},
     "sign":   {"color":Color(0.16,0.34,0.52), "emission":Color(0.45,0.72,0.98), "energy":0.95, "rough":0.4, "metal":0},
     "glow":   {"color":Color(0.34,0.34,0.36), "emission":Color(1.0,1.0,1.0), "energy":1.05, "rough":0.5, "metal":0},
     "exit":   {"color":Color(0.10,0.42,0.24), "emission":Color(0.32,0.88,0.52), "energy":0.90, "rough":0.45, "metal":0},
     "clock":  {"color":Color(0.10,0.06,0.02), "emission":Color(0.88,0.64,0.29), "energy":1.20, "rough":0.4, "metal":0},
-    "trainA": {"color":Color(0.67,0.69,0.72), "rough":0.26, "metal":0.35},                                   # 不锈钢车体
+    "trainA": {"color":Color(0.80,0.82,0.85), "rough":0.26, "metal":0.35},                                   # 不锈钢车体
     "trainB": {"color":Color(0.07,0.09,0.12), "rough":0.6, "metal":0},
     "trainC": {"color":Color(0.15,0.35,0.61), "rough":0.35, "metal":0.1},                                   # 蓝色腰线
     "trainW": {"color":Color(0.10,0.15,0.20), "rough":0.7, "metal":0},

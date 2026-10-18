@@ -526,7 +526,7 @@ func _make_prologue_ui() -> void:
 		sub2.text = "第 一 夜 · 0 0 : 1 7"
 		sub2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		var hint := _label(prologue_end_card, 0, Vector2(400, 540), Vector2(800, 30), 15, Color(0.46, 0.50, 0.48))
-		hint.text = "按 R 重新开始"
+		hint.text = "按 E 开门　按 R 重新开始"
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if prologue_travel_card == null:
 		prologue_travel_card = Control.new()
@@ -1001,7 +1001,8 @@ func _build_pro_street(root: Node3D) -> void:
 	_build_pro_street_shops(prologue_street_city)
 	_build_pro_street_props(prologue_street_city)
 	prologue_spots.append({"stage":"street", "id":"counter", "pos":Vector3(10.5, 1.05, 325.9), "r":2.3})
-	prologue_spots.append({"stage":"street", "id":"reader", "pos":Vector3(19.55, 1.32, 325.55), "r":2.2})
+	prologue_spots.append({"stage":"station", "id":"reader", "pos":Vector3(19.55, 1.32, 325.55), "r":2.2})
+	prologue_spots.append({"stage":"station", "id":"travel", "pos":Vector3(18.5, 1.15, 326.3), "r":2.0})
 
 func _build_pro_store(root: Node3D) -> void:
 	# 独立的 8 x 6 米便利店室内：门在 +Z，冷柜在后墙，货架在左墙，收银台在右墙。
@@ -1177,6 +1178,42 @@ func _build_pro_store(root: Node3D) -> void:
 	root.add_child(clock)
 	for px in [-2.2, -1.6, 1.7, 2.2]:
 		_pro_box(root, Vector3(px, 1.92, -3.02), Vector3(0.34, 0.46, 0.02), palette[(int(abs(px) * 10.0)) % palette.size()], false, 0.12)
+	# 收银台后的店员：低多边形人偶，静止待机，后续可接动作
+	var clerk := Node3D.new()
+	clerk.name = "StoreClerk"
+	clerk.position = Vector3(3.62, 0.0, 0.55)
+	clerk.rotation.y = PI * 0.5
+	root.add_child(clerk)
+	var skin := Color(0.86, 0.70, 0.58)
+	var hair := Color(0.08, 0.07, 0.06)
+	var shirt := Color(0.86, 0.88, 0.84)
+	var apron := Color(0.14, 0.36, 0.27)
+	var pants := Color(0.12, 0.14, 0.16)
+	for sgn in [-1.0, 1.0]:
+		var sfx := "L" if sgn < 0 else "R"
+		_part(clerk, "leg" + sfx, Vector3(sgn * 0.10, 0.42, 0), Vector3(0.17, 0.84, 0.20), pants, 0.0, true)
+		_part(clerk, "shoe" + sfx, Vector3(sgn * 0.10, 0.045, -0.04), Vector3(0.16, 0.09, 0.25), Color(0.06, 0.06, 0.07), 0.0, false, Vector3.ZERO, false, 0.012)
+		_part(clerk, "arm" + sfx, Vector3(sgn * 0.28, 1.16, -0.02), Vector3(0.12, 0.52, 0.13), shirt, 0.0, true)
+		_part(clerk, "hand" + sfx, Vector3(sgn * 0.28, 0.87, -0.07), Vector3(0.09, 0.09, 0.06), skin, 0.0, false, Vector3.ZERO, false, 0.01)
+	_part(clerk, "torso", Vector3(0, 1.24, 0), Vector3(0.50, 0.68, 0.30), shirt, 0.0, false, Vector3.ZERO, false, 0.03)
+	_part(clerk, "apron", Vector3(0, 1.18, -0.17), Vector3(0.44, 0.54, 0.04), apron, 0.0, false, Vector3.ZERO, false, 0.01)
+	_part(clerk, "apronPocket", Vector3(0.12, 1.08, -0.20), Vector3(0.14, 0.12, 0.02), apron.darkened(0.15), 0.0, false, Vector3.ZERO, false, 0.006)
+	_part(clerk, "nameTag", Vector3(-0.12, 1.36, -0.195), Vector3(0.10, 0.06, 0.012), Color(0.92, 0.86, 0.66), 0.0, false, Vector3.ZERO, false, 0.004)
+	_part(clerk, "neck", Vector3(0, 1.56, 0), Vector3(0.12, 0.12, 0.12), skin, 0.0, false, Vector3.ZERO, false, 0.01)
+	_part(clerk, "head", Vector3(0, 1.72, 0), Vector3(0.30, 0.32, 0.28), skin, 0.0, false, Vector3.ZERO, true)
+	_part(clerk, "hair", Vector3(0, 1.84, 0.02), Vector3(0.32, 0.12, 0.30), hair, 0.0, false, Vector3.ZERO, true)
+	for ex in [-0.06, 0.06]:
+		_part(clerk, "eye" + ("L" if ex < 0 else "R"), Vector3(ex, 1.73, -0.145), Vector3(0.025, 0.025, 0.012), Color(0.06, 0.05, 0.05), 0.0, false, Vector3.ZERO, true)
+	_part(clerk, "mouth", Vector3(0, 1.65, -0.145), Vector3(0.06, 0.012, 0.01), Color(0.40, 0.22, 0.20), 0.0, false, Vector3.ZERO, false, 0.004)
+	var clerk_lbl := Label3D.new()
+	clerk_lbl.font = font
+	clerk_lbl.text = "店员"
+	clerk_lbl.font_size = 42
+	clerk_lbl.pixel_size = 0.006
+	clerk_lbl.modulate = Color(0.86, 0.82, 0.66)
+	clerk_lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	clerk_lbl.position = Vector3(0, 2.10, 0)
+	clerk.add_child(clerk_lbl)
 	prologue_spots.append({"stage":"store", "id":"counter", "pos":Vector3(2.15, 1.15, 500.45), "r":1.95})
 	prologue_spots.append({"stage":"store", "id":"fridge", "pos":Vector3(-0.75, 1.48, 497.68), "r":2.25})
 	prologue_spots.append({"stage":"store", "id":"shelf", "pos":Vector3(-2.95, 1.30, 500.20), "r":2.05})
@@ -1765,6 +1802,7 @@ func _start_prologue() -> void:
 	prologue_radio_played = false
 	prologue_wallphone_checked = false
 	prologue_photo_checked = false
+	prologue_travel_return_state = "prologue"
 	var radio_light_off = get_meta("room_radio_light", null)
 	if radio_light_off != null:
 		radio_light_off.visible = false
@@ -1793,6 +1831,8 @@ func _start_prologue() -> void:
 	if prologue_end_card != null:
 		prologue_end_card.visible = false
 		prologue_end_card.modulate.a = 0.0
+	if prologue_travel_card != null:
+		prologue_travel_card.visible = false
 	if prologue_clock_label != null:
 		prologue_clock_label.visible = false
 		prologue_clock_label.modulate.a = 0.0
@@ -1985,9 +2025,11 @@ func _prologue_act(id: String) -> void:
 				_show_letter_ui()
 			elif not prologue_call_done:
 				_say_seq("旁白", "电话还在响。先接电话。")
-			else:
+			elif not prologue_anomaly_done:
 				_say_seq("旁白", "门锁着。门缝里有雾渗进来。")
 				_say_seq("林屿", "先看看窗外。")
+			else:
+				_open_travel_menu()
 		"counter":
 			if not prologue_store_done:
 				prologue_store_done = true
@@ -1997,9 +2039,34 @@ func _prologue_act(id: String) -> void:
 				_say_seq("店员", "岚桥站？")
 				_say_seq("林屿", "……你怎么知道？")
 				_say_seq("店员", "你工牌露出来了。")
+				_say_seq("店员", "你父亲的班，也是这个点。")
 				_say_seq("旁白", "你用旧钞买了一份关东煮。收据上的时间印着 00:17。")
+				_say_seq("旁白", "店员把找零压在收据下面。背面有一行铅笔字：员工通道，刷旧工牌。")
 			else:
 				_say_seq("店员", "关东煮要凉了。")
+		"fridge":
+			if not prologue_seen.has("store_fridge"):
+				_prologue_mark_seen("store_fridge")
+				_say_seq("旁白", "冷柜最里面有一瓶没有标签的水。瓶身的水珠是温的。")
+				_say_seq("林屿", "……这瓶水是谁放进来的？")
+			else:
+				_say_seq("旁白", "冷柜的压缩机响了三下，像有人隔着墙敲门。")
+		"shelf":
+			if not prologue_seen.has("store_shelf"):
+				_prologue_mark_seen("store_shelf")
+				_say_seq("旁白", "货架最上层少了一包泡面。空出来的位置，刚好能放下那张值班表。")
+				_say_seq("林屿", "……尺寸一模一样。")
+			else:
+				_say_seq("旁白", "泡面还是少一包。")
+		"magazine":
+			if not prologue_seen.has("store_magazine"):
+				_prologue_mark_seen("store_magazine")
+				_say_seq("旁白", "杂志封面是十七年前的岚桥站。照片里，站台上站着一个人，脸被闪光灯烧白了。")
+				_say_seq("林屿", "这张照片，和床头那张是同一个角度。")
+			else:
+				_say_seq("旁白", "杂志上的日期永远是 2009 年 11 月。")
+		"travel":
+			_open_travel_menu()
 		"reader":
 			if prologue_reader_done:
 				return
@@ -2018,14 +2085,74 @@ func _prologue_leave_room() -> void:
 	_say_seq("旁白", "临江里 17 号。雨还没停。街口的便利店还亮着。")
 
 func _open_travel_menu() -> void:
-	# 交互在建模收尾后接入；先保留空实现，保证场景可编译。
-	pass
+	if prologue_travel_card == null:
+		return
+	prologue_travel_return_state = state
+	state = "prologue_travel"
+	player.can_move = false
+	player.lock_look = true
+	player.allow_capture = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if hud_prompt != null:
+		hud_prompt.text = ""
+	var station_open := prologue_store_done
+	prologue_travel_store_btn.text = "1  24H 便利店" + ("（当前）" if prologue_stage == "store" else "")
+	prologue_travel_store_btn.disabled = (prologue_stage == "store")
+	if station_open:
+		prologue_travel_station_btn.text = "2  岚桥站 · 员工通道" + ("（当前）" if prologue_stage == "station" else "")
+	else:
+		prologue_travel_station_btn.text = "2  岚桥站 · 未解锁（先去便利店）"
+	prologue_travel_station_btn.disabled = (not station_open) or prologue_stage == "station"
+	prologue_travel_card.visible = true
+	prologue_travel_card.modulate.a = 0.0
+	create_tween().tween_property(prologue_travel_card, "modulate:a", 1.0, 0.18)
 
 func _close_travel_menu() -> void:
-	pass
+	if prologue_travel_card != null:
+		prologue_travel_card.visible = false
+	if prologue_travel_return_state == "prologue_end":
+		state = "prologue_end"
+		player.can_move = false
+		player.lock_look = true
+		player.allow_capture = false
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		if prologue_end_card != null:
+			prologue_end_card.visible = true
+			prologue_end_card.modulate.a = 1.0
+	else:
+		state = "prologue"
+		player.can_move = true
+		player.lock_look = false
+		player.allow_capture = true
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
-func _travel_to(_place: String) -> void:
-	pass
+func _travel_to(place: String) -> void:
+	if place == "station" and not prologue_store_done:
+		return
+	if place != "store" and place != "station":
+		return
+	if prologue_travel_card != null:
+		prologue_travel_card.visible = false
+	state = "prologue_transition"
+	player.can_move = false
+	player.lock_look = true
+	_fade_to(1.0, 0.45)
+	await get_tree().create_timer(0.55).timeout
+	if prologue_end_card != null:
+		prologue_end_card.visible = false
+		prologue_end_card.modulate.a = 0.0
+	prologue_objective = "去柜台买点热的" if place == "store" else "刷工牌进站"
+	_show_prologue_stage(place)
+	_fade_to(0.0, 0.55)
+	state = "prologue"
+	player.can_move = true
+	player.lock_look = false
+	player.allow_capture = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if place == "store":
+		_say_seq("旁白", "门在身后合上。便利店的灯白得发冷，关东煮的锅还冒着热气。")
+	else:
+		_say_seq("旁白", "员工通道的门开着一条缝。读卡器亮着红灯。")
 
 func _prologue_use_badge() -> void:
 	state = "prologue_transition"
@@ -2123,9 +2250,21 @@ func _prologue_label(sp: Dictionary) -> String:
 				return "捡起信封"
 			if not prologue_call_done:
 				return "先接电话"
-			return "门"
+			if not prologue_anomaly_done:
+				return "先看看窗外"
+			return "开门 · 选择地点"
 		"counter":
 			return "便利店柜台"
+		"fridge":
+			return "冷柜"
+		"shelf":
+			return "货架"
+		"magazine":
+			return "杂志架"
+		"travel":
+			if String(sp.get("stage", "")) == "station":
+				return "回临江里"
+			return "开门 · 选择地点"
 		"reader":
 			return "刷工牌"
 	return "查看"
@@ -3664,10 +3803,24 @@ func _fade_to(a: float, dur: float) -> void:
 	tw.tween_property(hud_fade, "modulate:a", a, dur)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if state == "prologue_travel":
+		if event is InputEventKey and event.pressed and not event.echo:
+			match event.physical_keycode:
+				KEY_1:
+					_travel_to("store")
+				KEY_2:
+					if prologue_store_done:
+						_travel_to("station")
+				KEY_3, KEY_ESCAPE:
+					_close_travel_menu()
+		return
 	if state == "prologue_end":
-		if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_R:
-			_start_prologue()
-			_fade_to(0.0, 0.5)
+		if event is InputEventKey and event.pressed and not event.echo:
+			if event.physical_keycode == KEY_E:
+				_open_travel_menu()
+			elif event.physical_keycode == KEY_R:
+				_start_prologue()
+				_fade_to(0.0, 0.5)
 		return
 	if state == "minigame":
 		if event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:

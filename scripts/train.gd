@@ -116,7 +116,7 @@ func lights_on(v: bool) -> void:
             l.light_energy = SPOT_ON if v else 0.02
         elif l is OmniLight3D:
             l.visible = v
-            l.light_energy = OMNI_ON if v else 0.04
+            l.light_energy = (3.0 if l.has_meta("side_light") else OMNI_ON) if v else 0.04
 
 # ------------------------------------------------------------------ 几何
 func _build_car(b, car: Node3D, is_head: bool, is_tail: bool) -> void:
@@ -127,21 +127,48 @@ func _build_car(b, car: Node3D, is_head: bool, is_tail: bool) -> void:
     b.box("trainA", Vector3(_x(2.56), yB, z1), Vector3(_x(5.44), yT, z0), false)
     b.box("rubber", Vector3(_x(2.50), yT - 0.02, z1), Vector3(_x(5.50), yT + 0.24, z0), false)
     b.box("dark", Vector3(_x(2.62), TY + 0.02, z1), Vector3(_x(5.38), yB + 0.04, z0), false)
+    # 车顶空调 / 通风器 / 车顶筋
+    for az in [z0 - 3.2, z0 - 9.2, z0 - 15.2]:
+        b.box("trainA", Vector3(_x(3.15), yT + 0.24, az - 1.05), Vector3(_x(4.85), yT + 0.50, az + 1.05), false)
+        b.box("dark", Vector3(_x(3.05), yT + 0.50, az - 1.15), Vector3(_x(4.95), yT + 0.54, az + 1.15), false)
+    for ri in range(1, 18):
+        var rz := z0 - float(ri) * 1.15
+        b.box("trainA", Vector3(_x(2.70), yT + 0.24, rz - 0.025), Vector3(_x(5.30), yT + 0.27, rz + 0.025), false)
+    # 开车灯时照亮车侧与站台边缘，避免整列车在黑暗里只剩一块黑板
+    var side_l := OmniLight3D.new()
+    side_l.position = Vector3(_x(1.20), TY + 2.2, -CAR_LEN * 0.5)
+    side_l.light_color = Color(0.80, 0.87, 1.0)
+    side_l.light_energy = 6.0
+    side_l.omni_range = 12.0
+    side_l.shadow_enabled = false
+    side_l.visible = false
+    side_l.set_meta("side_light", true)
+    car.add_child(side_l)
+    lamps.append(side_l)
     b.box("trainC", Vector3(_x(2.53), TY + 1.55, z1), Vector3(_x(5.47), TY + 1.80, z0), false)
     b.box("red", Vector3(_x(2.52), TY + 1.44, z1), Vector3(_x(5.48), TY + 1.53, z0), false)
     b.box("trainB", Vector3(_x(2.545), TY + 0.62, z1), Vector3(_x(5.455), TY + 1.48, z0), false)
     for w in range(4):
         var wz := z0 - 2.6 - float(w) * 4.3
-        b.box("trainWin", Vector3(_x(2.52), TY + 0.78, wz - 1.35), Vector3(_x(5.48), TY + 1.42, wz - 0.05), false)
+        b.box("trainWin", Vector3(_x(2.43), TY + 0.78, wz - 1.35), Vector3(_x(5.57), TY + 1.42, wz - 0.05), false)
     for d in range(3):
         var dz := z0 - 1.2 - float(d) * 6.0
         b.box("trainB", Vector3(_x(2.50), yB + 0.02, dz - 1.35), Vector3(_x(5.50), yT + 0.02, dz - 0.05), false)
         b.box("trainWin", Vector3(_x(2.49), TY + 1.05, dz - 1.28), Vector3(_x(5.51), TY + 2.06, dz - 0.12), false)
+        for lx2 in [2.49, 5.51]:
+            b.box("red", Vector3(_x(lx2 - 0.015), TY + 2.12, dz - 0.10), Vector3(_x(lx2 + 0.015), TY + 2.20, dz + 0.10), false, "n")
     for bz in [z0 - 3.1, z1 + 3.1]:
         b.box("dark", Vector3(_x(2.85), TY + 0.06, bz - 1.05), Vector3(_x(5.15), TY + 0.50, bz + 1.05), false)
         for wx in [3.05, 4.95]:
             b.box("metalD", Vector3(_x(wx - 0.09), TY + 0.02, bz - 0.62), Vector3(_x(wx + 0.09), TY + 0.40, bz - 0.42), false)
             b.box("metalD", Vector3(_x(wx - 0.09), TY + 0.02, bz + 0.42), Vector3(_x(wx + 0.09), TY + 0.40, bz + 0.62), false)
+        # 转向架构架 / 轴箱 / 弹簧 / 第三轨集电靴
+        b.box("metalD", Vector3(_x(2.78), TY + 0.34, bz - 0.90), Vector3(_x(5.22), TY + 0.46, bz + 0.90), false)
+        b.box("metalD", Vector3(_x(2.98), TY + 0.20, bz - 0.06), Vector3(_x(5.02), TY + 0.30, bz + 0.06), false)
+        for sx in [2.86, 5.14]:
+            b.box("rubber", Vector3(_x(sx - 0.05), TY + 0.20, bz - 0.18), Vector3(_x(sx + 0.05), TY + 0.48, bz + 0.18), false)
+        b.box("metalD", Vector3(_x(5.35), TY + 0.12, bz - 0.20), Vector3(_x(5.70), TY + 0.18, bz + 0.20), false)
+        b.box("rubber", Vector3(_x(5.68), TY + 0.06, bz - 0.12), Vector3(_x(5.82), TY + 0.12, bz + 0.12), false)
     if is_head:
         b.box("trainA", Vector3(_x(2.62), TY + 0.55, -0.02), Vector3(_x(5.38), yT - 0.25, 0.30), false)
         b.box("trainWin", Vector3(_x(2.60), TY + 1.35, 0.28), Vector3(_x(5.40), TY + 2.42, 0.34), false)

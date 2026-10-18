@@ -108,6 +108,9 @@ func platform_edge() -> void:
     b.box("trainC", _v(PX0 + 0.02, FY + 0.02, ZS0), _v(PX0 + 0.07, 0.90, ZS1), false, "p")
     b.box("hazard", _v(PX0 + 0.02, 0.90, ZS0), _v(PX0 + 0.07, 0.96, ZS1), false, "p")
     b.box("exit", _v(TX1 - 0.07, FY + 0.02, ZS0), _v(TX1 - 0.02, 0.90, ZS1), false, "n")
+    # 站台沿地脚灯：给轨行区一点连续的边界光
+    for lz in range(-52, 56, 6):
+        b.box("lampC", _v(-0.10, FY + 0.03, float(lz) - 0.10), _v(-0.04, FY + 0.055, float(lz) + 0.10), false)
 
 # ------------------------------------------------------------------ 柱 / 灯
 func columns_and_lights() -> void:
@@ -148,23 +151,78 @@ func columns_and_lights() -> void:
 
 # ------------------------------------------------------------------ 轨道
 func track() -> void:
+    # —— 道床：主道床 + 两侧肩坡
+    b.box("ballast", _v(2.15, TY - 0.34, ZTUN), _v(5.85, TY - 0.08, 200.0), false)
+    b.quad("ballast", Vector3(2.15, TY - 0.08, ZTUN), Vector3(2.15, TY - 0.08, 200.0),
+           Vector3(1.60, TY - 0.34, 200.0), Vector3(1.60, TY - 0.34, ZTUN), Vector3(-1, 1, 0))
+    b.quad("ballast", Vector3(5.85, TY - 0.08, ZTUN), Vector3(5.85, TY - 0.08, 200.0),
+           Vector3(6.40, TY - 0.34, 200.0), Vector3(6.40, TY - 0.34, ZTUN), Vector3(1, 1, 0))
+    # 道床边的大颗粒碎石：打破平直边缘
+    var rz := ZTUN
+    while rz < 200.0:
+        for rx in [1.86, 6.14]:
+            var off := sin(rz * 0.37) * 0.10
+            b.box("ballast", _v(rx - 0.10 + off, TY - 0.30, rz - 0.07), _v(rx + 0.10 + off, TY - 0.20, rz + 0.07), false)
+        rz += 2.2
+    # —— 轨枕 + 橡胶垫 + 扣件
+    var z := ZTUN + 0.35
+    while z < 200.0:
+        b.box("sleeper", _v(2.55, TY - 0.082, z - 0.13), _v(5.45, TY + 0.018, z + 0.13), false)
+        for rx in [3.28, 4.72]:
+            b.box("rubber", _v(rx - 0.10, TY + 0.018, z - 0.085), _v(rx + 0.10, TY + 0.042, z + 0.085), false)
+            b.box("metalD", _v(rx - 0.115, TY + 0.042, z - 0.065), _v(rx + 0.115, TY + 0.058, z + 0.065), false)
+            b.box("metalD", _v(rx - 0.142, TY + 0.058, z - 0.025), _v(rx - 0.105, TY + 0.075, z + 0.025), false)
+            b.box("metalD", _v(rx + 0.105, TY + 0.058, z - 0.025), _v(rx + 0.142, TY + 0.075, z + 0.025), false)
+        z += 0.86
+    # —— 钢轨：轨底 / 轨腰 / 轨头 / 磨光顶面
     for rx in [3.28, 4.72]:
-        b.box("metal", _v(rx - 0.045, TY, ZTUN), _v(rx + 0.045, TY + 0.16, 200.0), false)
-        # 轨头磨光面：钢轨顶上那一溜才是会反光的，只画一个顶面（2 个三角面）
-        b.box("white", _v(rx - 0.038, TY + 0.160, ZTUN), _v(rx + 0.038, TY + 0.172, 200.0), false, "t")
-    # 轨行区原来一盏灯都没有 —— 六机位拍到"地面与轨道"时整条钢轨是黑的、读不出轨道。
-    # 加四盏很暗的灯（energy 0.55 / range 7），只为让轨头能反一点光，不改变站台整体亮度。
-    for lz in [-42.0, -14.0, 14.0, 42.0]:
-        b.light(_v(4.0, TY + 2.60, lz), Color(0.55, 0.62, 0.78), 0.55, 7.0, false)
-    var z := -80.0
-    while z < 80.0:
-        b.box("conc", _v(2.55, TY - 0.02, z), _v(5.45, TY + 0.03, z + 0.26), false)
-        z += 0.9
-    b.box("dark", _v(TX1 - 0.7, TY, ZTUN), _v(TX1 - 0.15, TY + 0.30, 200.0), false)
+        b.box("railrust", _v(rx - 0.075, TY + 0.050, ZTUN), _v(rx + 0.075, TY + 0.090, 200.0), false)
+        b.box("railrust", _v(rx - 0.036, TY + 0.090, ZTUN), _v(rx + 0.036, TY + 0.155, 200.0), false)
+        b.box("metal", _v(rx - 0.060, TY + 0.155, ZTUN), _v(rx + 0.060, TY + 0.190, 200.0), false)
+        b.box("white", _v(rx - 0.050, TY + 0.190, ZTUN), _v(rx + 0.050, TY + 0.202, 200.0), false, "t")
+    # —— 钢轨接头夹板
+    var jz := ZTUN + 12.5
+    while jz < 200.0:
+        for rx in [3.28, 4.72]:
+            b.box("metalD", _v(rx - 0.095, TY + 0.085, jz - 0.35), _v(rx + 0.095, TY + 0.155, jz - 0.27), false)
+            b.box("metalD", _v(rx - 0.095, TY + 0.085, jz + 0.27), _v(rx + 0.095, TY + 0.155, jz + 0.35), false)
+        jz += 25.0
+    # —— 第三轨 + 绝缘支架
+    b.box("third", _v(5.78, TY + 0.080, ZTUN), _v(5.90, TY + 0.150, 200.0), false)
+    b.box("metalD", _v(5.74, TY + 0.150, ZTUN), _v(5.94, TY + 0.170, 200.0), false)
+    var tz := ZTUN + 1.0
+    while tz < 200.0:
+        b.box("insulator", _v(5.72, TY + 0.020, tz - 0.07), _v(5.88, TY + 0.100, tz + 0.07), false)
+        b.box("metalD", _v(5.60, TY + 0.020, tz - 0.04), _v(5.74, TY + 0.080, tz + 0.04), false)
+        tz += 2.4
+    # —— 排水沟 / 电缆槽 / 检修走道
+    b.box("dark", _v(6.05, TY - 0.18, ZTUN), _v(6.25, TY - 0.04, 200.0), false)
+    var gz := ZTUN
+    while gz < 200.0:
+        b.box("metalD", _v(6.02, TY - 0.05, gz), _v(6.28, TY - 0.02, gz + 0.90), false)
+        gz += 3.0
+    b.box("conc", _v(6.55, TY - 0.06, ZTUN), _v(7.45, TY + 0.04, 200.0), false)
+    b.box("hazard", _v(6.55, TY + 0.04, ZTUN), _v(6.63, TY + 0.055, 200.0), false)
+    # —— 轨行区灯光：只把轨头打亮，不抬站台整体亮度
+    for lz in [-48.0, -32.0, -16.0, 0.0, 16.0, 32.0, 48.0]:
+        b.light(_v(4.0, TY + 2.35, lz), Color(0.55, 0.62, 0.78), 2.20, 10.0, false)
+    # —— 信号机：红/绿双灯 + 遮光罩 + 编号
+    var si := 0
     for sz in [40.0, -20.0, 12.0]:
-        b.box("metalD", _v(2.0, TY, sz - 0.10), _v(2.30, TY + 3.0, sz + 0.10), true)
-        b.box("dark", _v(1.95, TY + 2.35, sz - 0.19), _v(2.35, TY + 3.0, sz + 0.19), false)
-        b.box("lampC", _v(2.0, TY + 2.62, sz - 0.22), _v(2.06, TY + 2.82, sz - 0.14), false, "n")
+        b.box("metalD", _v(1.98, TY, sz - 0.10), _v(2.28, TY + 3.0, sz + 0.10), true)
+        b.box("dark", _v(1.92, TY + 2.35, sz - 0.18), _v(2.34, TY + 3.0, sz + 0.18), false)
+        b.box("red", _v(2.03, TY + 2.70, sz - 0.14), _v(2.43, TY + 2.86, sz - 0.06), false, "n")
+        b.box("exit", _v(2.03, TY + 2.48, sz - 0.14), _v(2.43, TY + 2.64, sz - 0.06), false, "n")
+        b.box("metalD", _v(2.00, TY + 2.90, sz - 0.20), _v(2.46, TY + 2.96, sz + 0.02), false)
+        b.label3d("S" + str(si + 1), _v(2.16, TY + 2.30, sz - 0.20), 0.16, Color(0.80, 0.84, 0.90), PI * 0.5)
+        si += 1
+    # —— 轨旁设备箱 / 里程牌
+    for ez in [-38.0, -8.0, 24.0, 52.0]:
+        b.box("metalD", _v(7.10, TY + 0.02, ez - 0.30), _v(7.55, TY + 0.62, ez + 0.30), false)
+        b.box("hazard", _v(7.08, TY + 0.50, ez - 0.26), _v(7.56, TY + 0.56, ez + 0.26), false)
+    for mz in [-150.0, -100.0, -50.0, 0.0, 50.0, 100.0, 150.0]:
+        b.box("white", _v(7.20, TY + 1.10, mz - 0.02), _v(7.24, TY + 1.34, mz + 0.02), false)
+        b.label3d("K" + str(int(mz)), _v(7.18, TY + 1.22, mz + 0.08), 0.12, Color(0.80, 0.84, 0.88), -PI * 0.5)
 
 # ------------------------------------------------------------------ 隧道
 func bore_profile(open_from := 99.0) -> PackedVector2Array:
@@ -201,6 +259,23 @@ func tunnel() -> void:
         if i < 4:
             var l: OmniLight3D = b.light(_v(TX1 - 1.1, 2.9, z), Color(0.35, 0.62, 0.83), 1.8, 14.0, false)
             l.set_meta("flicker", randf() * 10.0)
+    # 站体两端隧道补光：让进站/出站方向的钢轨和道床读得出来
+    for z2 in [-52.0, -64.0, -76.0, 60.0, 72.0, 84.0]:
+        b.light(_v(4.0, 2.6, z2), Color(0.35, 0.62, 0.83), 1.6, 12.0, false)
+    # 隧道环片：每 8 米一道，看起来像真正掘进出来的管片衬砌
+    for zr in range(-184, -55, 8):
+        arch_ring(float(zr), 0.14)
+    for zr in range(64, 193, 8):
+        arch_ring(float(zr), 0.14)
+    # 疏散指示灯 + 侧墙绿色导向条
+    for zl in range(-184, -55, 12):
+        b.box("lampC", _v(7.25, TY + 0.30, float(zl) - 0.35), _v(7.35, TY + 0.38, float(zl) + 0.35), false, "n")
+        b.light(_v(7.0, TY + 0.9, float(zl)), Color(0.30, 0.80, 0.52), 0.9, 5.5, false)
+    for zl in range(64, 193, 12):
+        b.box("lampC", _v(7.25, TY + 0.30, float(zl) - 0.35), _v(7.35, TY + 0.38, float(zl) + 0.35), false, "n")
+        b.light(_v(7.0, TY + 0.9, float(zl)), Color(0.30, 0.80, 0.52), 0.9, 5.5, false)
+    b.box("exit", _v(7.90, TY + 0.85, ZTUN), _v(7.96, TY + 0.93, ZS0), false, "n")
+    b.box("exit", _v(7.90, TY + 0.85, ZS1), _v(7.96, TY + 0.93, 200.0), false, "n")
 
 func bore_profile_open(y_cut := 4.30) -> PackedVector2Array:
     # 东侧（+X）不封口：拱顶走到切口高度就停，好让岔区接上平顶
