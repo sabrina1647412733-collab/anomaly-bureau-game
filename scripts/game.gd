@@ -18,6 +18,8 @@ const T_TRAIN := 1456.0
 const T_ARRIVE := 1457.0
 const T_LOCK := 1456.7166
 const SEC_PER_MIN := 6.0
+const INTERACTION_REFRESH := 0.06
+const HUD_REFRESH := 0.10
 
 const ROUND_NAMES := ["序章", "第 1 轮 · 那半秒", "第 2 轮 · 被剪掉的带子", "第 3 轮 · 还包的人", "第 4 轮 · 零点十七分"]
 
@@ -108,7 +110,12 @@ var spots := []
 var t_now := 0.0
 var web_perf_t := 0.0
 var map_acc := 0.0
+var interaction_acc := 0.0
+var hud_acc := 0.0
 var web_gpu_is_software := false
+var room_warm_lights: Array = []
+var station_platform_lights: Array = []
+var station_tunnel_lights: Array = []
 var got_this_round := {}
 var choice_text := ""
 var lan_trust := false
@@ -234,6 +241,7 @@ func _ready() -> void:
 	_make_studio_props()
 	_make_tunnel_lamp()
 	_make_prologue_world()
+	_cache_light_groups()
 	train = TrainScript.new(self)
 	train.reset()
 	spots = [
@@ -2001,9 +2009,15 @@ func _prologue_enter_station() -> void:
 	_start_round()
 	_fade_to(0.0, 1.2)
 
+func _cache_light_groups() -> void:
+	# 灯组只在场景构建后变化；开关反复切换时不再每次查询场景树。
+	room_warm_lights = get_tree().get_nodes_in_group("room_warm_light")
+	station_platform_lights = get_tree().get_nodes_in_group("station_light_platform")
+	station_tunnel_lights = get_tree().get_nodes_in_group("station_light_tunnel")
+
 func _set_prologue_room_lights(on: bool) -> void:
 	prologue_room_lights_on = on
-	for l in get_tree().get_nodes_in_group("room_warm_light"):
+	for l in room_warm_lights:
 		if l is OmniLight3D:
 			var base := float(l.get_meta("base_energy", l.light_energy))
 			l.light_energy = base if on else base * 0.12
@@ -2027,11 +2041,11 @@ func _toggle_prologue_room_lights() -> void:
 
 func _set_station_lights(on: bool) -> void:
 	station_lights_on = on
-	for l in get_tree().get_nodes_in_group("station_light_platform"):
+	for l in station_platform_lights:
 		if l is OmniLight3D:
 			var base := float(l.get_meta("base_energy", l.light_energy))
 			l.light_energy = base if on else base * 0.16
-	for l2 in get_tree().get_nodes_in_group("station_light_tunnel"):
+	for l2 in station_tunnel_lights:
 		if l2 is OmniLight3D:
 			var base2 := float(l2.get_meta("base_energy", l2.light_energy))
 			l2.light_energy = base2 if on else base2 * 0.20
@@ -2547,9 +2561,16 @@ func _process(delta: float) -> void:
 	_animate_items(delta)
 	_update_desk_props(delta)
 	_update_tunnel_lamp(delta)
-	_update_interaction()
+	# 交互与 HUD 以 10–16 Hz 刷新；呼吸环仍每帧更新，保持平滑。
+	interaction_acc += delta
+	if interaction_acc >= INTERACTION_REFRESH:
+		interaction_acc = 0.0
+		_update_interaction()
 	_update_prompt_ring(delta)
-	_update_hud()
+	hud_acc += delta
+	if hud_acc >= HUD_REFRESH:
+		hud_acc = 0.0
+		_update_hud()
 	map_acc += delta
 	if map_acc >= 0.1:
 		map_acc = 0.0

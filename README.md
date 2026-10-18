@@ -1389,3 +1389,12 @@ Web 低画质档（只在 `OS.has_feature("web")` 生效）：
 - `godot --headless --path . --quit-after 30` exit 0，无 `SCRIPT ERROR`。
 - `audit`：0 个座位异常、0 件物品异常、0 个序章交互点异常。
 - 截图输出目录：`_预览/look/`；文件：`prologue_room_wide.png`、`prologue_bed_left_back.png`、`prologue_kitchen_sink.png`、`prologue_bookshelf.png`、`prologue_switch_on.png`、`prologue_switch_off.png`、`prologue_room_lights_off.png`、`prologue_prompt_ring_phone.png`、`station_lights_on.png`、`station_lights_off.png`。
+### 58 · 运行时代码优化：交互/HUD 刷新与灯光组缓存
+
+- `_update_interaction()` 从每帧执行改为约 16 Hz（60 ms）刷新；交互距离/朝向计算减少约 90%，交互提示与 `E` 操作保持响应。
+- `_update_hud()` 改为约 10 Hz（100 ms）刷新，避免每帧重复格式化时间文本和刷新 UI 标签。
+- 交互提示呼吸环仍逐帧更新，视觉平滑度不变。
+- 场景构建完成后缓存 `room_warm_light`、`station_light_platform`、`station_light_tunnel` 节点数组；灯光开关切换时不再反复查询场景树。
+- 不改剧情、交互距离、灯光能量、列车进站、存档和 UI 布局。
+
+验收：`prologue_test`、`store_flow_test`、`flow_test`、`skip_test`、`roundsummary`、`feature_test`、`audio_test`、`ending_a_test`、`narrative_test`、`layout_check`、`audit` 全部 PASS；`--headless --quit-after 30` exit 0，无 `SCRIPT ERROR`。
