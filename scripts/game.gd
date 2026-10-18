@@ -11,6 +11,7 @@ const MinesGame := preload("res://scripts/minigame_mines.gd")
 const MenuScript := preload("res://scripts/menu.gd")
 const BagScript := preload("res://scripts/bag.gd")
 const HotbarScript := preload("res://scripts/hotbar.gd")
+const ProRoomArtScript := preload("res://scripts/pro_room_art.gd")
 
 const T_START := 1430.0
 const T_TRAIN := 1456.0
@@ -67,6 +68,17 @@ const PRO_PALETTE := [
 var prologue_ui: CanvasLayer = null
 var prologue_paper: Control = null
 var prologue_paper_text: Label = null
+var prologue_anomaly_done := false
+var prologue_figure: Node3D = null
+var prologue_figure_mat: StandardMaterial3D = null
+var prologue_cabin_light: OmniLight3D = null
+var prologue_cabin_window_mat: StandardMaterial3D = null
+var prologue_station_mat: StandardMaterial3D = null
+var prologue_clock_label: Label = null
+var prologue_end_card: Control = null
+var prologue_fx_layer: CanvasLayer = null
+var prologue_fx_mat: ShaderMaterial = null
+var prologue_street_city: Node3D = null
 
 var clock_min := T_START
 var state := "play"            # play / cutscene / ending
@@ -472,6 +484,40 @@ func _make_prologue_ui() -> void:
 	close.pressed.connect(_close_letter)
 	prologue_paper.add_child(close)
 
+	if prologue_clock_label == null:
+		var clock_root := Control.new()
+		clock_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+		clock_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		prologue_ui.add_child(clock_root)
+		prologue_clock_label = _label(clock_root, 0, Vector2(650, 38), Vector2(300, 84), 54, Color(0.96, 0.72, 0.36))
+		prologue_clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		prologue_clock_label.visible = false
+	if prologue_end_card == null:
+		prologue_end_card = Control.new()
+		prologue_end_card.set_anchors_preset(Control.PRESET_FULL_RECT)
+		prologue_end_card.mouse_filter = Control.MOUSE_FILTER_STOP
+		prologue_end_card.visible = false
+		prologue_ui.add_child(prologue_end_card)
+		var black := ColorRect.new()
+		black.color = Color(0.012, 0.016, 0.018, 0.965)
+		black.set_anchors_preset(Control.PRESET_FULL_RECT)
+		black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		prologue_end_card.add_child(black)
+		var t := _label(prologue_end_card, 0, Vector2(400, 300), Vector2(800, 96), 76, Color(0.92, 0.67, 0.34))
+		t.text = "0 0 1 7"
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var ln := ColorRect.new()
+		ln.color = Color(0.55, 0.42, 0.22, 0.65)
+		ln.position = Vector2(650, 404)
+		ln.size = Vector2(300, 1)
+		ln.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		prologue_end_card.add_child(ln)
+		var sub2 := _label(prologue_end_card, 0, Vector2(400, 418), Vector2(800, 40), 21, Color(0.70, 0.76, 0.73))
+		sub2.text = "第 一 夜 · 0 0 : 1 7"
+		sub2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var hint := _label(prologue_end_card, 0, Vector2(400, 540), Vector2(800, 30), 15, Color(0.46, 0.50, 0.48))
+		hint.text = "按 R 重新开始"
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 func _show_letter_ui() -> void:
 	if prologue_paper == null:
 		return
@@ -494,6 +540,106 @@ func _close_letter() -> void:
 	_say_seq("旁白", "你把通知书折好，放进口袋。")
 	_ring_phone()
 
+func _setup_prologue_camera() -> void:
+	if player == null or player.cam == null:
+		return
+	player.cam.fov = 60.0
+	var attrs := CameraAttributesPractical.new()
+	attrs.dof_blur_far_enabled = true
+	attrs.dof_blur_far_distance = 8.0
+	attrs.dof_blur_far_transition = 6.0
+	attrs.dof_blur_amount = 0.045
+	attrs.dof_blur_near_enabled = false
+	player.cam.attributes = attrs
+
+func _prologue_anomaly() -> void:
+	if prologue_anomaly_done:
+		return
+	prologue_anomaly_done = true
+	state = "prologue_cutscene"
+	player.can_move = false
+	player.dragging = false
+	player.allow_capture = false
+	player.lock_look = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# 先清掉房间里还没读完的日常字幕，异常瞬间从 00:17 开始
+	_clear_sub()
+	# 过场里只保留时钟和字幕，目标/交互提示全部收起
+	if hud_objective != null:
+		hud_objective.visible = false
+	if hud_prompt != null:
+		hud_prompt.text = ""
+	# 镜头从窗边缓慢转到正对窗外，锁住鼠标，避免过场被带跑
+	player.rotation.y = PI - 0.18
+	player.pitch = -0.02
+	player.cam.rotation.x = -0.02
+	var turn := create_tween()
+	turn.tween_property(player, "rotation:y", PI, 0.65).set_trans(Tween.TRANS_SINE)
+	if prologue_clock_label != null:
+		prologue_clock_label.visible = true
+		prologue_clock_label.text = "00:16"
+		prologue_clock_label.modulate.a = 0.0
+		create_tween().tween_property(prologue_clock_label, "modulate:a", 1.0, 0.6)
+	await get_tree().create_timer(1.5).timeout
+	if prologue_clock_label != null:
+		prologue_clock_label.text = "00:17"
+	# 字幕在 00:17 这一刻就出现，不排在开场白后面
+	_show_sub("旁白", "00:17。", 1.0, false)
+	play_chime(0.42, -8.0)
+	var main_light: OmniLight3D = get_meta("room_main_light", null)
+	var desk_light: OmniLight3D = get_meta("room_desk_light", null)
+	for i in range(3):
+		if main_light != null:
+			main_light.light_energy = 0.12
+		if desk_light != null:
+			desk_light.light_energy = 0.08
+		await get_tree().create_timer(0.08).timeout
+		if main_light != null:
+			main_light.light_energy = 1.55
+		if desk_light != null:
+			desk_light.light_energy = 1.25
+		await get_tree().create_timer(0.13 + float(i) * 0.05).timeout
+	if prologue_cabin_light != null:
+		prologue_cabin_light.light_energy = 0.0
+	if prologue_cabin_window_mat != null:
+		prologue_cabin_window_mat.emission_enabled = false
+	if prologue_figure != null:
+		prologue_figure.visible = true
+		if prologue_figure_mat != null:
+			prologue_figure_mat.albedo_color.a = 0.0
+			create_tween().tween_property(prologue_figure_mat, "albedo_color:a", 0.78, 1.1)
+		var eye_mat = prologue_figure.get_meta("eye_mat", null)
+		if eye_mat is StandardMaterial3D:
+			eye_mat.albedo_color.a = 0.0
+			create_tween().tween_property(eye_mat, "albedo_color:a", 1.0, 0.45).set_delay(0.75)
+	if prologue_fx_mat != null:
+		var glitch_tw := create_tween()
+		glitch_tw.tween_method(func(v: float): prologue_fx_mat.set_shader_parameter("glitch", v), 0.0, 0.9, 0.16)
+		glitch_tw.tween_method(func(v: float): prologue_fx_mat.set_shader_parameter("glitch", v), 0.9, 0.0, 0.55)
+	# 00:17 那一行读完后再接第二句；两句都要足够时间停留
+	_say_seq("旁白", "雾里有什么东西，朝这边看了一眼。", 2.6, false)
+	await get_tree().create_timer(4.2).timeout
+	if prologue_figure != null:
+		prologue_figure.visible = false
+		var eye_off = prologue_figure.get_meta("eye_mat", null)
+		if eye_off is StandardMaterial3D:
+			eye_off.albedo_color.a = 0.0
+	if prologue_fx_mat != null:
+		prologue_fx_mat.set_shader_parameter("glitch", 0.0)
+	_fade_to(1.0, 1.5)
+	await get_tree().create_timer(1.7).timeout
+	if prologue_clock_label != null:
+		prologue_clock_label.visible = false
+	if prologue_end_card != null:
+		prologue_end_card.visible = true
+		prologue_end_card.modulate.a = 0.0
+		create_tween().tween_property(prologue_end_card, "modulate:a", 1.0, 1.0)
+	state = "prologue_end"
+	player.can_move = false
+	if hud_objective != null:
+		hud_objective.visible = false
+	if hud_prompt != null:
+		hud_prompt.text = ""
 func _pro_mat(c: Color, emit := 0.0) -> StandardMaterial3D:
 	var ci := 0
 	var best := 1e9
@@ -554,6 +700,19 @@ func _pro_bev(parent: Node3D, pos: Vector3, size: Vector3, col: Color, bev := 0.
 	parent.add_child(mi)
 	return mi
 
+func _pro_cone(parent: Node3D, pos: Vector3, radius: float, height: float, col: Color, seg := 7) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.0
+	cm.bottom_radius = radius
+	cm.height = height
+	cm.radial_segments = seg
+	mi.mesh = cm
+	mi.position = pos
+	mi.material_override = _pro_mat(col)
+	parent.add_child(mi)
+	return mi
+
 func _pro_light(parent: Node3D, pos: Vector3, col: Color, energy: float, rng: float) -> void:
 	var l := OmniLight3D.new()
 	l.position = pos
@@ -580,20 +739,28 @@ func _make_prologue_world() -> void:
 	_merge_static_meshes(prologue_roots["street"])
 
 func _build_pro_room(root: Node3D) -> void:
-	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.22, 0.20, 0.18))
-	_pro_box(root, Vector3(0, 3.05, 0), Vector3(6, 0.1, 5), Color(0.52, 0.48, 0.42))
-	_pro_box(root, Vector3(0, 1.5, -2.5), Vector3(6, 3.0, 0.1), Color(0.46, 0.43, 0.38))
-	_pro_box(root, Vector3(-3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.44, 0.41, 0.36))
-	_pro_box(root, Vector3(3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.44, 0.41, 0.36))
+	var art := ProRoomArtScript.new(self)
+	art.build(root)
+	prologue_spots.append({"stage":"room", "id":"phone", "pos":Vector3(2.06, 12.82, 324.05), "r":1.7})
+	prologue_spots.append({"stage":"room", "id":"box", "pos":Vector3(-0.70, 12.38, 324.16), "r":1.7})
+	prologue_spots.append({"stage":"room", "id":"window", "pos":Vector3(0, 13.55, 325.10), "r":2.2})
+	prologue_spots.append({"stage":"room", "id":"door", "pos":Vector3(0, 13.05, 320.10), "r":1.9})
+
+func _build_pro_room_legacy(root: Node3D) -> void:
+	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.16, 0.12, 0.09))
+	_pro_box(root, Vector3(0, 3.05, 0), Vector3(6, 0.1, 5), Color(0.30, 0.31, 0.27))
+	_pro_box(root, Vector3(0, 1.5, -2.5), Vector3(6, 3.0, 0.1), Color(0.36, 0.37, 0.31))
+	_pro_box(root, Vector3(-3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.32, 0.34, 0.29))
+	_pro_box(root, Vector3(3.0, 1.5, 0), Vector3(0.1, 3.0, 5), Color(0.32, 0.34, 0.29))
 	# 南墙留出大窗洞：左右墙垛 + 上下墙梁
-	_pro_box(root, Vector3(-2.25, 1.5, 2.5), Vector3(1.5, 3.0, 0.1), Color(0.44, 0.41, 0.36))
-	_pro_box(root, Vector3(2.25, 1.5, 2.5), Vector3(1.5, 3.0, 0.1), Color(0.44, 0.41, 0.36))
-	_pro_box(root, Vector3(0, 0.55, 2.5), Vector3(3.0, 1.1, 0.1), Color(0.44, 0.41, 0.36))
-	_pro_box(root, Vector3(0, 2.72, 2.5), Vector3(3.0, 0.56, 0.1), Color(0.44, 0.41, 0.36))
+	_pro_box(root, Vector3(-2.25, 1.5, 2.5), Vector3(1.5, 3.0, 0.1), Color(0.32, 0.34, 0.29))
+	_pro_box(root, Vector3(2.25, 1.5, 2.5), Vector3(1.5, 3.0, 0.1), Color(0.32, 0.34, 0.29))
+	_pro_box(root, Vector3(0, 0.55, 2.5), Vector3(3.0, 1.1, 0.1), Color(0.32, 0.34, 0.29))
+	_pro_box(root, Vector3(0, 2.72, 2.5), Vector3(3.0, 0.56, 0.1), Color(0.32, 0.34, 0.29))
 	for wx in [-1.5, -0.5, 0.5, 1.5]:
-		_pro_box(root, Vector3(wx, 1.7, 2.46), Vector3(0.05, 1.4, 0.05), Color(0.12, 0.12, 0.11), false)
+		_pro_box(root, Vector3(wx, 1.7, 2.46), Vector3(0.05, 1.4, 0.05), Color(0.22, 0.14, 0.09), false)
 	for wy in [1.03, 2.37]:
-		_pro_box(root, Vector3(0, wy, 2.46), Vector3(3.0, 0.05, 0.05), Color(0.12, 0.12, 0.11), false)
+		_pro_box(root, Vector3(0, wy, 2.46), Vector3(3.0, 0.05, 0.05), Color(0.22, 0.14, 0.09), false)
 	var glass := StandardMaterial3D.new()
 	glass.albedo_color = Color(0.45, 0.60, 0.75, 0.16)
 	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -631,17 +798,31 @@ func _build_pro_room(root: Node3D) -> void:
 	_pro_box(root, Vector3(1.42, 1.15, 0.20), Vector3(0.50, 0.06, 0.50), Color(0.34, 0.31, 0.28), false)
 	_pro_box(root, Vector3(1.42, 1.12, 0.20), Vector3(0.38, 0.03, 0.38), Color(0.16, 0.16, 0.16), false, 0.8)
 	_pro_box(root, Vector3(0, 2.42, 2.34), Vector3(3.2, 0.04, 0.04), Color(0.22, 0.20, 0.18), false)
+	# 小木屋式室内：顶梁 / 墙裙 / 地毯 / 窗帘 / 盆栽
+	for bz in [-1.2, 0.0, 1.2]:
+		_pro_box(root, Vector3(0, 2.88, bz), Vector3(5.8, 0.16, 0.18), Color(0.13, 0.09, 0.06))
+	_pro_box(root, Vector3(0, 0.65, -2.44), Vector3(5.8, 1.2, 0.03), Color(0.20, 0.14, 0.09), false)
+	_pro_box(root, Vector3(-2.94, 0.65, 0), Vector3(0.03, 1.2, 4.8), Color(0.20, 0.14, 0.09), false)
+	_pro_box(root, Vector3(2.94, 0.65, 0), Vector3(0.03, 1.2, 4.8), Color(0.20, 0.14, 0.09), false)
+	_pro_box(root, Vector3(0, 1.28, -2.42), Vector3(5.8, 0.06, 0.06), Color(0.28, 0.19, 0.11), false)
+	_pro_box(root, Vector3(0, 0.015, 0.55), Vector3(3.4, 0.012, 2.0), Color(0.18, 0.24, 0.18), false)
+	_pro_box(root, Vector3(0, 0.018, 0.55), Vector3(3.0, 0.012, 1.65), Color(0.26, 0.30, 0.22), false)
+	_pro_box(root, Vector3(-1.72, 1.7, 2.38), Vector3(0.38, 1.9, 0.04), Color(0.20, 0.24, 0.16), false)
+	_pro_box(root, Vector3(1.72, 1.7, 2.38), Vector3(0.38, 1.9, 0.04), Color(0.20, 0.24, 0.16), false)
+	_pro_box(root, Vector3(-1.60, 0.25, 1.65), Vector3(0.38, 0.35, 0.38), Color(0.28, 0.16, 0.10))
+	for lf in [Vector3(-1.82, 0.70, 1.60), Vector3(-1.42, 0.72, 1.70), Vector3(-1.62, 0.92, 1.50)]:
+		_pro_cone(root, lf, 0.28, 0.65, Color(0.10, 0.26, 0.14))
 	# 床：Poly Haven「old_bed_frame」（CC0）+ 床品
 	var bed_scene = load("res://assets/models/old_bed_frame/old_bed_frame_2k.gltf")
 	if bed_scene != null:
 		var bed_root = bed_scene.instantiate()
 		bed_root.position = Vector3(-2.35, 0.0, -1.10)
 		root.add_child(bed_root)
-	_pro_bev(root, Vector3(-2.35, 0.61, -1.10), Vector3(0.86, 0.22, 1.90), Color(0.74, 0.72, 0.66), 0.07)
-	_pro_bev(root, Vector3(-2.35, 0.75, -0.92), Vector3(0.88, 0.045, 1.28), Color(0.46, 0.54, 0.62), 0.025)
-	_pro_bev(root, Vector3(-2.35, 0.82, -0.62), Vector3(0.90, 0.13, 1.06), Color(0.25, 0.31, 0.39), 0.06)
-	_pro_bev(root, Vector3(-2.35, 0.89, -1.12), Vector3(0.90, 0.08, 0.30), Color(0.38, 0.45, 0.54), 0.045)
-	_pro_bev(root, Vector3(-2.35, 0.79, -1.68), Vector3(0.58, 0.14, 0.36), Color(0.80, 0.79, 0.73), 0.06)
+	_pro_bev(root, Vector3(-2.35, 0.61, -1.10), Vector3(0.86, 0.22, 1.90), Color(0.62, 0.60, 0.53), 0.07)
+	_pro_bev(root, Vector3(-2.35, 0.75, -0.92), Vector3(0.88, 0.045, 1.28), Color(0.36, 0.44, 0.46), 0.025)
+	_pro_bev(root, Vector3(-2.35, 0.82, -0.62), Vector3(0.90, 0.13, 1.06), Color(0.16, 0.26, 0.22), 0.06)
+	_pro_bev(root, Vector3(-2.35, 0.89, -1.12), Vector3(0.90, 0.08, 0.30), Color(0.24, 0.36, 0.30), 0.045)
+	_pro_bev(root, Vector3(-2.35, 0.79, -1.68), Vector3(0.58, 0.14, 0.36), Color(0.68, 0.66, 0.57), 0.06)
 	_pro_box(root, Vector3(-2.35, 0.14, -1.55), Vector3(0.86, 0.22, 0.62), Color(0.30, 0.24, 0.18))
 	_pro_box(root, Vector3(-2.35, 0.14, -0.78), Vector3(0.86, 0.22, 0.62), Color(0.26, 0.22, 0.18))
 	_pro_box(root, Vector3(-1.50, 0.26, -1.88), Vector3(0.46, 0.52, 0.46), Color(0.34, 0.28, 0.21))
@@ -651,13 +832,14 @@ func _build_pro_room(root: Node3D) -> void:
 	_pro_box(root, Vector3(-1.62, 0.06, 0.18), Vector3(0.24, 0.10, 0.36), Color(0.18, 0.19, 0.21), false)
 	_pro_box(root, Vector3(-1.30, 0.06, 0.18), Vector3(0.24, 0.10, 0.36), Color(0.18, 0.19, 0.21), false)
 	# 书桌 / 椅子 / 台灯 / 电话
-	_pro_box(root, Vector3(1.8, 0.74, 0.70), Vector3(1.7, 0.08, 0.82), Color(0.40, 0.28, 0.18))
+	_pro_bev(root, Vector3(1.8, 0.74, 0.70), Vector3(1.7, 0.08, 0.82), Color(0.28, 0.18, 0.10), 0.03)
 	for lx in [-0.70, 0.70]:
 		for lz in [-0.30, 0.30]:
 			_pro_box(root, Vector3(1.8 + lx, 0.36, 0.70 + lz), Vector3(0.07, 0.72, 0.07), Color(0.26, 0.18, 0.12))
-	_pro_box(root, Vector3(1.1, 0.48, 0.15), Vector3(0.48, 0.08, 0.48), Color(0.25, 0.22, 0.20))
+	_pro_bev(root, Vector3(1.1, 0.48, 0.15), Vector3(0.48, 0.08, 0.48), Color(0.28, 0.27, 0.23), 0.03)
 	_pro_box(root, Vector3(1.1, 0.78, 0.02), Vector3(0.06, 0.62, 0.06), Color(0.20, 0.20, 0.20))
-	_pro_box(root, Vector3(1.1, 1.08, -0.08), Vector3(0.46, 0.10, 0.46), Color(0.25, 0.22, 0.20))
+	_pro_bev(root, Vector3(1.1, 1.08, -0.08), Vector3(0.46, 0.10, 0.46), Color(0.28, 0.27, 0.23), 0.03)
+	_pro_bev(root, Vector3(1.10, 0.88, -0.12), Vector3(0.44, 0.44, 0.06), Color(0.25, 0.24, 0.21), 0.025)
 	_pro_box(root, Vector3(1.55, 0.94, 0.55), Vector3(0.10, 0.34, 0.10), Color(0.18, 0.18, 0.18), false)
 	_pro_box(root, Vector3(1.55, 1.14, 0.55), Vector3(0.28, 0.22, 0.22), Color(0.95, 0.78, 0.48), false, 1.6)
 	_pro_box(root, Vector3(1.95, 0.82, 0.72), Vector3(0.26, 0.08, 0.16), Color(0.05, 0.05, 0.06), false)
@@ -685,9 +867,18 @@ func _build_pro_room(root: Node3D) -> void:
 	# 吊灯 + 灯绳
 	_pro_box(root, Vector3(0, 2.92, 0), Vector3(0.02, 0.30, 0.02), Color(0.10, 0.10, 0.10), false)
 	_pro_box(root, Vector3(0, 2.72, 0), Vector3(0.22, 0.12, 0.22), Color(1.0, 0.86, 0.60), false, 2.2)
-	_pro_light(root, Vector3(0, 2.65, 0), Color(1.0, 0.80, 0.55), 4.2, 10.0)
-	_pro_light(root, Vector3(1.55, 1.14, 0.55), Color(1.0, 0.72, 0.40), 2.2, 4.0)
-	_pro_light(root, Vector3(-2.0, 2.2, -0.8), Color(1.0, 0.76, 0.48), 1.6, 5.5)
+	_pro_light(root, Vector3(0, 2.65, 0), Color(1.0, 0.80, 0.55), 2.4, 10.0)
+	_pro_light(root, Vector3(1.55, 1.14, 0.55), Color(1.0, 0.72, 0.40), 1.4, 4.0)
+	_pro_light(root, Vector3(-2.0, 2.2, -0.8), Color(1.0, 0.76, 0.48), 1.0, 5.5)
+	var win := SpotLight3D.new()
+	win.position = Vector3(0, 2.8, 4.6)
+	win.rotation.x = -0.38
+	win.light_color = Color(0.52, 0.70, 0.84)
+	win.light_energy = 3.6
+	win.spot_range = 18.0
+	win.spot_angle = 32.0
+	win.shadow_enabled = true
+	root.add_child(win)
 	_pro_light(root, Vector3(0, 1.7, 2.0), Color(0.42, 0.56, 0.78), 1.1, 5.0)
 	# 窗外小阳台
 	_pro_box(root, Vector3(0, 0.92, 2.92), Vector3(3.3, 0.10, 0.72), Color(0.34, 0.32, 0.29), false)
@@ -700,13 +891,344 @@ func _build_pro_room(root: Node3D) -> void:
 	prologue_spots.append({"stage":"room", "id":"door", "pos":Vector3(0, 13.1, 320.06), "r":1.8})
 
 func _build_pro_street(root: Node3D) -> void:
-	_build_pro_street_ground(root)
-	_build_pro_street_residential(root)
-	_build_pro_street_shops(root)
-	_build_pro_street_props(root)
+	_build_pro_window_view(root)
+	prologue_street_city = Node3D.new()
+	prologue_street_city.name = "StreetCity"
+	root.add_child(prologue_street_city)
+	_build_pro_street_ground(prologue_street_city)
+	_build_pro_street_residential(prologue_street_city)
+	_build_pro_street_shops(prologue_street_city)
+	_build_pro_street_props(prologue_street_city)
 	prologue_spots.append({"stage":"street", "id":"counter", "pos":Vector3(10.5, 1.05, 325.9), "r":2.3})
 	prologue_spots.append({"stage":"street", "id":"reader", "pos":Vector3(19.55, 1.32, 325.55), "r":2.2})
 
+func _build_pro_window_view(root: Node3D) -> void:
+	# —— 窗外雾林：低饱和灰绿 + 暖窗 + 体积雾（参考图的氛围，而不是照搬房屋） ——
+	var backdrop := MeshInstance3D.new()
+	var bq := QuadMesh.new()
+	bq.size = Vector2(80, 46)
+	backdrop.mesh = bq
+	backdrop.position = Vector3(0, 15.0, 352.0)
+	backdrop.rotation.y = PI
+	var bsh := Shader.new()
+	bsh.code = """
+shader_type spatial;
+render_mode unshaded, cull_disabled;
+uniform vec4 top_col : source_color = vec4(0.74, 0.78, 0.72, 1.0);
+uniform vec4 bottom_col : source_color = vec4(0.16, 0.22, 0.19, 1.0);
+void fragment(){
+	float h = clamp(UV.y, 0.0, 1.0);
+	vec3 c = mix(bottom_col.rgb, top_col.rgb, smoothstep(0.0, 1.0, h));
+	float n = sin(UV.x * 19.0 + UV.y * 5.0) * 0.018 + sin(UV.x * 6.0 - UV.y * 12.0) * 0.014;
+	ALBEDO = c + vec3(n);
+}
+"""
+	var bsm := ShaderMaterial.new()
+	bsm.shader = bsh
+	backdrop.material_override = bsm
+	root.add_child(backdrop)
+
+	# 地表与雾层
+	var moss := StandardMaterial3D.new()
+	moss.albedo_color = Color(0.10, 0.15, 0.11)
+	moss.roughness = 1.0
+	_pro_box(root, Vector3(0, 10.95, 354.0), Vector3(90, 0.5, 60), Color(0.10,0.15,0.11), false)
+
+
+	# 树
+	_pro_tree(root, -5.6, 337.0, 11.0, 0.42)
+	_pro_tree(root, -3.4, 332.0, 8.6, 0.30)
+	_pro_tree(root, -2.9, 329.2, 9.8, 0.24)
+	_pro_tree(root, 3.5, 330.0, 9.2, 0.26)
+	_pro_tree(root, 4.1, 334.5, 10.6, 0.36)
+	_pro_tree(root, 6.3, 339.0, 12.0, 0.46)
+
+	# 小屋（主体 + 坡屋顶 + 烟囱 + 门廊）
+	var cabin_start := root.get_child_count()
+	var wood := StandardMaterial3D.new()
+	wood.albedo_texture = load("res://assets/textures/oak_wood_planks/albedo.jpg")
+	wood.uv1_triplanar = true
+	wood.uv1_scale = Vector3(0.85, 0.85, 0.85)
+	wood.albedo_color = Color(0.38, 0.29, 0.20)
+	wood.roughness = 0.92
+	var roofm := StandardMaterial3D.new()
+	roofm.albedo_color = Color(0.11, 0.12, 0.10)
+	roofm.roughness = 0.95
+	var stone := StandardMaterial3D.new()
+	stone.albedo_color = Color(0.30, 0.31, 0.29)
+	stone.roughness = 0.95
+	var body := _pro_box(root, Vector3(0.2, 12.30, 334.2), Vector3(2.9, 2.2, 2.0), Color(0.90,0.84,0.74), false)
+	body.material_override = wood
+	var r1 := _pro_box(root, Vector3(0.2, 13.60, 333.62), Vector3(3.35, 0.14, 1.48), Color(0.10,0.11,0.09))
+	r1.rotation.x = 0.58
+	r1.material_override = roofm
+	var r2 := _pro_box(root, Vector3(0.2, 13.60, 334.78), Vector3(3.35, 0.14, 1.48), Color(0.10,0.11,0.09))
+	r2.rotation.x = -0.58
+	r2.material_override = roofm
+	_pro_box(root, Vector3(1.15, 14.10, 334.45), Vector3(0.34, 0.95, 0.34), Color(0.24,0.22,0.19))
+	_pro_box(root, Vector3(0.2, 11.32, 332.85), Vector3(3.3, 0.14, 1.05), Color(0.28,0.25,0.21))
+	_pro_box(root, Vector3(0.2, 12.55, 332.90), Vector3(3.45, 0.10, 1.12), Color(0.13,0.12,0.10))
+	for px in [-1.36, 1.76]:
+		_pro_box(root, Vector3(px, 11.92, 332.36), Vector3(0.09, 1.25, 0.09), Color(0.24,0.20,0.16))
+	for px in [-1.30, 1.70]:
+		_pro_box(root, Vector3(px, 11.72, 332.40), Vector3(0.65, 0.06, 0.06), Color(0.24,0.20,0.16))
+
+	# 暖窗与门
+	var warm := StandardMaterial3D.new()
+	warm.albedo_color = Color(1.0, 0.72, 0.38)
+	warm.emission_enabled = true
+	warm.emission = Color(1.0, 0.62, 0.28)
+	warm.emission_energy_multiplier = 2.4
+	prologue_cabin_window_mat = warm
+	var w1 := _pro_box(root, Vector3(-0.78, 12.28, 333.17), Vector3(0.66, 0.78, 0.04), Color(0.98,0.74,0.40), false)
+	w1.material_override = warm
+	var w2 := _pro_box(root, Vector3(1.18, 12.28, 333.17), Vector3(0.66, 0.78, 0.04), Color(0.98,0.74,0.40), false)
+	w2.material_override = warm
+	for wx in [-0.78, 1.18]:
+		_pro_box(root, Vector3(wx, 12.28, 333.13), Vector3(0.05, 0.82, 0.03), Color(0.18,0.16,0.13), false)
+		_pro_box(root, Vector3(wx, 12.28, 333.13), Vector3(0.70, 0.05, 0.03), Color(0.18,0.16,0.13), false)
+	_pro_box(root, Vector3(0.2, 11.98, 333.16), Vector3(0.58, 1.45, 0.05), Color(0.15,0.13,0.11), false)
+	_pro_box(root, Vector3(0.2, 12.74, 333.14), Vector3(0.72, 0.06, 0.04), Color(0.20,0.17,0.13), false)
+	prologue_cabin_light = OmniLight3D.new()
+	prologue_cabin_light.position = Vector3(0.2, 12.30, 333.35)
+	prologue_cabin_light.light_color = Color(1.0, 0.62, 0.30)
+	prologue_cabin_light.light_energy = 2.1
+	prologue_cabin_light.omni_range = 7.0
+	prologue_cabin_light.shadow_enabled = false
+	prologue_cabin_light.light_volumetric_fog_energy = 0.8
+	root.add_child(prologue_cabin_light)
+	_pro_box(root, Vector3(0.2, 12.52, 333.05), Vector3(0.10, 0.13, 0.10), Color(1.0,0.80,0.46), false, 2.0)
+	_pro_box(root, Vector3(0.2, 13.99, 334.2), Vector3(3.30, 0.10, 0.10), Color(0.08, 0.08, 0.07), false)
+	var porch_l := OmniLight3D.new()
+	porch_l.position = Vector3(0.2, 12.45, 333.0)
+	porch_l.light_color = Color(1.0, 0.62, 0.32)
+	porch_l.light_energy = 1.35
+	porch_l.omni_range = 4.2
+	porch_l.shadow_enabled = false
+	root.add_child(porch_l)
+	var rim := SpotLight3D.new()
+	rim.position = Vector3(-3.2, 15.2, 330.2)
+	root.add_child(rim)
+	rim.look_at(Vector3(0.8, 13.2, 333.8))
+	rim.light_color = Color(0.56, 0.70, 0.82)
+	rim.light_energy = 1.8
+	rim.spot_range = 15.0
+	rim.spot_angle = 40.0
+	rim.shadow_enabled = false
+	# 整间小屋向右移入右窗格，并靠近一些
+	for ci in range(cabin_start, root.get_child_count()):
+		var cn = root.get_child(ci)
+		if cn is Node3D:
+			cn.position += Vector3(1.02, 0.0, -0.35)
+	# 远山轮廓
+	for hx in [-11.0, -2.0, 9.0]:
+		var hill := MeshInstance3D.new()
+		var hs := SphereMesh.new()
+		hs.radius = 1.0
+		hs.height = 0.5
+		hs.radial_segments = 12
+		hs.rings = 6
+		hill.mesh = hs
+		hill.position = Vector3(hx, 11.4, 346.0)
+		hill.scale = Vector3(10.0, 2.4, 4.0)
+		var hm := StandardMaterial3D.new()
+		hm.albedo_color = Color(0.16, 0.21, 0.17)
+		hm.roughness = 1.0
+		hill.material_override = hm
+		root.add_child(hill)
+
+	# 石头小径与蕨类
+	for i in range(6):
+		var z := 329.5 + float(i) * 0.55
+		var x := 0.1 + sin(float(i) * 1.3) * 0.22
+		_pro_box(root, Vector3(x, 11.23, z), Vector3(0.62 - float(i) * 0.03, 0.07, 0.34), Color(0.30,0.31,0.28), false)
+	for i in range(26):
+		var ang := float(i) * 2.399
+		var rr := 1.6 + float(i % 7) * 0.42
+		var fx := 0.2 + cos(ang) * rr
+		var fz := 332.0 + sin(ang) * rr * 0.55
+		_pro_cone(root, Vector3(fx, 11.55, fz), 0.15 + float(i % 3) * 0.05, 0.55 + float(i % 4) * 0.12, Color(0.12,0.24,0.15), 5)
+
+	# 信号灯：雾里唯一的红点
+	_pro_box(root, Vector3(4.05, 12.35, 338.2), Vector3(0.10, 2.3, 0.10), Color(0.12,0.13,0.12))
+	prologue_station_mat = StandardMaterial3D.new()
+	prologue_station_mat.albedo_color = Color(0.9, 0.12, 0.08)
+	prologue_station_mat.emission_enabled = true
+	prologue_station_mat.emission = Color(1.0, 0.10, 0.05)
+	prologue_station_mat.emission_energy_multiplier = 3.0
+	var lamp := _pro_box(root, Vector3(4.05, 13.45, 338.2), Vector3(0.16, 0.16, 0.16), Color(0.9,0.12,0.08), false)
+	lamp.material_override = prologue_station_mat
+
+	# 雨幕
+	_pro_rain_plane(root, Vector3(0, 13.4, 327.2), Vector2(16, 9), 0.15)
+	_pro_rain_plane(root, Vector3(0, 13.4, 330.6), Vector2(22, 11), 0.08)
+
+	# 雾中的人影（异常时刻才出现）
+	prologue_figure = Node3D.new()
+	prologue_figure.position = Vector3(-1.15, 11.20, 330.55)
+	prologue_figure.scale = Vector3(1.08, 1.08, 1.08)
+	prologue_figure.visible = false
+	root.add_child(prologue_figure)
+	prologue_figure_mat = StandardMaterial3D.new()
+	prologue_figure_mat.albedo_color = Color(0.012, 0.016, 0.014, 0.0)
+	prologue_figure_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	prologue_figure_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	prologue_figure_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var body_cap := MeshInstance3D.new()
+	var cap := CapsuleMesh.new()
+	cap.radius = 0.16
+	cap.height = 1.55
+	body_cap.mesh = cap
+	body_cap.position = Vector3(0, 0.95, 0)
+	body_cap.material_override = prologue_figure_mat
+	prologue_figure.add_child(body_cap)
+	var head := MeshInstance3D.new()
+	var hm := SphereMesh.new()
+	hm.radius = 0.14
+	hm.height = 0.28
+	head.mesh = hm
+	head.position = Vector3(0, 1.86, 0)
+	head.material_override = prologue_figure_mat
+	prologue_figure.add_child(head)
+	# 两点很淡的反光：它确实朝窗口看了一眼
+	var eye_mat := StandardMaterial3D.new()
+	eye_mat.albedo_color = Color(0.86, 0.92, 0.82, 0.0)
+	eye_mat.emission_enabled = true
+	eye_mat.emission = Color(0.80, 0.92, 0.78)
+	eye_mat.emission_energy_multiplier = 2.2
+	eye_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	eye_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	prologue_figure.set_meta("eye_mat", eye_mat)
+	for ex in [-0.047, 0.047]:
+		var eye := MeshInstance3D.new()
+		var es := SphereMesh.new()
+		es.radius = 0.014
+		es.height = 0.028
+		es.radial_segments = 8
+		es.rings = 4
+		eye.mesh = es
+		eye.position = Vector3(ex, 1.885, 0.145)
+		eye.material_override = eye_mat
+		prologue_figure.add_child(eye)
+
+func _pro_fog_plane(root: Node3D, pos: Vector3, size: Vector2, alpha: float) -> void:
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = size
+	mi.mesh = q
+	mi.position = pos
+	mi.rotation.y = PI
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode unshaded, blend_mix, depth_draw_never, cull_disabled;
+uniform vec4 fog_col : source_color = vec4(0.64, 0.72, 0.66, 1.0);
+uniform float base_alpha = 0.25;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p){
+	vec2 i = floor(p); vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1,0)), f.x), mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y);
+}
+void fragment(){
+	vec2 uv = UV;
+	float n = noise(uv * vec2(5.0, 3.0) + vec2(TIME * 0.015, 0.0)) * 0.6;
+	n += noise(uv * vec2(11.0, 7.0) - vec2(TIME * 0.01, 0.0)) * 0.4;
+	float band = smoothstep(0.0, 0.22, uv.y) * smoothstep(1.0, 0.55, uv.y);
+	ALBEDO = fog_col.rgb;
+	ALPHA = base_alpha * (0.35 + n * 0.75) * band;
+}
+"""
+	var sm := ShaderMaterial.new()
+	sm.shader = sh
+	sm.set_shader_parameter("base_alpha", alpha)
+	mi.material_override = sm
+	root.add_child(mi)
+
+func _pro_rain_plane(root: Node3D, pos: Vector3, size: Vector2, strength: float) -> void:
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = size
+	mi.mesh = q
+	mi.position = pos
+	mi.rotation.y = PI
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled;
+uniform float strength = 0.5;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+void fragment(){
+	vec2 uv = UV;
+	float r = 0.0;
+	for (int i = 0; i < 3; i++){
+		float fi = float(i);
+		vec2 q = uv * vec2(110.0, 9.0) + vec2(fi * 13.0, -TIME * 2.4 * (1.0 + fi * 0.35));
+		float x = fract(q.x);
+		float y = fract(q.y + hash(vec2(floor(q.x), floor(q.y))));
+		float streak = smoothstep(0.018, 0.0, abs(x - 0.5)) * smoothstep(0.45, 0.0, abs(y - 0.5));
+		r = max(r, streak);
+	}
+	ALBEDO = vec3(0.60, 0.72, 0.74);
+	ALPHA = r * 0.13 * strength;
+}
+"""
+	var sm := ShaderMaterial.new()
+	sm.shader = sh
+	sm.set_shader_parameter("strength", strength)
+	mi.material_override = sm
+	root.add_child(mi)
+
+func _pro_tree(root: Node3D, x: float, z: float, h: float, r: float) -> void:
+	var bark := StandardMaterial3D.new()
+	bark.albedo_color = Color(0.075, 0.085, 0.075)
+	bark.roughness = 1.0
+	var trunk := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = r * 0.55
+	cm.bottom_radius = r
+	cm.height = h
+	cm.radial_segments = 10
+	trunk.mesh = cm
+	trunk.position = Vector3(x, 11.2 + h * 0.5, z)
+	trunk.material_override = bark
+	root.add_child(trunk)
+	for i in range(3):
+		var ang := TAU * float(i) / 3.0 + x * 0.7
+		var bh := 11.2 + h * (0.58 + 0.10 * float(i))
+		var br := MeshInstance3D.new()
+		var bcm := CylinderMesh.new()
+		bcm.top_radius = 0.025
+		bcm.bottom_radius = r * 0.26
+		bcm.height = h * 0.22
+		bcm.radial_segments = 6
+		br.mesh = bcm
+		var bp := Vector3(x + cos(ang) * h * 0.07, bh, z + sin(ang) * h * 0.05)
+		br.position = bp
+		br.rotation.z = cos(ang) * 0.85
+		br.rotation.x = -sin(ang) * 0.85
+		br.material_override = bark
+		root.add_child(br)
+	var leaf_cols := [Color(0.13, 0.20, 0.13), Color(0.16, 0.24, 0.15), Color(0.11, 0.17, 0.12)]
+	for i in range(7):
+		var ang2 := float(i) * 1.55 + x
+		var lx := x + cos(ang2) * (0.35 + float(i % 3) * 0.55)
+		var lz := z + sin(ang2) * (0.30 + float(i % 4) * 0.35)
+		var ly := 11.2 + h * (0.58 + 0.075 * float(i % 5))
+		var lm := StandardMaterial3D.new()
+		lm.albedo_color = leaf_cols[i % 3]
+		lm.roughness = 1.0
+		var mi := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 1.0
+		sm.height = 0.68
+		sm.radial_segments = 9
+		sm.rings = 5
+		mi.mesh = sm
+		mi.position = Vector3(lx, ly, lz)
+		mi.scale = Vector3(1.05 + float(i % 3) * 0.30, 0.85 + float(i % 2) * 0.22, 0.95)
+		mi.material_override = lm
+		root.add_child(mi)
 func _build_pro_street_ground(root: Node3D) -> void:
 	_pro_box(root, Vector3(10, -0.05, 331.0), Vector3(46, 0.1, 8.0), Color(0.13, 0.14, 0.15))
 	_pro_box(root, Vector3(10, 0.05, 326.4), Vector3(46, 0.1, 2.2), Color(0.30, 0.29, 0.27))
@@ -955,24 +1477,61 @@ func _start_prologue() -> void:
 	prologue_letter_ready = false
 	prologue_letter_read = false
 	prologue_call_done = false
+	prologue_anomaly_done = false
 	prologue_store_done = false
 	prologue_reader_done = false
+	# 重开时把异常段落改过的灯光、人影和故障特效恢复到开场状态
+	if prologue_cabin_light != null:
+		prologue_cabin_light.light_energy = 2.1
+	if prologue_cabin_window_mat != null:
+		prologue_cabin_window_mat.emission_enabled = true
+	if prologue_figure != null:
+		prologue_figure.visible = false
+		var eye_mat = prologue_figure.get_meta("eye_mat", null)
+		if eye_mat is StandardMaterial3D:
+			eye_mat.albedo_color.a = 0.0
+	if prologue_figure_mat != null:
+		prologue_figure_mat.albedo_color.a = 0.0
+	if prologue_fx_mat != null:
+		prologue_fx_mat.set_shader_parameter("glitch", 0.0)
 	prologue_objective = "看看手机"
 	if env_node != null and env_node.environment != null:
-		env_node.environment.tonemap_exposure = 1.15
-		env_node.environment.ambient_light_energy = 0.75
+		ProRoomArtScript.new(self).apply_room_environment(env_node.environment)
+	prologue_fx_layer = get_meta("prologue_fx_layer", null)
+	prologue_fx_mat = get_meta("prologue_fx_mat", null)
+	if prologue_fx_layer != null:
+		prologue_fx_layer.visible = true
+	_setup_prologue_camera()
+	if prologue_end_card != null:
+		prologue_end_card.visible = false
+		prologue_end_card.modulate.a = 0.0
+	if prologue_clock_label != null:
+		prologue_clock_label.visible = false
+		prologue_clock_label.modulate.a = 0.0
 	if player.sitting:
 		player.stand_up()
 	player.cam_mode = 0
 	player.body.visible = false
+	player.show_view_arm = false
+	player.lock_look = false
 	if player.view_arm != null:
-		player.view_arm.visible = true
+		player.view_arm.visible = false
 	state = "prologue"
 	_show_prologue_stage("room")
 	hud.visible = true
 	hud_clock.visible = false
 	hud_map.visible = false
 	hud_cam.visible = false
+	# 60 秒垂直切片只保留目标 / 交互提示 / 字幕；车站的背包、线索条和轮次卡全部收起
+	if hotbar != null:
+		hotbar.visible = false
+	if bag != null:
+		bag.visible = false
+	if round_card != null:
+		round_card.visible = false
+		round_card.modulate.a = 0.0
+	if round_summary != null:
+		round_summary.visible = false
 	hud_objective.visible = true
 	hud_objective.text = prologue_objective
 	hud_end.text = ""
@@ -982,6 +1541,8 @@ func _start_prologue() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	player.can_move = true
 	player.allow_capture = true
+	# 先清掉主场景启动时排队等候的车站字幕，否则会压在出租屋画面上
+	_clear_sub()
 	_say_seq("旁白", "10 月 18 日。凌晨。")
 	_say_seq("林屿", "……又是这个梦。")
 
@@ -990,13 +1551,17 @@ func _show_prologue_stage(stage: String) -> void:
 	var street_root: Node3D = prologue_roots["street"]
 	room_root.visible = (stage == "room")
 	street_root.visible = true
+	if prologue_street_city != null:
+		prologue_street_city.visible = (stage != "room")
 	if prologue_room_facade_window != null:
 		prologue_room_facade_window.visible = (stage == "street")
 	prologue_stage = stage
 	match stage:
 		"room":
-			player.position = Vector3(0, 12.1, 324.0)
+			player.position = Vector3(-0.35, 12.1, 323.05)
 			player.rotation.y = PI
+			player.pitch = -0.02
+			player.cam.rotation.x = -0.02
 		"street":
 			player.position = Vector3(0, 0.1, 326.4)
 			player.rotation.y = -PI * 0.5
@@ -1043,12 +1608,12 @@ func _prologue_act(id: String) -> void:
 					_say_seq("手机", "余额：83.60 元。")
 			elif not prologue_call_done:
 				prologue_call_done = true
-				_prologue_set_objective("去岚桥站")
+				_prologue_set_objective("去窗边看看")
 				_say_seq("接线员", "异常事件 0017。")
 				_say_seq("接线员", "处置权限 D。")
 				_say_seq("接线员", "请活到交班。")
 				_say_seq("林屿", "你是谁？")
-				_say_seq("旁白", "电话挂断了。没有“喂”，没有“你好”。")
+				_say_seq("旁白", "电话挂断了。没有“喂”，没有“你好”。窗外，雾比刚才更浓。")
 			else:
 				_say_seq("手机", "没有信号。")
 		"box":
@@ -1060,12 +1625,15 @@ func _prologue_act(id: String) -> void:
 			else:
 				_say_seq("旁白", "保温杯里的水还是温的。")
 		"window":
+			if prologue_call_done and not prologue_anomaly_done:
+				_prologue_anomaly()
+				return
 			if not prologue_seen.has("window"):
 				_prologue_mark_seen("window")
-				_say_seq("旁白", "窗外在下雨。岚桥站的灯在雨里一亮一灭。")
-				_say_seq("林屿", "那个站不是说早就停了吗？")
+				_say_seq("旁白", "窗外起了雾。林子深处，有一盏暖黄的灯。")
+				_say_seq("林屿", "临江里后面……什么时候有这片林子了？")
 			else:
-				_say_seq("旁白", "雨还在下。岚桥站的灯还亮着。")
+				_say_seq("旁白", "雾更浓了。那盏灯还在。")
 		"door":
 			if not prologue_letter_ready:
 				_say_seq("旁白", "门锁着。门外没有声音。")
@@ -1074,7 +1642,8 @@ func _prologue_act(id: String) -> void:
 			elif not prologue_call_done:
 				_say_seq("旁白", "电话还在响。先接电话。")
 			else:
-				_prologue_leave_room()
+				_say_seq("旁白", "门锁着。门缝里有雾渗进来。")
+				_say_seq("林屿", "先看看窗外。")
 		"counter":
 			if not prologue_store_done:
 				prologue_store_done = true
@@ -1117,6 +1686,12 @@ func _prologue_use_badge() -> void:
 	_prologue_enter_station()
 
 func _prologue_enter_station() -> void:
+	if prologue_fx_layer != null:
+		prologue_fx_layer.visible = false
+	player.show_view_arm = true
+	player.lock_look = false
+	if player != null and player.cam != null:
+		player.cam.fov = 74.0
 	_fade_to(1.0, 0.8)
 	await get_tree().create_timer(0.9).timeout
 	for k in prologue_roots.keys():
@@ -1127,6 +1702,8 @@ func _prologue_enter_station() -> void:
 	hud_objective.visible = false
 	hud_clock.visible = true
 	hud_map.visible = true
+	if hotbar != null:
+		hotbar.visible = true
 	if env_node != null and env_node.environment != null:
 		env_node.environment.tonemap_exposure = 0.58
 		env_node.environment.ambient_light_energy = 0.18
@@ -1174,6 +1751,8 @@ func _prologue_label(sp: Dictionary) -> String:
 		"box":
 			return "父亲的纸箱"
 		"window":
+			if prologue_call_done and not prologue_anomaly_done:
+				return "去窗边看看"
 			return "窗外"
 		"door":
 			if not prologue_letter_ready:
@@ -1182,7 +1761,7 @@ func _prologue_label(sp: Dictionary) -> String:
 				return "捡起信封"
 			if not prologue_call_done:
 				return "先接电话"
-			return "出门"
+			return "门"
 		"counter":
 			return "便利店柜台"
 		"reader":
@@ -2574,8 +3153,11 @@ func _update_hud() -> void:
 		hud_clock.visible = false
 		hud_cam.visible = false
 		hud_map.visible = false
-		hud_objective.visible = true
-		hud_objective.text = prologue_objective
+		# 通知书 / 过场 / 结束卡期间只留字幕与时钟
+		var show_objective := state == "prologue"
+		hud_objective.visible = show_objective
+		if show_objective:
+			hud_objective.text = prologue_objective
 		return
 	if state != "menu":
 		hud_objective.visible = false
@@ -2720,6 +3302,11 @@ func _fade_to(a: float, dur: float) -> void:
 	tw.tween_property(hud_fade, "modulate:a", a, dur)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if state == "prologue_end":
+		if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_R:
+			_start_prologue()
+			_fade_to(0.0, 0.5)
+		return
 	if state == "minigame":
 		if event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
 			_close_pc()

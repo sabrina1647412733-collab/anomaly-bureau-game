@@ -59,6 +59,7 @@ var step_phase := 0.0
 var walk_phase := 0.0
 var body: Node3D
 var view_arm: Node3D
+var show_view_arm := true
 var parts := {}
 signal footstep(running)
 signal landed(hard)
@@ -370,7 +371,7 @@ func toggle_cam() -> void:
 		cam.fov = _fov_before_cctv
 	body.visible = (cam_mode != 0)
 	if view_arm != null:
-		view_arm.visible = (cam_mode == 0 and not sitting)
+		view_arm.visible = (cam_mode == 0 and not sitting and show_view_arm)
 
 ## 挑离玩家最近的那台监视器
 func _pick_cctv() -> void:
@@ -403,7 +404,7 @@ func exit_cctv() -> void:
 	cam.fov = _fov_before_cctv
 	body.visible = (cam_mode != 0)
 	if view_arm != null:
-		view_arm.visible = (cam_mode == 0 and not sitting)
+		view_arm.visible = (cam_mode == 0 and not sitting and show_view_arm)
 
 func next_cctv() -> void:
 	if cam_mode != 3:
@@ -458,7 +459,7 @@ func look(delta_rot: Vector2) -> void:
 	if cam_mode == 0:
 		cam.rotation.x = pitch
 		if view_arm != null:
-			view_arm.visible = not sitting
+			view_arm.visible = show_view_arm and not sitting
 			view_arm.position = Vector3(0.26 + sin(head_bob) * 0.014 * bob_amp, -0.26 + cos(head_bob * 2.0) * 0.012 * bob_amp - dip * 0.6, -0.42)
 
 func _input(event: InputEvent) -> void:
@@ -496,7 +497,7 @@ func _physics_process(delta: float) -> void:
 		if cam_mode == 0:
 			cam.rotation.x = pitch
 		if view_arm != null:
-			view_arm.visible = not sitting
+			view_arm.visible = show_view_arm and not sitting
 			view_arm.position = Vector3(0.26 + sin(head_bob) * 0.014 * bob_amp, -0.26 + cos(head_bob * 2.0) * 0.012 * bob_amp - dip * 0.6, -0.42)
 
 	# 蹲下（按住 Ctrl 或 C）

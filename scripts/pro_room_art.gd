@@ -1,0 +1,826 @@
+class_name ProRoomArt
+extends RefCounted
+## 出租屋 Hero 场景：PBR 材质 + 真实资产 + 电影感灯光。
+## 坐标系与 game.gd 的序章房间一致：地板 y=0，房间 6 x 5 x 3 米，窗在南墙 (+Z)。
+
+const CharBody := preload("res://scripts/charbody.gd")
+const TEX := "res://assets/textures/"
+const MOD := "res://assets/models/"
+
+var host: Node3D
+var root: Node3D
+var mats: Dictionary = {}
+var model_cache: Dictionary = {}
+
+func _init(h: Node3D) -> void:
+	host = h
+
+# ---------------------------------------------------------------- 材质
+func _pbr(id: String, tint: Color, uv_scale: float, world_tri := true, rough_mul := 1.0, normal_scale := 0.9) -> StandardMaterial3D:
+	var key := "%s|%s|%.3f|%s|%.2f" % [id, str(tint), uv_scale, str(world_tri), rough_mul]
+	if mats.has(key):
+		return mats[key]
+	var m := StandardMaterial3D.new()
+	var base := TEX + id + "/"
+	m.albedo_texture = load(base + "albedo.jpg")
+	if m.albedo_texture == null:
+		m.albedo_texture = load(base + "albedo.png")
+	m.normal_enabled = true
+	m.normal_texture = load(base + "normal.jpg")
+	m.normal_scale = normal_scale
+	m.roughness_texture = load(base + "rough.jpg")
+	m.roughness = rough_mul
+	var ao = load(base + "ao.jpg")
+	if ao != null:
+		m.ao_enabled = true
+		m.ao_texture = ao
+		m.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+		m.ao_light_affect = 0.35
+	m.albedo_color = tint
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = world_tri
+	m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	mats[key] = m
+	return m
+
+func _plain(c: Color, rough := 0.82, metal := 0.0) -> StandardMaterial3D:
+	var key := "plain|%s|%.2f|%.2f" % [str(c), rough, metal]
+	if mats.has(key):
+		return mats[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = rough
+	m.metallic = metal
+	mats[key] = m
+	return m
+
+func _emit(c: Color, energy := 2.0) -> StandardMaterial3D:
+	var key := "emit|%s|%.2f" % [str(c), energy]
+	if mats.has(key):
+		return mats[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.emission_enabled = true
+	m.emission = c
+	m.emission_energy_multiplier = energy
+	mats[key] = m
+	return m
+
+func _fabric(id: String, tint: Color, double_sided := false) -> StandardMaterial3D:
+	var key := "fabric|%s|%s|%s" % [id, str(tint), str(double_sided)]
+	if mats.has(key):
+		return mats[key]
+	var m := _pbr(id, tint, 0.9, true, 0.95, 0.65)
+	m.uv1_scale = Vector3(2.2, 2.2, 2.2)
+	if double_sided:
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mats[key] = m
+	return m
+
+func _glass_rain() -> ShaderMaterial:
+	if mats.has("glass_rain"):
+		return mats["glass_rain"]
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_disabled, unshaded;
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+void fragment(){
+	vec2 uv = SCREEN_UV;
+	float t = TIME * 0.55;
+	float col = 0.0;
+	float rows = 18.0;
+	for (int i = 0; i < 2; i++){
+		float fi = float(i);
+		vec2 q = uv * vec2(70.0, rows) + vec2(fi * 17.0, t * (7.0 + fi * 3.0));
+		float cx = floor(q.x);
+		float cy = floor(q.y);
+		float h = hash(vec2(cx, cy));
+		float streak = smoothstep(0.0, 0.16, abs(fract(q.x) - 0.5 - (h - 0.5) * 0.35));
+		float drop = smoothstep(0.35, 0.0, abs(fract(q.y + h) - 0.5)) * step(0.72, h);
+		col = max(col, (1.0 - streak) * drop * (0.35 + fi * 0.25));
+	}
+	float wide = smoothstep(0.35, 1.0, abs(uv.x - 0.5) * 2.0) * 0.05;
+	vec2 duv = uv + vec2(col * 0.0018, col * 0.0006);
+	vec3 scene = texture(screen_tex, duv).rgb;
+	ALBEDO = scene * vec3(0.90, 0.96, 0.98) + vec3(0.30, 0.38, 0.36) * col;
+	ALPHA = clamp(0.020 + col * 0.055 + wide * 0.5, 0.0, 0.18);
+	ROUGHNESS = 0.05;
+}
+"""
+	var sm := ShaderMaterial.new()
+	sm.shader = sh
+	mats["glass_rain"] = sm
+	return sm
+
+# ---------------------------------------------------------------- 基础几何
+func _box(pos: Vector3, size: Vector3, mat: Material, collide := false, n := "") -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = size
+	mi.mesh = bm
+	mi.position = pos
+	mi.material_override = mat
+	if n != "":
+		mi.name = n
+	root.add_child(mi)
+	if collide:
+		_col(pos, size)
+	return mi
+
+func _bev(pos: Vector3, size: Vector3, mat: Material, bev := 0.02, collide := false) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = CharBody.bev_box(size, bev)
+	mi.position = pos
+	mi.material_override = mat
+	root.add_child(mi)
+	if collide:
+		_col(pos, size)
+	return mi
+
+func _col(pos: Vector3, size: Vector3) -> void:
+	var body := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = size
+	cs.shape = sh
+	body.add_child(cs)
+	body.position = pos
+	root.add_child(body)
+
+func _cyl(pos: Vector3, radius: float, height: float, mat: Material, seg := 14, axis := "y") -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = radius
+	cm.bottom_radius = radius
+	cm.height = height
+	cm.radial_segments = seg
+	mi.mesh = cm
+	mi.position = pos
+	if axis == "x":
+		mi.rotation.z = PI * 0.5
+	elif axis == "z":
+		mi.rotation.x = PI * 0.5
+	mi.material_override = mat
+	root.add_child(mi)
+	return mi
+
+# ---------------------------------------------------------------- 模型
+func _aabb_rec(n: Node, xf: Transform3D) -> AABB:
+	var out := AABB()
+	var has := false
+	if n is MeshInstance3D and n.mesh != null:
+		out = xf * n.get_aabb()
+		has = true
+	for c in n.get_children():
+		var cx: Transform3D = xf
+		if c is Node3D:
+			cx = xf * c.transform
+		var cb := _aabb_rec(c, cx)
+		if cb.size != Vector3.ZERO:
+			if not has:
+				out = cb
+				has = true
+			else:
+				out = out.merge(cb)
+	return out
+
+func _tint_model(n: Node, tint: Color) -> void:
+	for c in n.find_children("*", "MeshInstance3D", true, false):
+		var mi: MeshInstance3D = c
+		if mi.mesh == null:
+			continue
+		for i in range(mi.mesh.get_surface_count()):
+			var base: Material = mi.get_active_material(i)
+			if base is BaseMaterial3D:
+				var mm: BaseMaterial3D = base.duplicate()
+				mm.albedo_color = tint
+				mi.set_surface_override_material(i, mm)
+
+func _model(path: String, pos: Vector3, rot_y: float, target_h: float, tint := Color(1,1,1,1)) -> Node3D:
+	var full := MOD + path
+	var sc = model_cache.get(full)
+	if sc == null:
+		sc = load(full)
+		model_cache[full] = sc
+	if sc == null:
+		push_warning("ProRoomArt missing model: " + full)
+		return null
+	var inst: Node3D = sc.instantiate()
+	inst.position = pos
+	inst.rotation.y = rot_y
+	root.add_child(inst)
+	if target_h > 0.0:
+		var b := _aabb_rec(inst, inst.transform)
+		if b.size.y > 0.001:
+			var s := target_h / b.size.y
+			inst.scale = Vector3(s, s, s)
+	var b2 := _aabb_rec(inst, inst.transform)
+	inst.position.y += pos.y - b2.position.y
+	if tint != Color(1,1,1,1):
+		_tint_model(inst, tint)
+	return inst
+
+# ---------------------------------------------------------------- 布面
+func _cloth_top(center: Vector3, sx: float, sz: float, mat: Material, amp := 0.016, seed := 0.0) -> MeshInstance3D:
+	var nx := 26
+	var nz := 30
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rows: Array = []
+	for j in range(nz + 1):
+		var v := float(j) / float(nz)
+		var row: Array = []
+		for i in range(nx + 1):
+			var u := float(i) / float(nx)
+			var x := (u - 0.5) * sx
+			var z := (v - 0.5) * sz
+			var edge := 0.0
+			if u < 0.07:
+				edge = (0.07 - u) / 0.07
+			elif u > 0.93:
+				edge = (u - 0.93) / 0.07
+			if v < 0.05:
+				edge = maxf(edge, (0.05 - v) / 0.05)
+			elif v > 0.95:
+				edge = maxf(edge, (v - 0.95) / 0.05)
+			var y := sin(u * 26.0 + seed) * amp * 0.55 + sin(v * 34.0 + seed * 1.7) * amp * 0.45
+			y += sin((u + v) * 17.0 + seed) * amp * 0.28
+			y -= edge * edge * 0.16
+			row.append(Vector3(x, y, z))
+		rows.append(row)
+	for j in range(nz):
+		for i in range(nx):
+			var a: Vector3 = rows[j][i]
+			var b: Vector3 = rows[j][i + 1]
+			var c: Vector3 = rows[j + 1][i + 1]
+			var d: Vector3 = rows[j + 1][i]
+			st.add_vertex(a); st.add_vertex(b); st.add_vertex(c)
+			st.add_vertex(a); st.add_vertex(c); st.add_vertex(d)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.position = center
+	mi.material_override = mat
+	root.add_child(mi)
+	return mi
+
+func _curtain(x_center: float, z0: float, top_y: float, width: float, height: float, mat: Material, phase: float) -> MeshInstance3D:
+	var nx := 30
+	var ny := 22
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rows: Array = []
+	for j in range(ny + 1):
+		var v := float(j) / float(ny)
+		var row: Array = []
+		for i in range(nx + 1):
+			var u := float(i) / float(nx)
+			var w := width * (0.80 + 0.20 * v)
+			var x := x_center + (u - 0.5) * w
+			var fold := sin(u * PI * 7.0 + phase) * (0.018 + 0.040 * v)
+			fold += sin(u * PI * 13.0 + phase * 1.7) * 0.008 * v
+			var y := top_y - v * height
+			row.append(Vector3(x, y, z0 + fold))
+		rows.append(row)
+	for j in range(ny):
+		for i in range(nx):
+			var a: Vector3 = rows[j][i]
+			var b: Vector3 = rows[j][i + 1]
+			var c: Vector3 = rows[j + 1][i + 1]
+			var d: Vector3 = rows[j + 1][i]
+			st.add_vertex(a); st.add_vertex(b); st.add_vertex(c)
+			st.add_vertex(a); st.add_vertex(c); st.add_vertex(d)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = mat
+	root.add_child(mi)
+	return mi
+
+# ---------------------------------------------------------------- 构建
+func build(r: Node3D) -> void:
+	root = r
+	_shell()
+	_wainscot()
+	_ceiling()
+	_window()
+	_door()
+	_bed()
+	_nightstand()
+	_desk()
+	_cabinet_and_tv()
+	_kitchen()
+	_shelf()
+	_floor_props()
+	_wall_decor()
+	_kitchen_details()
+	_lights()
+	_atmosphere()
+	_post_fx()
+
+func _shell() -> void:
+	var floor_mat := _pbr("old_wooden_floor_01", Color(0.58, 0.50, 0.42), 0.42, true, 0.95, 0.75)
+	var wall_mat := _pbr("painted_plaster_wall", Color(0.64, 0.67, 0.60), 0.34, true, 1.0, 0.22)
+	var wall_cool := _pbr("painted_plaster_wall", Color(0.60, 0.64, 0.58), 0.34, true, 1.0, 0.20)
+	var paper_mat := _pbr("painted_plaster_wall", Color(0.57, 0.61, 0.55), 0.34, true, 1.0, 0.20)
+	var ceil_mat := _pbr("painted_plaster_wall", Color(0.62, 0.62, 0.57), 0.32, true, 1.0, 0.18)
+
+	_box(Vector3(0, -0.07, 0), Vector3(6.1, 0.14, 5.1), floor_mat, true, "Floor")
+	_box(Vector3(0, 3.10, 0), Vector3(6.1, 0.16, 5.1), ceil_mat, false, "Ceiling")
+	_box(Vector3(-1.78, 1.5, -2.5), Vector3(2.44, 3.0, 0.12), wall_mat, true)
+	_box(Vector3(1.78, 1.5, -2.5), Vector3(2.44, 3.0, 0.12), wall_mat, true)
+	_box(Vector3(0, 2.58, -2.5), Vector3(1.12, 0.84, 0.12), wall_mat, false)
+	_box(Vector3(-2.28, 1.5, 2.5), Vector3(1.44, 3.0, 0.12), wall_mat, true)
+	_box(Vector3(2.28, 1.5, 2.5), Vector3(1.44, 3.0, 0.12), wall_mat, true)
+	_box(Vector3(0, 0.47, 2.5), Vector3(3.12, 0.94, 0.12), wall_mat, true)
+	_box(Vector3(0, 2.73, 2.5), Vector3(3.12, 0.54, 0.12), wall_mat, false)
+	_box(Vector3(-3.0, 1.5, 0), Vector3(0.12, 3.0, 5.0), wall_cool, true)
+	_box(Vector3(3.0, 1.5, 0), Vector3(0.12, 3.0, 5.0), wall_cool, true)
+	_box(Vector3(-2.94, 1.5, -0.95), Vector3(0.02, 3.0, 3.1), paper_mat, false)
+	var base_mat := _plain(Color(0.30, 0.28, 0.24), 0.75)
+	_box(Vector3(-1.78, 0.075, -2.42), Vector3(2.40, 0.15, 0.05), base_mat)
+	_box(Vector3(1.78, 0.075, -2.42), Vector3(2.40, 0.15, 0.05), base_mat)
+	_box(Vector3(-2.28, 0.075, 2.42), Vector3(1.40, 0.15, 0.05), base_mat)
+	_box(Vector3(2.28, 0.075, 2.42), Vector3(1.40, 0.15, 0.05), base_mat)
+	_box(Vector3(-2.92, 0.075, 0), Vector3(0.05, 0.15, 4.90), base_mat)
+	_box(Vector3(2.92, 0.075, 0), Vector3(0.05, 0.15, 4.90), base_mat)
+	# 关着的门与窗洞都要有碰撞：60 秒切片里不允许走出出租屋 / 跳出窗外
+	_col(Vector3(0, 1.08, -2.455), Vector3(1.02, 2.16, 0.07))
+	_col(Vector3(0, 1.70, 2.50), Vector3(3.12, 1.56, 0.12))
+
+func _wainscot() -> void:
+	var wood := _pbr("oak_wood_planks", Color(0.36, 0.33, 0.26), 1.35, true, 0.9, 1.0)
+	var rail := _plain(Color(0.26, 0.24, 0.20), 0.7)
+	_box(Vector3(-1.78, 0.56, -2.425), Vector3(2.40, 0.86, 0.035), wood, false)
+	_box(Vector3(1.78, 0.56, -2.425), Vector3(2.40, 0.86, 0.035), wood, false)
+	_box(Vector3(-2.28, 0.56, 2.425), Vector3(1.40, 0.86, 0.035), wood, false)
+	_box(Vector3(2.28, 0.56, 2.425), Vector3(1.40, 0.86, 0.035), wood, false)
+	_box(Vector3(0, 0.56, 2.425), Vector3(3.08, 0.86, 0.035), wood, false)
+	_box(Vector3(-2.925, 0.56, 0), Vector3(0.035, 0.86, 4.9), wood, false)
+	_box(Vector3(2.925, 0.56, 0), Vector3(0.035, 0.86, 4.9), wood, false)
+	for z in [-2.0, -1.1, -0.2, 0.7, 1.6]:
+		_box(Vector3(-2.90, 0.56, z), Vector3(0.05, 0.86, 0.045), rail)
+		_box(Vector3(2.90, 0.56, z), Vector3(0.05, 0.86, 0.045), rail)
+	for x in [-2.4, -1.4, 1.4, 2.4]:
+		_box(Vector3(x, 0.56, -2.40), Vector3(0.045, 0.86, 0.045), rail)
+		_box(Vector3(x, 0.56, 2.40), Vector3(0.045, 0.86, 0.045), rail)
+	_box(Vector3(0, 1.02, -2.38), Vector3(5.92, 0.06, 0.08), rail)
+	_box(Vector3(0, 1.02, 2.38), Vector3(5.92, 0.06, 0.08), rail)
+	_box(Vector3(-2.88, 1.02, 0), Vector3(0.08, 0.06, 4.88), rail)
+	_box(Vector3(2.88, 1.02, 0), Vector3(0.08, 0.06, 4.88), rail)
+
+func _ceiling() -> void:
+	var beam := _pbr("oak_wood_planks", Color(0.24, 0.20, 0.15), 1.6, true, 0.95, 1.0)
+	for z in [-1.45, 0.0, 1.45]:
+		_box(Vector3(0, 2.96, z), Vector3(5.95, 0.16, 0.17), beam)
+	_box(Vector3(0, 2.96, -2.32), Vector3(5.95, 0.12, 0.12), beam)
+	_cyl(Vector3(0, 2.86, 0.15), 0.007, 0.32, _plain(Color(0.06,0.06,0.06), 0.6), 6)
+
+func _window() -> void:
+	var frame := _plain(Color(0.34, 0.36, 0.31), 0.62)
+	var frame_dark := _plain(Color(0.24, 0.26, 0.23), 0.72)
+	_box(Vector3(-1.58, 1.70, 2.44), Vector3(0.10, 1.56, 0.12), frame)
+	_box(Vector3(1.58, 1.70, 2.44), Vector3(0.10, 1.56, 0.12), frame)
+	_box(Vector3(0, 2.45, 2.44), Vector3(3.26, 0.10, 0.12), frame)
+	_box(Vector3(0, 0.95, 2.44), Vector3(3.26, 0.10, 0.12), frame)
+
+
+	_box(Vector3(0, 0.90, 2.62), Vector3(3.42, 0.07, 0.34), _plain(Color(0.52, 0.50, 0.44), 0.7))
+	var glass := MeshInstance3D.new()
+	var qm := QuadMesh.new()
+	qm.size = Vector2(3.10, 1.48)
+	glass.mesh = qm
+	glass.position = Vector3(0, 1.70, 2.47)
+	glass.material_override = _glass_rain()
+	glass.name = "WindowGlass"
+	root.add_child(glass)
+	_cyl(Vector3(0, 2.55, 2.31), 0.018, 3.46, _plain(Color(0.20,0.18,0.15), 0.55, 0.45), 10, "x")
+	for sx in [-1.73, 1.73]:
+		_cyl(Vector3(sx, 2.55, 2.31), 0.035, 0.07, _plain(Color(0.20,0.18,0.15), 0.55, 0.45), 10, "x")
+	var curtain_mat := _fabric("rough_linen", Color(0.30, 0.34, 0.27), true)
+	_curtain(-1.42, 2.30, 2.53, 0.86, 1.62, curtain_mat, 0.4)
+	_curtain(1.42, 2.30, 2.53, 0.86, 1.62, curtain_mat, 2.1)
+
+func _door() -> void:
+	var door_mat := _pbr("oak_wood_planks", Color(0.32, 0.24, 0.18), 1.5, true, 0.85, 1.0)
+	var trim := _plain(Color(0.28, 0.26, 0.22), 0.7)
+	_box(Vector3(0, 1.08, -2.455), Vector3(1.02, 2.16, 0.07), door_mat, false)
+	for py in [1.55, 0.62]:
+		_bev(Vector3(0, py, -2.412), Vector3(0.64, 0.62 if py > 1.0 else 0.55, 0.022), _plain(Color(0.18,0.20,0.17), 0.8), 0.012)
+	_box(Vector3(-0.55, 1.12, -2.43), Vector3(0.09, 2.30, 0.15), trim)
+	_box(Vector3(0.55, 1.12, -2.43), Vector3(0.09, 2.30, 0.15), trim)
+	_box(Vector3(0, 2.24, -2.43), Vector3(1.22, 0.10, 0.15), trim)
+	_cyl(Vector3(0.37, 1.02, -2.39), 0.038, 0.04, _plain(Color(0.76,0.58,0.26), 0.30, 0.85), 14, "z")
+	_cyl(Vector3(0.37, 1.02, -2.34), 0.014, 0.11, _plain(Color(0.76,0.58,0.26), 0.30, 0.85), 10, "z")
+	for hy in [0.5, 1.65]:
+		_cyl(Vector3(-0.49, hy, -2.40), 0.014, 0.06, _plain(Color(0.42,0.36,0.24), 0.5, 0.7), 8, "z")
+	var env := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.36, 0.012, 0.23)
+	env.mesh = bm
+	env.position = Vector3(0, 0.012, -2.34)
+	env.material_override = _plain(Color(0.86, 0.83, 0.72), 0.9)
+	env.name = "Envelope"
+	root.add_child(env)
+	host.prologue_envelope = env
+	env.visible = false
+
+func _bed() -> void:
+	_model("old_bed_frame/old_bed_frame_2k.gltf", Vector3(-2.15, 0, -0.20), 0.0, 0.0, Color(0.40, 0.35, 0.31))
+	var sheet := _fabric("rough_linen", Color(0.72, 0.70, 0.62))
+	var duvet := _fabric("rough_linen", Color(0.40, 0.46, 0.42))
+	var throw_mat := _fabric("poly_wool_herringbone", Color(0.34, 0.26, 0.20))
+	_bev(Vector3(-2.15, 0.50, -0.18), Vector3(0.88, 0.26, 1.88), _plain(Color(0.55,0.53,0.46), 0.9), 0.06)
+	_bev(Vector3(-2.15, 0.645, -0.18), Vector3(0.90, 0.07, 1.90), sheet, 0.03)
+	_bev(Vector3(-2.15, 0.75, 0.08), Vector3(0.94, 0.22, 1.36), duvet, 0.09)
+	_cloth_top(Vector3(-2.15, 0.865, 0.04), 0.94, 1.38, duvet, 0.022, 1.2)
+	_cloth_top(Vector3(-2.15, 0.80, 0.72), 0.94, 0.62, throw_mat, 0.014, 3.4)
+	_bev(Vector3(-1.665, 0.60, 0.12), Vector3(0.035, 0.48, 1.10), throw_mat, 0.015)
+	_bev(Vector3(-1.655, 0.56, 0.44), Vector3(0.02, 0.40, 0.08), throw_mat, 0.008)
+	_bev(Vector3(-1.655, 0.56, -0.16), Vector3(0.02, 0.40, 0.08), throw_mat, 0.008)
+	_cloth_top(Vector3(-2.15, 0.815, -0.58), 0.94, 0.34, _fabric("poly_wool_herringbone", Color(0.46, 0.37, 0.28)), 0.012, 5.1)
+	_bev(Vector3(-2.15, 0.70, -0.93), Vector3(0.68, 0.17, 0.38), sheet, 0.07)
+	_bev(Vector3(-2.15, 0.81, -0.90), Vector3(0.62, 0.14, 0.34), _fabric("rough_linen", Color(0.78,0.76,0.68)), 0.06)
+	for z in [-0.75, 0.15]:
+		_bev(Vector3(-2.15, 0.13, z), Vector3(0.78, 0.22, 0.62), _plain(Color(0.20,0.21,0.22), 0.9), 0.02)
+	_box(Vector3(-2.15, 0.012, 1.12), Vector3(1.30, 0.02, 1.10), _fabric("poly_wool_herringbone", Color(0.34,0.32,0.28)), false)
+	for x in [-2.28, -2.02]:
+		_bev(Vector3(x, 0.055, 1.28), Vector3(0.16, 0.09, 0.31), _plain(Color(0.20,0.20,0.22), 0.85), 0.025)
+	_col(Vector3(-2.15, 0.38, -0.18), Vector3(1.00, 0.76, 1.95))
+
+func _nightstand() -> void:
+	_model("ClassicNightstand_01/ClassicNightstand_01_1k.gltf", Vector3(-1.30, 0, -1.24), 0.0, 0.0, Color(0.95, 0.90, 0.83))
+	_model("desk_lamp_arm_01/desk_lamp_arm_01_1k.gltf", Vector3(-1.42, 0.70, -1.32), -0.5, 0.55, Color(0.92,0.88,0.80))
+	_model("alarm_clock_01/alarm_clock_01_1k.gltf", Vector3(-1.14, 0.70, -1.06), PI * 0.5, 0.16)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-1.24, 0.70, -1.26), PI * 0.5, 0.12)
+	_cyl(Vector3(-1.45, 0.735, -1.12), 0.035, 0.09, _plain(Color(0.80,0.78,0.70), 0.4), 14)
+	_col(Vector3(-1.30, 0.36, -1.24), Vector3(0.56, 0.72, 0.46))
+
+func _desk() -> void:
+	_model("wooden_table_02/wooden_table_02_1k.gltf", Vector3(2.10, 0, 1.55), 0.0, 0.0, Color(0.92, 0.90, 0.85))
+	_model("painted_wooden_chair_01/painted_wooden_chair_01_1k.gltf", Vector3(2.10, 0, 0.83), PI, 0.0, Color(0.72,0.66,0.56))
+	_model("desk_lamp_arm_01/desk_lamp_arm_01_1k.gltf", Vector3(2.52, 0.80, 1.78), -2.4, 0.46, Color(0.86,0.82,0.74))
+	var phone := _bev(Vector3(2.06, 0.815, 1.38), Vector3(0.078, 0.010, 0.155), _plain(Color(0.045,0.05,0.055), 0.32), 0.006)
+	phone.rotation.y = 0.22
+	var screen := _box(Vector3(2.06, 0.821, 1.38), Vector3(0.066, 0.002, 0.138), _emit(Color(0.55, 0.75, 0.78), 0.55), false)
+	screen.rotation.y = 0.22
+	host.set_meta("phone_screen", screen)
+	_model("binder_notebook/binder_notebook_1k.gltf", Vector3(1.82, 0.805, 1.62), 0.35, 0.0, Color(0.94,0.92,0.86))
+	_bev(Vector3(2.32, 0.806, 1.44), Vector3(0.24, 0.006, 0.31), _plain(Color(0.86,0.84,0.75), 0.92), 0.004)
+	_cyl(Vector3(2.42, 0.845, 1.32), 0.042, 0.09, _plain(Color(0.72,0.70,0.62), 0.35), 16)
+	_cyl(Vector3(2.46, 0.845, 1.32), 0.012, 0.055, _plain(Color(0.72,0.70,0.62), 0.35), 8, "z")
+	_cyl(Vector3(1.78, 0.812, 1.46), 0.005, 0.16, _plain(Color(0.12,0.12,0.13), 0.4), 6, "x")
+	_bev(Vector3(1.75, 0.835, 1.80), Vector3(0.22, 0.07, 0.28), _plain(Color(0.80,0.78,0.70), 0.9), 0.008)
+	_bev(Vector3(2.48, 0.20, 1.30), Vector3(0.44, 0.40, 0.42), _plain(Color(0.44,0.33,0.22), 0.95), 0.02)
+	_col(Vector3(2.10, 0.40, 1.55), Vector3(1.10, 0.80, 0.72))
+
+func _cabinet_and_tv() -> void:
+	_model("painted_wooden_cabinet/painted_wooden_cabinet_1k.gltf", Vector3(2.62, 0, -1.00), PI * 0.5, 0.0, Color(0.80, 0.82, 0.78))
+	_model("Television_01/Television_01_1k.gltf", Vector3(2.62, 1.19, -1.00), PI * 0.5, 0.0, Color(0.72,0.74,0.72))
+	_box(Vector3(2.30, 1.16, -0.88), Vector3(0.006, 0.012, 0.012), _emit(Color(0.30, 1.0, 0.45), 3.0), false)
+	_bev(Vector3(2.58, 1.24, -1.38), Vector3(0.26, 0.06, 0.34), _plain(Color(0.10,0.11,0.11), 0.55, 0.2), 0.012)
+	_bev(Vector3(2.58, 1.29, -1.38), Vector3(0.18, 0.01, 0.10), _plain(Color(0.32,0.32,0.30), 0.5), 0.004)
+	_col(Vector3(2.62, 0.60, -1.00), Vector3(0.96, 1.20, 0.64))
+
+func _kitchen() -> void:
+	var cabinet := _pbr("oak_wood_planks", Color(0.34, 0.30, 0.24), 1.2, true, 0.9, 1.0)
+	var top := _plain(Color(0.44, 0.44, 0.42), 0.55)
+	_box(Vector3(2.45, 0.40, -2.14), Vector3(1.04, 0.76, 0.60), cabinet, true)
+	_box(Vector3(2.45, 0.80, -2.14), Vector3(1.10, 0.06, 0.66), top)
+	for x in [2.18, 2.72]:
+		_box(Vector3(x, 0.42, -1.835), Vector3(0.02, 0.66, 0.02), _plain(Color(0.22,0.20,0.16), 0.8))
+		_box(Vector3(x + 0.10 if x < 2.4 else x - 0.10, 0.62, -1.80), Vector3(0.10, 0.02, 0.02), _plain(Color(0.58,0.50,0.38), 0.5, 0.5))
+	_box(Vector3(2.45, 0.825, -2.16), Vector3(0.46, 0.02, 0.32), _plain(Color(0.22,0.23,0.24), 0.35, 0.6))
+	_cyl(Vector3(2.45, 0.92, -2.30), 0.016, 0.26, _plain(Color(0.55,0.56,0.55), 0.3, 0.8), 10)
+	_cyl(Vector3(2.45, 1.04, -2.24), 0.014, 0.14, _plain(Color(0.55,0.56,0.55), 0.3, 0.8), 10, "z")
+	_cyl(Vector3(2.74, 0.90, -2.20), 0.085, 0.15, _plain(Color(0.62,0.62,0.58), 0.3, 0.6), 16)
+	_cyl(Vector3(2.74, 0.99, -2.20), 0.028, 0.06, _plain(Color(0.30,0.30,0.28), 0.4), 10)
+	_cyl(Vector3(2.18, 0.86, -2.20), 0.075, 0.055, _plain(Color(0.78,0.76,0.68), 0.5), 16)
+	_box(Vector3(2.45, 1.18, -2.43), Vector3(1.06, 0.70, 0.03), _plain(Color(0.68,0.68,0.62), 0.35))
+	for gy in [0.96, 1.12, 1.28, 1.44]:
+		_box(Vector3(2.45, gy, -2.41), Vector3(1.06, 0.006, 0.008), _plain(Color(0.44,0.44,0.40), 0.7))
+	for gx in [2.10, 2.45, 2.80]:
+		_box(Vector3(gx, 1.18, -2.41), Vector3(0.006, 0.70, 0.008), _plain(Color(0.44,0.44,0.40), 0.7))
+	_box(Vector3(2.45, 2.10, -2.28), Vector3(1.02, 0.62, 0.34), cabinet)
+	_box(Vector3(2.45, 2.10, -2.10), Vector3(0.46, 0.58, 0.02), _plain(Color(0.30,0.27,0.22), 0.8))
+	_col(Vector3(2.45, 0.42, -2.14), Vector3(1.05, 0.84, 0.64))
+
+func _shelf() -> void:
+	_model("wooden_bookshelf_worn/wooden_bookshelf_worn_1k.gltf", Vector3(1.25, 0, -2.16), 0.0, 0.0, Color(0.86, 0.82, 0.76))
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(0.92, 0.40, -2.14), 0.0, 0.0)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(1.34, 0.40, -2.14), 0.0, 0.0)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(1.10, 1.06, -2.14), 0.0, 0.0)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(1.54, 1.06, -2.14), 0.0, 0.0)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(1.02, 1.46, -2.14), 0.0, 0.0)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(1.46, 1.46, -2.14), 0.0, 0.0)
+	_bev(Vector3(1.25, 1.78, -2.12), Vector3(0.34, 0.16, 0.26), _plain(Color(0.38,0.36,0.31), 0.95), 0.02)
+	_cyl(Vector3(1.66, 2.02, -2.12), 0.055, 0.10, _plain(Color(0.46,0.30,0.20), 0.9), 12)
+	for k in range(5):
+		_cone_leaf(Vector3(1.66, 2.14, -2.12), 0.05, 0.22, k)
+	_col(Vector3(1.25, 0.95, -2.16), Vector3(0.96, 1.90, 0.36))
+
+func _cone_leaf(pos: Vector3, r: float, h: float, k: int) -> void:
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.0
+	cm.bottom_radius = r
+	cm.height = h
+	cm.radial_segments = 5
+	mi.mesh = cm
+	mi.position = pos + Vector3(cos(k * 1.7) * 0.05, 0, sin(k * 1.7) * 0.05)
+	mi.rotation.z = cos(k) * 0.4
+	mi.rotation.x = sin(k * 1.3) * 0.4
+	mi.material_override = _plain(Color(0.18, 0.32, 0.20), 0.9)
+	root.add_child(mi)
+
+func _floor_props() -> void:
+	_bev(Vector3(0.10, 0.014, 0.80), Vector3(2.70, 0.024, 1.86), _fabric("poly_wool_herringbone", Color(0.42, 0.38, 0.32)), 0.012)
+	_box(Vector3(0.10, 0.027, 0.80), Vector3(2.42, 0.004, 1.60), _pbr("poly_wool_herringbone", Color(0.50, 0.45, 0.37), 1.4, true, 1.0, 0.8), false)
+	_model("cardboard_box_01/cardboard_box_01_1k.gltf", Vector3(-0.70, 0, 1.66), 0.45, 0.50, Color(0.78, 0.70, 0.58))
+	var lid := _bev(Vector3(-0.70, 0.49, 1.86), Vector3(0.48, 0.02, 0.32), _plain(Color(0.52,0.39,0.25), 0.95), 0.005)
+	lid.rotation.x = -0.9
+	_cyl(Vector3(-0.80, 0.39, 1.62), 0.045, 0.22, _plain(Color(0.55,0.56,0.52), 0.35, 0.6), 14)
+	_bev(Vector3(-0.56, 0.41, 1.66), Vector3(0.16, 0.02, 0.10), _plain(Color(0.78,0.74,0.62), 0.8), 0.004)
+	_cyl(Vector3(-2.45, 0.22, 2.10), 0.23, 0.42, _plain(Color(0.34,0.33,0.28), 0.95), 16)
+	for i in range(3):
+		_bev(Vector3(-2.45 + (i - 1) * 0.05, 0.45, 2.10), Vector3(0.20, 0.06, 0.26), _plain(Color(0.40,0.42,0.44), 0.95), 0.02)
+	_model("potted_plant_01/potted_plant_01_1k.gltf", Vector3(-1.95, 0, 2.12), 0.6, 1.05, Color(0.92,0.94,0.86))
+	_cyl(Vector3(2.86, 0.30, 1.55), 0.008, 0.30, _plain(Color(0.08,0.08,0.08), 0.7), 6)
+	_cyl(Vector3(2.78, 0.28, 1.42), 0.008, 0.26, _plain(Color(0.08,0.08,0.08), 0.7), 6, "x")
+
+func _wall_decor() -> void:
+	_wall_frame(-2.90, 1.95, -1.45, 0.48, 0.62, Color(0.46, 0.41, 0.31))
+	_wall_frame(-2.90, 1.86, -0.62, 0.38, 0.50, Color(0.36, 0.41, 0.36))
+	_model("vintage_telephone_wall_clock/vintage_telephone_wall_clock_1k.gltf", Vector3(-0.95, 2.18, -2.43), 0.0, 0.0, Color(0.92,0.88,0.80))
+	_box(Vector3(2.925, 1.80, 1.15), Vector3(0.018, 0.56, 0.40), _plain(Color(0.86,0.84,0.74), 0.9))
+	_box(Vector3(2.913, 1.98, 1.15), Vector3(0.004, 0.05, 0.34), _plain(Color(0.55,0.48,0.36), 0.9))
+	for i in range(4):
+		_box(Vector3(2.913, 1.58 + i * 0.10, 1.15), Vector3(0.004, 0.004, 0.32), _plain(Color(0.58,0.55,0.48), 0.9))
+	var poster := _box(Vector3(-2.42, 1.85, 2.43), Vector3(0.62, 0.86, 0.012), _plain(Color(0.42,0.44,0.38), 0.92))
+	poster.rotation.y = PI
+	_box(Vector3(-2.42, 2.10, 2.42), Vector3(0.44, 0.10, 0.004), _plain(Color(0.66,0.62,0.48), 0.9))
+	for x in [1.02, 1.20, 1.38]:
+		_cyl(Vector3(x, 1.78, -2.40), 0.012, 0.10, _plain(Color(0.34,0.30,0.24), 0.6, 0.4), 8, "z")
+	_bev(Vector3(1.22, 1.38, -2.33), Vector3(0.42, 0.72, 0.16), _plain(Color(0.20,0.24,0.26), 0.95), 0.04)
+	_string_lights()
+
+func _wall_frame(x: float, y: float, z: float, w: float, h: float, photo: Color) -> void:
+	var wood := _plain(Color(0.20, 0.16, 0.12), 0.82)
+	_box(Vector3(x, y, z), Vector3(0.035, h, w), wood)
+	_box(Vector3(x + 0.021, y, z), Vector3(0.006, h - 0.10, w - 0.10), _plain(photo, 0.9))
+	_box(Vector3(x + 0.025, y + h * 0.12, z), Vector3(0.004, h * 0.22, w - 0.14), _plain(photo.lightened(0.16), 0.9))
+	var t := 0.045
+	_box(Vector3(x + 0.030, y + h * 0.5 - t * 0.5, z), Vector3(0.028, t, w), wood)
+	_box(Vector3(x + 0.030, y - h * 0.5 + t * 0.5, z), Vector3(0.028, t, w), wood)
+	_box(Vector3(x + 0.030, y, z + w * 0.5 - t * 0.5), Vector3(0.028, h, t), wood)
+	_box(Vector3(x + 0.030, y, z - w * 0.5 + t * 0.5), Vector3(0.028, h, t), wood)
+func _string_lights() -> void:
+	var wire := _plain(Color(0.12, 0.11, 0.09), 0.8)
+	for i in range(10):
+		var z0 := -1.95 + float(i) * 0.25
+		var z1 := z0 + 0.25
+		var y0 := 2.40 - sin(float(i) / 9.0 * PI) * 0.13
+		var y1 := 2.40 - sin(float(i + 1) / 9.0 * PI) * 0.13
+		var mid := Vector3(-2.90, (y0 + y1) * 0.5, (z0 + z1) * 0.5)
+		var seg := _box(mid, Vector3(0.006, 0.006, 0.26), wire)
+		seg.rotation.x = -atan2(y1 - y0, z1 - z0)
+	for i in range(9):
+		var u := float(i) / 8.0
+		var z := -1.90 + u * 2.15
+		var y := 2.39 - sin(u * PI) * 0.13
+		var mi := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.020
+		sm.height = 0.040
+		sm.radial_segments = 8
+		sm.rings = 4
+		mi.mesh = sm
+		mi.position = Vector3(-2.87, y, z)
+		mi.material_override = _emit(Color(1.0, 0.74, 0.42), 1.1)
+		root.add_child(mi)
+		if i % 3 == 1:
+			var l := OmniLight3D.new()
+			l.position = Vector3(-2.78, y - 0.02, z)
+			l.light_color = Color(1.0, 0.66, 0.34)
+			l.light_energy = 0.18
+			l.omni_range = 1.4
+			l.shadow_enabled = false
+			root.add_child(l)
+func _kitchen_details() -> void:
+	_box(Vector3(2.935, 1.55, -1.72), Vector3(0.006, 0.20, 0.15), _plain(Color(0.80,0.76,0.58), 0.9))
+	_box(Vector3(2.935, 1.55, -1.92), Vector3(0.006, 0.16, 0.12), _plain(Color(0.62,0.70,0.64), 0.9))
+	var switch_mat := _plain(Color(0.78,0.76,0.68), 0.6)
+	_box(Vector3(0.78, 1.16, -2.43), Vector3(0.10, 0.16, 0.025), switch_mat)
+	_box(Vector3(0.78, 1.16, -2.415), Vector3(0.04, 0.06, 0.008), _plain(Color(0.36,0.34,0.30), 0.5))
+	_box(Vector3(1.35, 0.30, -2.43), Vector3(0.16, 0.10, 0.02), switch_mat)
+
+func _lights() -> void:
+	_cyl(Vector3(0, 2.88, 0.15), 0.006, 0.24, _plain(Color(0.08,0.08,0.07), 0.6), 6)
+	var shade := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.038
+	cm.bottom_radius = 0.235
+	cm.height = 0.20
+	cm.radial_segments = 24
+	shade.mesh = cm
+	shade.position = Vector3(0, 2.66, 0.15)
+	var shm := _plain(Color(0.24, 0.26, 0.21), 0.5, 0.3)
+	shm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	shade.material_override = shm
+	root.add_child(shade)
+	_cyl(Vector3(0, 2.565, 0.15), 0.155, 0.012, _emit(Color(1.0, 0.78, 0.48), 0.7), 24)
+	var bulb := MeshInstance3D.new()
+	var bsm := SphereMesh.new()
+	bsm.radius = 0.052
+	bsm.height = 0.104
+	bulb.mesh = bsm
+	bulb.position = Vector3(0, 2.56, 0.15)
+	bulb.material_override = _emit(Color(1.0, 0.84, 0.58), 1.8)
+	root.add_child(bulb)
+	var main := OmniLight3D.new()
+	main.position = Vector3(0, 2.55, 0.15)
+	main.light_color = Color(1.0, 0.74, 0.46)
+	main.light_energy = 1.65
+	main.omni_range = 7.5
+	main.omni_attenuation = 1.2
+	main.shadow_enabled = true
+	main.shadow_opacity = 0.38
+	main.shadow_blur = 2.0
+	main.light_volumetric_fog_energy = 0.55
+	root.add_child(main)
+	host.set_meta("room_main_light", main)
+	var bounce := OmniLight3D.new()
+	bounce.position = Vector3(0, 1.35, 0.2)
+	bounce.light_color = Color(0.86, 0.80, 0.70)
+	bounce.light_energy = 0.24
+	bounce.omni_range = 5.6
+	bounce.shadow_enabled = false
+	root.add_child(bounce)
+	var desk_l := OmniLight3D.new()
+	desk_l.position = Vector3(2.38, 1.02, 1.66)
+	desk_l.light_color = Color(1.0, 0.64, 0.34)
+	desk_l.light_energy = 1.45
+	desk_l.omni_range = 4.0
+	desk_l.shadow_enabled = false
+	root.add_child(desk_l)
+	host.set_meta("room_desk_light", desk_l)
+	var bed_l := OmniLight3D.new()
+	bed_l.position = Vector3(-1.42, 1.05, -1.24)
+	bed_l.light_color = Color(1.0, 0.70, 0.42)
+	bed_l.light_energy = 0.90
+	bed_l.omni_range = 3.4
+	bed_l.shadow_enabled = false
+	root.add_child(bed_l)
+	var win := SpotLight3D.new()
+	win.position = Vector3(0.0, 14.15, 326.75)
+	win.rotation.x = -0.30
+	win.light_color = Color(0.58, 0.76, 0.84)
+	win.light_energy = 3.8
+	win.spot_range = 20.0
+	win.spot_angle = 40.0
+	win.spot_angle_attenuation = 1.4
+	win.shadow_enabled = true
+	win.light_volumetric_fog_energy = 2.2
+	root.add_child(win)
+	host.set_meta("room_window_light", win)
+	var fill := OmniLight3D.new()
+	fill.position = Vector3(0, 1.55, 1.95)
+	fill.light_color = Color(0.42, 0.58, 0.70)
+	fill.light_energy = 0.55
+	fill.omni_range = 4.8
+	fill.shadow_enabled = false
+	root.add_child(fill)
+
+func _atmosphere() -> void:
+	var dust := GPUParticles3D.new()
+	dust.amount = 18
+	dust.lifetime = 16.0
+	dust.preprocess = 12.0
+	dust.visibility_aabb = AABB(Vector3(-3, 0, -2.5), Vector3(6, 3, 5))
+	dust.position = Vector3(0, 1.4, 0.6)
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = Vector3(2.4, 1.2, 2.0)
+	pm.direction = Vector3(0, 1, 0)
+	pm.spread = 180.0
+	pm.initial_velocity_min = 0.005
+	pm.initial_velocity_max = 0.03
+	pm.gravity = Vector3(0, -0.002, 0)
+	pm.scale_min = 0.0012
+	pm.scale_max = 0.0035
+	pm.turbulence_enabled = true
+	pm.turbulence_noise_strength = 0.08
+	pm.turbulence_noise_scale = 1.4
+	dust.process_material = pm
+	var dq := QuadMesh.new()
+	dq.size = Vector2(0.012, 0.012)
+	var dm := StandardMaterial3D.new()
+	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	dm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	# 径向渐变让尘埃是柔光点，而不是白色小方块
+	var grad := Gradient.new()
+	grad.set_color(0, Color(1, 1, 1, 1))
+	grad.set_color(1, Color(1, 1, 1, 0))
+	var gtex := GradientTexture2D.new()
+	gtex.gradient = grad
+	gtex.fill = GradientTexture2D.FILL_RADIAL
+	gtex.fill_from = Vector2(0.5, 0.5)
+	gtex.fill_to = Vector2(1.0, 0.5)
+	gtex.width = 32
+	gtex.height = 32
+	dm.albedo_texture = gtex
+	dm.albedo_color = Color(1.0, 0.86, 0.62, 0.16)
+	dm.vertex_color_use_as_albedo = true
+	dq.material = dm
+	dust.draw_pass_1 = dq
+	root.add_child(dust)
+	host.set_meta("room_dust", dust)
+
+func _post_fx() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 0
+	layer.name = "PrologueFX"
+	host.add_child(layer)
+	var rect := ColorRect.new()
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(rect)
+	var sh := Shader.new()
+	sh.code = """
+shader_type canvas_item;
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
+uniform float vignette_strength = 0.42;
+uniform float grain_amount = 0.020;
+uniform float glitch = 0.0;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void fragment(){
+	vec2 uv = SCREEN_UV;
+	vec2 c = uv - 0.5;
+	float ca = 0.0012 + glitch * 0.004;
+	vec3 col;
+	col.r = texture(screen_tex, uv + c * ca * 2.0).r;
+	col.g = texture(screen_tex, uv).g;
+	col.b = texture(screen_tex, uv - c * ca * 2.0).b;
+	float l = dot(col, vec3(0.299, 0.587, 0.114));
+	col *= mix(vec3(0.90, 0.97, 0.98), vec3(1.04, 1.01, 0.95), smoothstep(0.12, 0.80, l));
+	col = (col - 0.5) * 1.055 + 0.5;
+	float d = length(c) * 1.38;
+	col *= 1.0 - vignette_strength * smoothstep(0.30, 0.95, d);
+	float n = hash(uv * vec2(1600.0, 900.0) + fract(TIME) * 37.0);
+	col += (n - 0.5) * grain_amount;
+	col += glitch * (hash(uv * 600.0 + TIME) - 0.5) * 0.35;
+	COLOR = vec4(col, 1.0);
+}
+"""
+	var sm := ShaderMaterial.new()
+	sm.shader = sh
+	rect.material = sm
+	host.set_meta("prologue_fx_layer", layer)
+	host.set_meta("prologue_fx_mat", sm)
+	layer.visible = false
+
+func apply_room_environment(env: Environment) -> void:
+	if env == null:
+		return
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.10, 0.13, 0.12)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.48, 0.58, 0.52)
+	env.ambient_light_energy = 0.72
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure = 1.12
+	env.glow_enabled = true
+	env.glow_intensity = 0.42
+	env.glow_bloom = 0.07
+	env.glow_hdr_threshold = 1.05
+	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.05
+	env.adjustment_saturation = 0.95
+	env.adjustment_brightness = 1.0
+	if RenderingServer.get_rendering_device() != null:
+		env.ssao_enabled = true
+		env.ssao_radius = 0.55
+		env.ssao_intensity = 1.5
+		env.ssao_power = 1.6
+		env.ssao_light_affect = 0.15
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.60, 0.68, 0.62)
+	env.fog_light_energy = 0.65
+	env.fog_density = 0.012
+	env.fog_sun_scatter = 0.0
+	env.fog_aerial_perspective = 0.0
+	env.fog_sky_affect = 0.0
+	env.set("volumetric_fog_enabled", true)
+	env.set("volumetric_fog_density", 0.012)
+	env.set("volumetric_fog_albedo", Color(0.62, 0.72, 0.68))
+	env.set("volumetric_fog_emission", Color(0.06, 0.09, 0.08))
+	env.set("volumetric_fog_emission_energy", 0.18)
+	env.set("volumetric_fog_length", 26.0)
+	env.set("volumetric_fog_detail_spread", 1.2)
+	env.set("volumetric_fog_gi_inject", 0.4)
