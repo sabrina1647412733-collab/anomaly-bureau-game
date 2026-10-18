@@ -1273,3 +1273,20 @@ Web 低画质档（只在 `OS.has_feature("web")` 生效）：
 - `prologue_test` PASS：start / props / radio_toggle / letter_ready / letter_ui / call / window_label / anomaly_done / end / hud_hidden / restart。
 - `flow_test`、`skip_test`、`roundsummary`、`feature_test`、`audio_test`、`ending_a_test`、`narrative_test`、`layout_check`、`audit` 全部 PASS；headless 30 秒无 SCRIPT ERROR。
 - 截图：`_预览/look/slice_04b_radio.png`（窗台收音机与交互提示）。
+
+### 53 · 便利店室内建模第一版
+
+- 新增独立 `Prologue_store` 场景根，放在 `z=500`，与车站世界完全隔离，避免车站地面/灯带穿进便利店。
+- 8 x 6 米室内：深色地砖 + 缝线、玻璃前窗 + 夜色雨幕、三排天花板灯、后墙四组玻璃冷柜、左墙四组货架、中央岛台、右侧收银台。
+- 冷柜改成空心柜体：背板 / 侧板 / 顶层 / 底层 / 层板 / 价格条，玻璃门后可看见饮料与瓶罐。
+- 收银台：收银机、刷卡机、小票机、热狗滚轮、关东煮玻璃柜与串签、烟架、杂志架。
+- 便利店专用环境：关闭体积雾，保留 SSAO，中性冷白环境光；避免出租屋的雾林光柱污染室内。
+- 新增 `scripts/tests/store_shot.gd`，输出入口 / 冷柜 / 收银台 / 货架 / 杂志架 / 广角六张定点图。
+
+验收：
+
+- `godot --headless --path . --quit-after 8` exit 0，无 `SCRIPT ERROR`。
+- `prologue_test` PASS（原有出租屋流程未受影响）。
+- `store_shot.gd` exit 0，截图输出到 `_预览/look/store_01_entrance.png` 至 `store_06_wide.png`。
+
+说明：门菜单与便利店角色玩法尚未接线；先把体块、货架、灯光和镜头定稿，再接入地点选择与交互。

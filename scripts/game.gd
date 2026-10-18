@@ -83,6 +83,10 @@ var prologue_end_card: Control = null
 var prologue_fx_layer: CanvasLayer = null
 var prologue_fx_mat: ShaderMaterial = null
 var prologue_street_city: Node3D = null
+var prologue_travel_card: Control = null
+var prologue_travel_store_btn: Button = null
+var prologue_travel_station_btn: Button = null
+var prologue_travel_return_state := "prologue"
 
 var clock_min := T_START
 var state := "play"            # play / cutscene / ending
@@ -524,6 +528,60 @@ func _make_prologue_ui() -> void:
 		var hint := _label(prologue_end_card, 0, Vector2(400, 540), Vector2(800, 30), 15, Color(0.46, 0.50, 0.48))
 		hint.text = "按 R 重新开始"
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if prologue_travel_card == null:
+		prologue_travel_card = Control.new()
+		prologue_travel_card.set_anchors_preset(Control.PRESET_FULL_RECT)
+		prologue_travel_card.mouse_filter = Control.MOUSE_FILTER_STOP
+		prologue_travel_card.visible = false
+		prologue_ui.add_child(prologue_travel_card)
+		var tdim := ColorRect.new()
+		tdim.color = Color(0.01, 0.015, 0.017, 0.78)
+		tdim.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tdim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		prologue_travel_card.add_child(tdim)
+		var tpanel := ColorRect.new()
+		tpanel.position = Vector2(520, 238)
+		tpanel.size = Vector2(560, 424)
+		tpanel.color = Color(0.045, 0.055, 0.058, 0.98)
+		tpanel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		prologue_travel_card.add_child(tpanel)
+		var tedge := ColorRect.new()
+		tedge.position = Vector2(520, 238)
+		tedge.size = Vector2(560, 2)
+		tedge.color = Color(0.62, 0.45, 0.22, 0.9)
+		tedge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		prologue_travel_card.add_child(tedge)
+		var ttitle := _label(prologue_travel_card, 0, Vector2(540, 268), Vector2(520, 40), 28, Color(0.92, 0.80, 0.52))
+		ttitle.text = "开 门 · 选 择 目 的 地"
+		var tsub := _label(prologue_travel_card, 0, Vector2(540, 310), Vector2(520, 28), 14, Color(0.52, 0.58, 0.55))
+		tsub.text = "只显示已经解锁的地点"
+		prologue_travel_store_btn = Button.new()
+		prologue_travel_store_btn.position = Vector2(570, 360)
+		prologue_travel_store_btn.size = Vector2(460, 54)
+		prologue_travel_store_btn.focus_mode = Control.FOCUS_NONE
+		prologue_travel_store_btn.add_theme_font_override("font", font)
+		prologue_travel_store_btn.add_theme_font_size_override("font_size", 18)
+		prologue_travel_store_btn.pressed.connect(_travel_to.bind("store"))
+		prologue_travel_card.add_child(prologue_travel_store_btn)
+		prologue_travel_station_btn = Button.new()
+		prologue_travel_station_btn.position = Vector2(570, 424)
+		prologue_travel_station_btn.size = Vector2(460, 54)
+		prologue_travel_station_btn.focus_mode = Control.FOCUS_NONE
+		prologue_travel_station_btn.add_theme_font_override("font", font)
+		prologue_travel_station_btn.add_theme_font_size_override("font_size", 18)
+		prologue_travel_station_btn.pressed.connect(_travel_to.bind("station"))
+		prologue_travel_card.add_child(prologue_travel_station_btn)
+		var tcancel := Button.new()
+		tcancel.text = "3  留在出租屋"
+		tcancel.position = Vector2(570, 500)
+		tcancel.size = Vector2(460, 44)
+		tcancel.focus_mode = Control.FOCUS_NONE
+		tcancel.add_theme_font_override("font", font)
+		tcancel.add_theme_font_size_override("font_size", 16)
+		tcancel.pressed.connect(_close_travel_menu)
+		prologue_travel_card.add_child(tcancel)
+		var thint := _label(prologue_travel_card, 0, Vector2(540, 572), Vector2(520, 24), 13, Color(0.42, 0.47, 0.45))
+		thint.text = "数字键选择　Esc 返回"
 func _show_letter_ui() -> void:
 	if prologue_paper == null:
 		return
@@ -698,6 +756,37 @@ func _pro_box(parent: Node3D, pos: Vector3, size: Vector3, col: Color, collide :
 		parent.add_child(body)
 	return mi
 
+func _pro_glass(parent: Node3D, pos: Vector3, size: Vector3, col: Color, alpha := 0.16, emit := 0.06) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = size
+	mi.mesh = bm
+	mi.position = pos
+	var m := StandardMaterial3D.new()
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(col.r, col.g, col.b, alpha)
+	m.roughness = 0.08
+	m.metallic = 0.0
+	m.emission_enabled = emit > 0.0
+	m.emission = col
+	m.emission_energy_multiplier = emit
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m
+	parent.add_child(mi)
+	return mi
+
+func _apply_store_environment(env: Environment) -> void:
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.58, 0.62, 0.64)
+	env.ambient_light_energy = 0.88
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure = 0.94
+	env.fog_enabled = false
+	env.set("volumetric_fog_enabled", false)
+	env.ssao_enabled = true
+	env.ssao_radius = 1.1
+	env.ssao_intensity = 1.15
+
 func _pro_bev(parent: Node3D, pos: Vector3, size: Vector3, col: Color, bev := 0.04, emit := 0.0) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = CharBody.bev_box(size, bev)
@@ -731,7 +820,7 @@ func _pro_light(parent: Node3D, pos: Vector3, col: Color, energy: float, rng: fl
 func _make_prologue_world() -> void:
 	prologue_roots.clear()
 	prologue_spots.clear()
-	for stage in ["room", "street"]:
+	for stage in ["room", "street", "store"]:
 		var root := Node3D.new()
 		root.name = "Prologue_" + String(stage)
 		add_child(root)
@@ -739,10 +828,13 @@ func _make_prologue_world() -> void:
 		prologue_roots[stage] = root
 	prologue_roots["room"].position = Vector3(0, 12, 322.5)
 	prologue_roots["street"].position = Vector3.ZERO
+	prologue_roots["store"].position = Vector3(0, 0, 500)
 	_build_pro_room(prologue_roots["room"])
 	_build_pro_street(prologue_roots["street"])
+	_build_pro_store(prologue_roots["store"])
 	_merge_static_meshes(prologue_roots["room"])
 	_merge_static_meshes(prologue_roots["street"])
+	_merge_static_meshes(prologue_roots["store"])
 
 func _build_pro_room(root: Node3D) -> void:
 	var art := ProRoomArtScript.new(self)
@@ -910,6 +1002,186 @@ func _build_pro_street(root: Node3D) -> void:
 	_build_pro_street_props(prologue_street_city)
 	prologue_spots.append({"stage":"street", "id":"counter", "pos":Vector3(10.5, 1.05, 325.9), "r":2.3})
 	prologue_spots.append({"stage":"street", "id":"reader", "pos":Vector3(19.55, 1.32, 325.55), "r":2.2})
+
+func _build_pro_store(root: Node3D) -> void:
+	# 独立的 8 x 6 米便利店室内：门在 +Z，冷柜在后墙，货架在左墙，收银台在右墙。
+	var wall := Color(0.70, 0.69, 0.63)
+	var wall_dark := Color(0.50, 0.50, 0.46)
+	var steel := Color(0.34, 0.37, 0.38)
+	var wood := Color(0.30, 0.24, 0.18)
+	var palette := [Color(0.76, 0.22, 0.16), Color(0.20, 0.46, 0.30), Color(0.22, 0.36, 0.60), Color(0.78, 0.60, 0.22), Color(0.72, 0.34, 0.42)]
+	# 地面与瓷砖缝
+	_pro_box(root, Vector3(0, -0.06, 0), Vector3(8.4, 0.12, 6.4), Color(0.19, 0.18, 0.16))
+	for tx in range(-4, 5):
+		_pro_box(root, Vector3(float(tx), 0.006, 0), Vector3(0.014, 0.01, 6.15), Color(0.10, 0.10, 0.09), false)
+	for tz in range(-3, 4):
+		_pro_box(root, Vector3(0, 0.007, float(tz)), Vector3(8.15, 0.01, 0.014), Color(0.10, 0.10, 0.09), false)
+	# 墙与天花板
+	_pro_box(root, Vector3(0, 3.24, 0), Vector3(8.4, 0.12, 6.4), Color(0.78, 0.78, 0.72))
+	_pro_box(root, Vector3(0, 1.6, -3.10), Vector3(8.4, 3.2, 0.12), wall)
+	_pro_box(root, Vector3(-4.10, 1.6, 0), Vector3(0.12, 3.2, 6.3), wall_dark)
+	_pro_box(root, Vector3(4.10, 1.6, 0), Vector3(0.12, 3.2, 6.3), wall_dark)
+	# 前墙改成大玻璃窗：下裙墙 + 上沿 + 竖框，外面压一层夜色
+	_pro_box(root, Vector3(-2.85, 0.35, 3.10), Vector3(2.7, 0.70, 0.12), wall_dark)
+	_pro_box(root, Vector3(2.85, 0.35, 3.10), Vector3(2.7, 0.70, 0.12), wall_dark)
+	_pro_box(root, Vector3(-2.85, 3.02, 3.10), Vector3(2.7, 0.36, 0.12), wall_dark)
+	_pro_box(root, Vector3(2.85, 3.02, 3.10), Vector3(2.7, 0.36, 0.12), wall_dark)
+	_pro_glass(root, Vector3(-2.85, 1.85, 3.04), Vector3(2.52, 2.10, 0.03), Color(0.42, 0.58, 0.64), 0.12, 0.04)
+	_pro_glass(root, Vector3(2.85, 1.85, 3.04), Vector3(2.52, 2.10, 0.03), Color(0.42, 0.58, 0.64), 0.12, 0.04)
+	for mx in [-4.10, -2.85, -1.00, 1.00, 2.85, 4.10]:
+		_pro_box(root, Vector3(mx, 1.85, 3.08), Vector3(0.10, 2.20, 0.14), steel, false)
+	_pro_box(root, Vector3(0, 1.65, 3.58), Vector3(9.0, 3.5, 0.05), Color(0.025, 0.040, 0.055), false)
+	for rx in range(-11, 12):
+		_pro_box(root, Vector3(float(rx) * 0.34, 1.85, 3.53), Vector3(0.012, 0.72, 0.01), Color(0.12, 0.18, 0.21), false, 0.03)
+	# 玻璃门、门框、门垫
+	_pro_box(root, Vector3(-0.98, 1.35, 3.06), Vector3(0.10, 2.70, 0.18), steel, false)
+	_pro_box(root, Vector3(0.98, 1.35, 3.06), Vector3(0.10, 2.70, 0.18), steel, false)
+	_pro_box(root, Vector3(0, 2.66, 3.06), Vector3(1.96, 0.10, 0.18), steel, false)
+	_pro_glass(root, Vector3(0, 1.34, 3.02), Vector3(1.78, 2.48, 0.03), Color(0.52, 0.68, 0.72), 0.13, 0.05)
+	_pro_box(root, Vector3(0.72, 1.18, 2.96), Vector3(0.05, 0.42, 0.05), Color(0.70, 0.66, 0.52), false)
+	_pro_box(root, Vector3(0, 0.014, 2.42), Vector3(1.20, 0.018, 0.55), Color(0.04, 0.05, 0.04), false)
+	# 天花板灯板与灯
+	for lx in [-2.4, 0.0, 2.4]:
+		for lz in [-1.8, 0.0, 1.8]:
+			_pro_box(root, Vector3(lx, 3.17, lz), Vector3(1.22, 0.05, 0.30), Color(0.96, 0.94, 0.82), false, 1.5)
+	_pro_light(root, Vector3(-2.3, 2.86, 0), Color(0.92, 0.95, 1.0), 2.1, 5.4)
+	_pro_light(root, Vector3(0.2, 2.86, -1.4), Color(0.90, 0.94, 1.0), 1.9, 5.0)
+	_pro_light(root, Vector3(2.5, 2.86, 1.4), Color(0.95, 0.92, 0.84), 1.8, 4.5)
+	# 后墙冷柜：四组玻璃门，冷光 + 饮料排面
+	for i in range(4):
+		var cx := -3.0 + float(i) * 1.5
+		# 冷柜做成空心柜体，饮料才能从玻璃门后看见
+		_pro_box(root, Vector3(cx, 1.15, -3.00), Vector3(1.36, 2.30, 0.08), Color(0.17, 0.19, 0.20))
+		_pro_box(root, Vector3(cx - 0.68, 1.15, -2.68), Vector3(0.08, 2.30, 0.60), Color(0.17, 0.19, 0.20))
+		_pro_box(root, Vector3(cx + 0.68, 1.15, -2.68), Vector3(0.08, 2.30, 0.60), Color(0.17, 0.19, 0.20))
+		_pro_box(root, Vector3(cx, 2.26, -2.68), Vector3(1.36, 0.08, 0.60), Color(0.17, 0.19, 0.20))
+		_pro_box(root, Vector3(cx, 0.06, -2.68), Vector3(1.36, 0.08, 0.60), Color(0.17, 0.19, 0.20))
+		_pro_box(root, Vector3(cx, 1.15, -2.96), Vector3(1.18, 2.10, 0.03), Color(0.30, 0.42, 0.46), false, 0.18)
+		_pro_box(root, Vector3(cx, 2.12, -2.66), Vector3(1.12, 0.03, 0.38), Color(0.72, 0.78, 0.76), false, 0.35)
+		_pro_glass(root, Vector3(cx, 1.15, -2.37), Vector3(1.18, 2.06, 0.04), Color(0.52, 0.70, 0.76), 0.07, 0.015)
+		_pro_box(root, Vector3(cx, 2.21, -2.34), Vector3(1.20, 0.05, 0.06), Color(0.62, 0.68, 0.66), false, 0.5)
+		for sy in [0.48, 0.86, 1.24, 1.62, 1.98]:
+			_pro_box(root, Vector3(cx, sy, -2.68), Vector3(1.12, 0.04, 0.50), Color(0.60, 0.64, 0.62), false)
+			_pro_box(root, Vector3(cx, sy - 0.035, -2.45), Vector3(0.96, 0.03, 0.012), Color(0.86, 0.82, 0.60), false, 0.12)
+			for j in range(5):
+				var px := cx - 0.42 + float(j) * 0.21
+				var pc: Color = palette[(i + j + int(sy * 10.0)) % palette.size()]
+				if j % 2 == 0:
+					_pro_bev(root, Vector3(px, sy + 0.12, -2.53), Vector3(0.08, 0.22, 0.08), pc, 0.012)
+					_pro_box(root, Vector3(px, sy + 0.245, -2.53), Vector3(0.045, 0.025, 0.045), Color(0.82, 0.80, 0.70), false)
+				else:
+					_pro_bev(root, Vector3(px, sy + 0.10, -2.53), Vector3(0.13, 0.16, 0.09), pc, 0.012)
+					_pro_box(root, Vector3(px, sy + 0.10, -2.485), Vector3(0.055, 0.07, 0.006), Color(0.92, 0.90, 0.80), false, 0.05)
+		_pro_box(root, Vector3(cx, 1.15, -2.33), Vector3(0.025, 2.08, 0.05), Color(0.58, 0.60, 0.58), false)
+		_pro_box(root, Vector3(cx, 1.15, -2.34), Vector3(1.17, 0.025, 0.05), Color(0.58, 0.60, 0.58), false)
+	_pro_light(root, Vector3(-1.6, 1.55, -2.35), Color(0.58, 0.80, 0.92), 1.60, 4.8)
+	# 左墙货架：泡面、零食、日用品
+	for i in range(4):
+		var sz := -2.05 + float(i) * 1.30
+		_pro_box(root, Vector3(-3.58, 1.00, sz), Vector3(0.88, 2.00, 1.16), Color(0.26, 0.24, 0.20))
+		for sy in [0.32, 0.68, 1.04, 1.40, 1.76]:
+			_pro_box(root, Vector3(-3.10, sy, sz), Vector3(0.10, 0.03, 1.08), Color(0.56, 0.53, 0.45), false)
+			for j in range(4):
+				var pz := sz - 0.40 + float(j) * 0.27
+				var pc2: Color = palette[(i + j + 2) % palette.size()]
+				var ph := 0.21 if j % 2 == 0 else 0.16
+				_pro_bev(root, Vector3(-3.03, sy + 0.11, pz), Vector3(0.13, ph, 0.17), pc2, 0.015)
+				_pro_box(root, Vector3(-2.955, sy + 0.11, pz), Vector3(0.006, 0.075, 0.09), Color(0.92, 0.90, 0.80), false, 0.04)
+	_pro_light(root, Vector3(-2.6, 2.55, 0.2), Color(0.96, 0.92, 0.80), 1.2, 4.0)
+	# 中央岛台
+	_pro_box(root, Vector3(0.75, 0.64, -1.05), Vector3(1.30, 1.28, 2.10), Color(0.28, 0.26, 0.22))
+	for sy2 in [0.22, 0.56, 0.90, 1.18]:
+		_pro_box(root, Vector3(0.75, sy2, -1.05), Vector3(1.38, 0.03, 2.16), Color(0.52, 0.50, 0.44), false)
+		for j in range(5):
+			var pz2 := -1.90 + float(j) * 0.42
+			var pc3: Color = palette[(j + 3) % palette.size()]
+			var iy := 0.20 if j % 2 == 0 else 0.15
+			_pro_bev(root, Vector3(0.34, sy2 + 0.11, pz2), Vector3(0.16, iy, 0.20), pc3, 0.018)
+			_pro_bev(root, Vector3(1.16, sy2 + 0.11, pz2), Vector3(0.16, iy, 0.20), pc3, 0.018)
+			_pro_box(root, Vector3(0.34, sy2 + 0.11, pz2 + 0.105), Vector3(0.07, 0.08, 0.006), Color(0.92, 0.90, 0.80), false, 0.04)
+			_pro_box(root, Vector3(1.16, sy2 + 0.11, pz2 + 0.105), Vector3(0.07, 0.08, 0.006), Color(0.92, 0.90, 0.80), false, 0.04)
+	# 右侧收银台：台面 / 收银机 / 关东煮 / 咖啡机
+	_pro_box(root, Vector3(3.00, 0.55, 0.40), Vector3(0.90, 1.10, 2.80), wood)
+	_pro_box(root, Vector3(2.48, 1.12, 0.40), Vector3(1.00, 0.07, 2.90), Color(0.62, 0.58, 0.48), false)
+	_pro_box(root, Vector3(2.52, 0.56, 0.40), Vector3(0.04, 0.92, 2.72), Color(0.42, 0.33, 0.24), false)
+	_pro_box(root, Vector3(2.54, 1.25, 0.02), Vector3(0.42, 0.28, 0.30), Color(0.10, 0.11, 0.11))
+	_pro_box(root, Vector3(2.31, 1.29, 0.02), Vector3(0.03, 0.18, 0.22), Color(0.28, 0.55, 0.42), false, 0.55)
+	_pro_box(root, Vector3(2.53, 1.18, -0.82), Vector3(0.54, 0.10, 0.72), Color(0.22, 0.22, 0.20), false)
+	_pro_glass(root, Vector3(2.53, 1.38, -0.82), Vector3(0.50, 0.30, 0.66), Color(0.70, 0.76, 0.72), 0.12, 0.04)
+	_pro_box(root, Vector3(2.53, 1.53, -0.82), Vector3(0.48, 0.03, 0.64), Color(0.96, 0.58, 0.20), false, 1.0)
+	for fz in [-1.02, -0.88, -0.74, -0.60]:
+		_pro_box(root, Vector3(2.53, 1.31, fz), Vector3(0.10, 0.12, 0.10), Color(0.72, 0.52, 0.28) if int(fz * 10.0) % 2 == 0 else Color(0.62, 0.28, 0.18), false)
+		_pro_box(root, Vector3(2.53, 1.38, fz), Vector3(0.03, 0.18, 0.03), Color(0.78, 0.66, 0.42), false)
+	_pro_box(root, Vector3(2.53, 1.28, 1.26), Vector3(0.44, 0.52, 0.38), Color(0.14, 0.15, 0.16))
+	_pro_box(root, Vector3(2.30, 1.35, 1.26), Vector3(0.03, 0.20, 0.18), Color(0.72, 0.28, 0.14), false, 0.3)
+	# 收银台小件：小票机 / 刷卡机 / 热狗滚轮
+	_pro_box(root, Vector3(2.54, 1.21, 0.46), Vector3(0.16, 0.12, 0.16), Color(0.16, 0.16, 0.16))
+	_pro_box(root, Vector3(2.54, 1.28, 0.46), Vector3(0.12, 0.015, 0.10), Color(0.88, 0.85, 0.70), false, 0.12)
+	_pro_box(root, Vector3(2.54, 1.20, 0.86), Vector3(0.14, 0.06, 0.18), Color(0.11, 0.12, 0.13))
+	_pro_box(root, Vector3(2.47, 1.23, 0.86), Vector3(0.02, 0.03, 0.10), Color(0.24, 0.48, 0.58), false, 0.3)
+	_pro_box(root, Vector3(2.53, 1.38, 0.72), Vector3(0.42, 0.14, 0.42), Color(0.22, 0.22, 0.20), false)
+	for rz in [-0.12, 0.0, 0.12]:
+		_pro_box(root, Vector3(2.53, 1.46, 0.72 + rz), Vector3(0.34, 0.03, 0.03), Color(0.70, 0.68, 0.60), false)
+	_pro_light(root, Vector3(2.25, 1.95, 0.0), Color(1.0, 0.72, 0.38), 1.6, 3.4)
+	# 右墙烟架 / 杂志架
+	_pro_box(root, Vector3(3.92, 1.72, 0.45), Vector3(0.10, 0.92, 1.90), Color(0.14, 0.13, 0.11), false)
+	for ry in [1.34, 1.56, 1.78, 2.00]:
+		_pro_box(root, Vector3(3.86, ry - 0.08, 0.45), Vector3(0.04, 0.02, 1.80), Color(0.46, 0.44, 0.38), false)
+		for rz in [-0.40, -0.05, 0.30, 0.65, 1.00]:
+			_pro_box(root, Vector3(3.86, ry, rz), Vector3(0.03, 0.12, 0.16), palette[(int(ry * 10.0) + int(rz * 10.0)) % palette.size()], false)
+	_pro_box(root, Vector3(3.43, 0.72, 2.28), Vector3(0.92, 1.44, 0.38), Color(0.24, 0.22, 0.19))
+	for my in [0.28, 0.62, 0.96, 1.26]:
+		_pro_box(root, Vector3(3.43, my, 2.08), Vector3(0.86, 0.03, 0.10), Color(0.54, 0.52, 0.44), false)
+		for mz in [-0.28, 0.0, 0.28]:
+			_pro_box(root, Vector3(3.43, my + 0.10, 2.12), Vector3(0.24, 0.16, 0.04), palette[(int(my * 10.0) + int(mz * 10.0)) % palette.size()], false)
+	# 杂物：纸箱 / 拖把桶 / 垃圾桶 / 小心地滑
+	_pro_box(root, Vector3(-3.30, 0.26, -2.58), Vector3(0.62, 0.52, 0.54), Color(0.52, 0.40, 0.26))
+	_pro_box(root, Vector3(-2.68, 0.20, -2.62), Vector3(0.44, 0.40, 0.42), Color(0.46, 0.36, 0.24))
+	_pro_box(root, Vector3(3.62, 0.20, -2.55), Vector3(0.34, 0.40, 0.34), Color(0.20, 0.24, 0.24))
+	_pro_box(root, Vector3(3.62, 0.52, -2.55), Vector3(0.10, 0.62, 0.10), Color(0.36, 0.30, 0.22), false)
+	_pro_box(root, Vector3(1.30, 0.30, 2.55), Vector3(0.34, 0.60, 0.34), Color(0.18, 0.22, 0.21))
+	_pro_box(root, Vector3(3.20, 0.34, -1.75), Vector3(0.28, 0.58, 0.06), Color(0.90, 0.72, 0.18), false, 0.10)
+	# 招牌 / 价格牌 / 00:17 挂钟
+	_pro_box(root, Vector3(0, 2.78, -3.03), Vector3(2.9, 1.05, 0.04), Color(0.10, 0.13, 0.12), false)
+	var sign := Label3D.new()
+	sign.font = font
+	sign.text = "24H"
+	sign.font_size = 58
+	sign.pixel_size = 0.008
+	sign.modulate = Color(0.55, 0.95, 0.65)
+	sign.position = Vector3(0, 3.02, -2.98)
+	root.add_child(sign)
+	var sname := Label3D.new()
+	sname.font = font
+	sname.text = "临 江 里 便 利 店"
+	sname.font_size = 38
+	sname.pixel_size = 0.008
+	sname.modulate = Color(0.94, 0.84, 0.60)
+	sname.position = Vector3(0, 2.50, -2.98)
+	root.add_child(sname)
+	var hot := Label3D.new()
+	hot.font = font
+	hot.text = "关东煮"
+	hot.font_size = 32
+	hot.pixel_size = 0.008
+	hot.modulate = Color(1.0, 0.72, 0.38)
+	hot.position = Vector3(2.52, 1.61, -0.82)
+	root.add_child(hot)
+	var clock := Label3D.new()
+	clock.font = font
+	clock.text = "00:17"
+	clock.font_size = 34
+	clock.pixel_size = 0.009
+	clock.modulate = Color(0.92, 0.30, 0.24)
+	clock.position = Vector3(3.10, 2.58, -3.00)
+	root.add_child(clock)
+	for px in [-2.2, -1.6, 1.7, 2.2]:
+		_pro_box(root, Vector3(px, 1.92, -3.02), Vector3(0.34, 0.46, 0.02), palette[(int(abs(px) * 10.0)) % palette.size()], false, 0.12)
+	prologue_spots.append({"stage":"store", "id":"counter", "pos":Vector3(2.15, 1.15, 500.45), "r":1.95})
+	prologue_spots.append({"stage":"store", "id":"fridge", "pos":Vector3(-0.75, 1.48, 497.68), "r":2.25})
+	prologue_spots.append({"stage":"store", "id":"shelf", "pos":Vector3(-2.95, 1.30, 500.20), "r":2.05})
+	prologue_spots.append({"stage":"store", "id":"magazine", "pos":Vector3(3.02, 1.25, 502.24), "r":1.85})
+	prologue_spots.append({"stage":"store", "id":"travel", "pos":Vector3(0, 1.15, 502.72), "r":1.85})
 
 func _build_pro_window_view(root: Node3D) -> void:
 	# —— 窗外雾林：低饱和灰绿 + 暖窗 + 体积雾（参考图的氛围，而不是照搬房屋） ——
@@ -1565,13 +1837,20 @@ func _start_prologue() -> void:
 func _show_prologue_stage(stage: String) -> void:
 	var room_root: Node3D = prologue_roots["room"]
 	var street_root: Node3D = prologue_roots["street"]
+	var store_root: Node3D = prologue_roots["store"]
 	room_root.visible = (stage == "room")
-	street_root.visible = true
+	street_root.visible = (stage == "street" or stage == "station")
+	store_root.visible = (stage == "store")
 	if prologue_street_city != null:
-		prologue_street_city.visible = (stage != "room")
+		prologue_street_city.visible = (stage == "street" or stage == "station")
 	if prologue_room_facade_window != null:
 		prologue_room_facade_window.visible = (stage == "street")
 	prologue_stage = stage
+	if env_node != null and env_node.environment != null:
+		if stage == "store":
+			_apply_store_environment(env_node.environment)
+		else:
+			ProRoomArtScript.new(self).apply_room_environment(env_node.environment)
 	match stage:
 		"room":
 			player.position = Vector3(-0.35, 12.1, 323.05)
@@ -1581,6 +1860,16 @@ func _show_prologue_stage(stage: String) -> void:
 		"street":
 			player.position = Vector3(0, 0.1, 326.4)
 			player.rotation.y = -PI * 0.5
+		"store":
+			player.position = Vector3(0, 0.1, 502.25)
+			player.rotation.y = 0.0
+			player.pitch = -0.02
+			player.cam.rotation.x = -0.02
+		"station":
+			player.position = Vector3(18.5, 0.1, 326.55)
+			player.rotation.y = 0.0
+			player.pitch = -0.02
+			player.cam.rotation.x = -0.02
 	player.velocity = Vector3.ZERO
 	player.can_move = true
 	safe_pos = player.global_position
@@ -1727,6 +2016,16 @@ func _prologue_leave_room() -> void:
 	_fade_to(0.0, 0.5)
 	state = "prologue"
 	_say_seq("旁白", "临江里 17 号。雨还没停。街口的便利店还亮着。")
+
+func _open_travel_menu() -> void:
+	# 交互在建模收尾后接入；先保留空实现，保证场景可编译。
+	pass
+
+func _close_travel_menu() -> void:
+	pass
+
+func _travel_to(_place: String) -> void:
+	pass
 
 func _prologue_use_badge() -> void:
 	state = "prologue_transition"
