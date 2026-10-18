@@ -42,5 +42,21 @@ func _run() -> void:
             if gap > 0.03 or gap < -0.05:
                 bad_items += 1
             print("  %-14s 世界 y=%.3f  下方 y=%.3f  间隙 %+.3f m %s" % [d["id"], d["pos"].y, hit["position"].y, gap, "← 还飘着" if gap > 0.03 else ("← 陷进去了" if gap < -0.05 else "OK")])
-    print("=== 汇总：%d 个座位异常，%d 件物品异常 ===" % [bad_seats, bad_items])
+    # 序章新房间 8 x 6 m：交互点必须落在墙内，且门边灯开关存在。
+    var prologue_bad := 0
+    var has_switch := false
+    var room_root = game.prologue_roots.get("room", null)
+    for spx in game.prologue_spots:
+        if String(spx.get("stage", "")) != "room":
+            continue
+        if String(spx.get("id", "")) == "light_switch":
+            has_switch = true
+        var lp: Vector3 = spx["pos"] - (room_root.position if room_root != null else Vector3.ZERO)
+        if lp.x < -4.0 or lp.x > 4.0 or lp.z < -3.0 or lp.z > 3.0 or float(spx["pos"].y) < 11.9 or float(spx["pos"].y) > 15.1:
+            prologue_bad += 1
+            print("  序章交互点越界：", spx)
+    if not has_switch:
+        prologue_bad += 1
+        print("  序章缺少 light_switch 交互点")
+    print("=== 汇总：%d 个座位异常，%d 件物品异常，%d 个序章交互点异常 ===" % [bad_seats, bad_items, prologue_bad])
     quit()

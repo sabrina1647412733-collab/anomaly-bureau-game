@@ -1339,3 +1339,53 @@ Web 低画质档（只在 `OS.has_feature("web")` 生效）：
 - 验收：`prologue_test` / `store_flow_test` PASS；`audit` 0 座位异常、0 物品异常；headless 30 秒无 `SCRIPT ERROR`；`webverify.ps1` 报告 WebGL 2.0 / Compatibility / 场景就绪。
 - 备注：这一轮只压贴图，不改模型、剧情、UI、存档与交互。若还要继续降包体，优先处理 `potted_plant_01` 的 5.3 MB 网格，并对字体做子集化。
 
+
+### 57 · 序章出租屋扩建 + 双场景灯光开关 + 交互环收敛
+
+本轮把出租屋从“0017 事件预告片”改回生活空间：房间内不再出现 0017 / 00:17 / 2009-11-03 / “最后一次呼叫” / “不要相信广播的最后一句” / “第一夜·00:17” 等字样或演出。第一个 0017 事件保留到岚桥站正式值班后再发生。
+
+序章流程：
+
+- 房间只承担日常生活：手机、父亲纸箱、收音机、旧电话、家庭照、入职通知书、接线员电话、出门。
+- 入职通知书保留“异常事件处置岗（临时）”“工作地点：岚桥站”“报酬”“权限 D”，删除事件编号、事故日期、背面警告和父亲责任栏。
+- 接线员台词改为：岗位已生效，23:50 前到岚桥站调度席报到，处置权限 D，请活到交班；不再报 0017。
+- 接完电话目标直接变为“去便利店”；门打开地点菜单，不再进入 `prologue_end` 结束卡。
+- 收音机只播放深夜交通台与电流声；旧电话明确没有接线；相框只作为普通家庭照背景。
+- 新流程回归：出租屋 → 信 → 电话 → 开门菜单 → 便利店 → 岚桥站。
+
+房间布局：
+
+- 房间扩为 8 × 6 m（地板 x -4..4、z -3..3），墙高保持约 3.1 m；门仍在北墙 z ≈ -3，窗仍在南墙 z ≈ +3。
+- 床移到左后角，床头靠北墙、床侧靠西墙；厨房/洗手台放在右后角，用台面、吊柜、矮隔断和不同地面材质与睡眠区半开放分隔。
+- 书桌在右前；书架单独放在左前靠窗；收音机在窗台，旧电话在门边墙面，互不混在同一面墙。
+- 补足地毯、纸箱、拖鞋、洗衣篮、植物、垃圾桶、墙面小画、窗帘、踢脚线和厨房小物。
+- 手机、纸箱、窗、门、收音机、旧电话、相框、灯开关的交互点全部随新坐标更新。
+
+灯光：
+
+- 出租屋门边新增真实墙面板 + 小拨杆，位置约 x = 0.78、z = -2.875、高度 1.18 m；靠近按 `E` 切换开灯/关灯，HUD 显示“开灯/关灯”，切换播放 `play_click()`。
+- 关灯时主灯、台灯、串灯和厨房灯降到很低，保留窗外冷光与环境光；重开序章自动复位为开灯。
+- 岚桥站值班室墙边新增“站台照明”面板 + 拨杆；按 `E` 切换站台照明、隧道主灯和车侧补光。应急灯、疏散指示灯、出口灯保持点亮。
+- 车站灯光用 `station_light_platform` / `station_light_tunnel` / `station_light_emergency` 分组和 `light_role` / `base_energy` metadata 管理；列车车侧补光通过 `side_fill_scale` 跟随开关，不改列车进站与 0017 主循环。
+
+交互环：
+
+- 原 Torus 实心光圈改为 8 段贴地细虚线弧，半径约 0.17 m、线宽约 0.018 m。
+- 基础透明度降到约 0.16，发光能量降到约 0.14；仅保留轻微呼吸和按 `E` 的短高亮。
+- 桌面、书架、窗、墙面等高目标不再把环放在目标表面，而是投影到靠玩家一侧的桌脚/地面；离开交互范围立即隐藏。
+- 截图 `_预览/look/prologue_prompt_ring_phone.png` 中，桌面手机附近不再出现大光斑。
+
+新增 / 更新验收：
+
+- `scripts/tests/prologue_test.gd`：删除 anomaly / prologue_end 检查，覆盖新流程、去 0017 文本、全部房间交互点存在、灯开关复位、便利店与车站。
+- `scripts/tests/store_flow_test.gd`：直接推进到接完电话，验证开门地点菜单、便利店解锁与车站入口。
+- `scripts/tests/feature_test.gd`：验证车站开关状态、站台/隧道灯能耗下降、应急灯不变、车侧补光联动、再开恢复。
+- `scripts/tests/audit.gd`：检查新房间 8 × 6 m 内所有序章交互点不越界，并确认 `light_switch` 存在。
+- 新增 `scripts/tests/room_lights_shot.gd`：输出房间广角、床、厨房、书架、开关开/关、关灯广角、交互环近景、车站灯开/关共 10 张验收图。
+
+验收记录（2026-10-18）：
+
+- `prologue_test` PASS；`store_flow_test` PASS；`flow_test`、`skip_test`、`roundsummary`、`feature_test`、`audio_test`、`ending_a_test`、`narrative_test`、`layout_check`、`audit` 全部 PASS，exit 0。
+- `godot --headless --path . --quit-after 30` exit 0，无 `SCRIPT ERROR`。
+- `audit`：0 个座位异常、0 件物品异常、0 个序章交互点异常。
+- 截图输出目录：`_预览/look/`；文件：`prologue_room_wide.png`、`prologue_bed_left_back.png`、`prologue_kitchen_sink.png`、`prologue_bookshelf.png`、`prologue_switch_on.png`、`prologue_switch_off.png`、`prologue_room_lights_off.png`、`prologue_prompt_ring_phone.png`、`station_lights_on.png`、`station_lights_off.png`。

@@ -51,6 +51,7 @@ func build() -> void:
     lost_and_found(-32.30)
     details()
     tunnel_detail()
+    station_light_switch()
 
 # ------------------------------------------------------------------ 地坪 / 墙 / 顶
 func ground() -> void:
@@ -1047,6 +1048,27 @@ func branch_area() -> void:
     b.box("red", _v(12.80, TY + 0.95, -119.70), _v(13.20, TY + 1.06, -119.60), false, "p")
     b.box("dark", _v(13.10, TY + 0.02, -100.0), _v(13.30, TY + 1.80, -99.90), false, "p")
     b.plaque("检修环线 · 禁止单人进入", _v(13.12, TY + 1.45, -100.0), 1.5, 0.30, "x", -1, Color(0.95, 0.72, 0.42))
+
+func station_light_switch() -> void:
+    # 值班室墙上的站台照明总开关：面板 + 可翻转拨杆。game.gd 按 E 切换灯组。
+    var x := PX0 + 0.09
+    b.box("metalD", _v(x - 0.02, 1.02, -11.28), _v(x + 0.05, 1.42, -10.82), false, "all", 0.012)
+    b.box("dark", _v(x + 0.045, 1.10, -11.20), _v(x + 0.075, 1.34, -10.90), false)
+    b.box("lamp", _v(x + 0.070, 1.34, -11.12), _v(x + 0.085, 1.37, -11.06), false)
+    b.label3d("站 台 照 明", _v(x + 0.045, 1.50, -11.05), 0.045, Color(0.82, 0.86, 0.88), PI * 0.5)
+    var lever := MeshInstance3D.new()
+    var bm := BoxMesh.new()
+    bm.size = Vector3(0.11, 0.035, 0.045)
+    lever.mesh = bm
+    var mat := StandardMaterial3D.new()
+    mat.albedo_color = Color(0.68, 0.62, 0.44)
+    mat.roughness = 0.38
+    mat.metallic = 0.45
+    lever.material_override = mat
+    lever.position = _v(x + 0.12, 1.22, -11.05)
+    lever.rotation.z = -0.30
+    b.body.add_child(lever)
+    b.switch_lever = lever
 
 func branch_pt(z: float) -> Vector3:
     var t := clampf((z - BR_Z0) / (BR_Z1 - BR_Z0), 0.0, 1.0)

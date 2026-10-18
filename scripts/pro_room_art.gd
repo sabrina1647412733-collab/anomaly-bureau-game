@@ -67,6 +67,25 @@ func _emit(c: Color, energy := 2.0) -> StandardMaterial3D:
 	mats[key] = m
 	return m
 
+func _emit_unique(c: Color, energy := 2.0) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.emission_enabled = true
+	m.emission = c
+	m.emission_energy_multiplier = energy
+	m.set_meta("base_emission", energy)
+	var arr: Array = host.get_meta("room_warm_emit_mats", [])
+	if arr == null:
+		arr = []
+	arr.append(m)
+	host.set_meta("room_warm_emit_mats", arr)
+	return m
+
+func _register_warm_light(l: OmniLight3D) -> OmniLight3D:
+	l.add_to_group("room_warm_light")
+	l.set_meta("base_energy", l.light_energy)
+	return l
+
 func _fabric(id: String, tint: Color, double_sided := false) -> StandardMaterial3D:
 	var key := "fabric|%s|%s|%s" % [id, str(tint), str(double_sided)]
 	if mats.has(key):
@@ -309,6 +328,7 @@ func build(r: Node3D) -> void:
 	_window()
 	_radio()
 	_door()
+	_light_switch()
 	_bed()
 	_nightstand()
 	_desk()
@@ -329,101 +349,101 @@ func _shell() -> void:
 	var paper_mat := _pbr("painted_plaster_wall", Color(0.57, 0.61, 0.55), 0.34, true, 1.0, 0.20)
 	var ceil_mat := _pbr("painted_plaster_wall", Color(0.62, 0.62, 0.57), 0.32, true, 1.0, 0.18)
 
-	_box(Vector3(0, -0.07, 0), Vector3(6.1, 0.14, 5.1), floor_mat, true, "Floor")
-	_box(Vector3(0, 3.10, 0), Vector3(6.1, 0.16, 5.1), ceil_mat, false, "Ceiling")
-	_box(Vector3(-1.78, 1.5, -2.5), Vector3(2.44, 3.0, 0.12), wall_mat, true)
-	_box(Vector3(1.78, 1.5, -2.5), Vector3(2.44, 3.0, 0.12), wall_mat, true)
-	_box(Vector3(0, 2.58, -2.5), Vector3(1.12, 0.84, 0.12), wall_mat, false)
-	_box(Vector3(-2.28, 1.5, 2.5), Vector3(1.44, 3.0, 0.12), wall_mat, true)
-	_box(Vector3(2.28, 1.5, 2.5), Vector3(1.44, 3.0, 0.12), wall_mat, true)
-	_box(Vector3(0, 0.47, 2.5), Vector3(3.12, 0.94, 0.12), wall_mat, true)
-	_box(Vector3(0, 2.73, 2.5), Vector3(3.12, 0.54, 0.12), wall_mat, false)
-	_box(Vector3(-3.0, 1.5, 0), Vector3(0.12, 3.0, 5.0), wall_cool, true)
-	_box(Vector3(3.0, 1.5, 0), Vector3(0.12, 3.0, 5.0), wall_cool, true)
-	_box(Vector3(-2.94, 1.5, -0.95), Vector3(0.02, 3.0, 3.1), paper_mat, false)
+	# 8 x 6 m：x -4..4，z -3..3。门在北墙 (-Z)，窗在南墙 (+Z)。
+	_box(Vector3(0, -0.07, 0), Vector3(8.0, 0.14, 6.0), floor_mat, true, "Floor")
+	_box(Vector3(0, 3.10, 0), Vector3(8.0, 0.16, 6.0), ceil_mat, false, "Ceiling")
+	# 北墙：中间留 1.12 m 门洞
+	_box(Vector3(-2.28, 1.54, -2.96), Vector3(3.44, 3.08, 0.12), wall_mat, true)
+	_box(Vector3(2.28, 1.54, -2.96), Vector3(3.44, 3.08, 0.12), wall_mat, true)
+	_box(Vector3(0, 2.58, -2.96), Vector3(1.12, 1.00, 0.12), wall_mat, false)
+	# 南墙：中间留窗洞
+	_box(Vector3(-2.79, 1.54, 2.96), Vector3(2.42, 3.08, 0.12), wall_mat, true)
+	_box(Vector3(2.79, 1.54, 2.96), Vector3(2.42, 3.08, 0.12), wall_mat, true)
+	_box(Vector3(0, 0.47, 2.96), Vector3(3.16, 0.94, 0.12), wall_mat, true)
+	_box(Vector3(0, 2.77, 2.96), Vector3(3.16, 0.54, 0.12), wall_mat, false)
+	# 东西墙
+	_box(Vector3(-3.96, 1.54, 0), Vector3(0.12, 3.08, 6.0), wall_cool, true)
+	_box(Vector3(3.96, 1.54, 0), Vector3(0.12, 3.08, 6.0), wall_cool, true)
+	# 左墙旧壁纸：保留一点住过人的痕迹
+	_box(Vector3(-3.895, 1.50, -0.90), Vector3(0.02, 3.0, 3.70), paper_mat, false)
 	var base_mat := _plain(Color(0.30, 0.28, 0.24), 0.75)
-	_box(Vector3(-1.78, 0.075, -2.42), Vector3(2.40, 0.15, 0.05), base_mat)
-	_box(Vector3(1.78, 0.075, -2.42), Vector3(2.40, 0.15, 0.05), base_mat)
-	_box(Vector3(-2.28, 0.075, 2.42), Vector3(1.40, 0.15, 0.05), base_mat)
-	_box(Vector3(2.28, 0.075, 2.42), Vector3(1.40, 0.15, 0.05), base_mat)
-	_box(Vector3(-2.92, 0.075, 0), Vector3(0.05, 0.15, 4.90), base_mat)
-	_box(Vector3(2.92, 0.075, 0), Vector3(0.05, 0.15, 4.90), base_mat)
-	# 关着的门与窗洞都要有碰撞：60 秒切片里不允许走出出租屋 / 跳出窗外
-	_col(Vector3(0, 1.08, -2.455), Vector3(1.02, 2.16, 0.07))
-	_col(Vector3(0, 1.70, 2.50), Vector3(3.12, 1.56, 0.12))
+	_box(Vector3(-2.28, 0.075, -2.875), Vector3(3.40, 0.15, 0.05), base_mat)
+	_box(Vector3(2.28, 0.075, -2.875), Vector3(3.40, 0.15, 0.05), base_mat)
+	_box(Vector3(-2.79, 0.075, 2.875), Vector3(2.40, 0.15, 0.05), base_mat)
+	_box(Vector3(2.79, 0.075, 2.875), Vector3(2.40, 0.15, 0.05), base_mat)
+	_box(Vector3(0, 0.075, 2.875), Vector3(3.12, 0.15, 0.05), base_mat)
+	_box(Vector3(-3.885, 0.075, 0), Vector3(0.05, 0.15, 5.80), base_mat)
+	_box(Vector3(3.885, 0.075, 0), Vector3(0.05, 0.15, 5.80), base_mat)
+	# 门与窗的封闭碰撞
+	_col(Vector3(0, 1.08, -2.895), Vector3(1.02, 2.16, 0.07))
+	_col(Vector3(0, 1.70, 2.96), Vector3(3.16, 1.56, 0.12))
 
 func _wainscot() -> void:
 	var wood := _pbr("oak_wood_planks", Color(0.36, 0.33, 0.26), 1.35, true, 0.9, 1.0)
 	var rail := _plain(Color(0.26, 0.24, 0.20), 0.7)
-	_box(Vector3(-1.78, 0.56, -2.425), Vector3(2.40, 0.86, 0.035), wood, false)
-	_box(Vector3(1.78, 0.56, -2.425), Vector3(2.40, 0.86, 0.035), wood, false)
-	_box(Vector3(-2.28, 0.56, 2.425), Vector3(1.40, 0.86, 0.035), wood, false)
-	_box(Vector3(2.28, 0.56, 2.425), Vector3(1.40, 0.86, 0.035), wood, false)
-	_box(Vector3(0, 0.56, 2.425), Vector3(3.08, 0.86, 0.035), wood, false)
-	_box(Vector3(-2.925, 0.56, 0), Vector3(0.035, 0.86, 4.9), wood, false)
-	_box(Vector3(2.925, 0.56, 0), Vector3(0.035, 0.86, 4.9), wood, false)
-	for z in [-2.0, -1.1, -0.2, 0.7, 1.6]:
-		_box(Vector3(-2.90, 0.56, z), Vector3(0.05, 0.86, 0.045), rail)
-		_box(Vector3(2.90, 0.56, z), Vector3(0.05, 0.86, 0.045), rail)
-	for x in [-2.4, -1.4, 1.4, 2.4]:
-		_box(Vector3(x, 0.56, -2.40), Vector3(0.045, 0.86, 0.045), rail)
-		_box(Vector3(x, 0.56, 2.40), Vector3(0.045, 0.86, 0.045), rail)
-	_box(Vector3(0, 1.02, -2.38), Vector3(5.92, 0.06, 0.08), rail)
-	_box(Vector3(0, 1.02, 2.38), Vector3(5.92, 0.06, 0.08), rail)
-	_box(Vector3(-2.88, 1.02, 0), Vector3(0.08, 0.06, 4.88), rail)
-	_box(Vector3(2.88, 1.02, 0), Vector3(0.08, 0.06, 4.88), rail)
+	_box(Vector3(-2.28, 0.56, -2.885), Vector3(3.40, 0.86, 0.035), wood, false)
+	_box(Vector3(2.28, 0.56, -2.885), Vector3(3.40, 0.86, 0.035), wood, false)
+	_box(Vector3(-2.79, 0.56, 2.885), Vector3(2.40, 0.86, 0.035), wood, false)
+	_box(Vector3(2.79, 0.56, 2.885), Vector3(2.40, 0.86, 0.035), wood, false)
+	_box(Vector3(0, 0.56, 2.885), Vector3(3.08, 0.86, 0.035), wood, false)
+	_box(Vector3(-3.885, 0.56, 0), Vector3(0.035, 0.86, 5.72), wood, false)
+	_box(Vector3(3.885, 0.56, 0), Vector3(0.035, 0.86, 5.72), wood, false)
+	for z in [-2.3, -1.3, -0.3, 0.7, 1.7, 2.5]:
+		_box(Vector3(-3.86, 0.56, z), Vector3(0.05, 0.86, 0.045), rail)
+		_box(Vector3(3.86, 0.56, z), Vector3(0.05, 0.86, 0.045), rail)
+	for x in [-3.1, -2.2, 1.1, 2.1, 3.1]:
+		_box(Vector3(x, 0.56, -2.86), Vector3(0.045, 0.86, 0.045), rail)
+	for x in [-3.2, -2.3, 2.3, 3.2]:
+		_box(Vector3(x, 0.56, 2.86), Vector3(0.045, 0.86, 0.045), rail)
+	_box(Vector3(0, 1.02, -2.82), Vector3(7.76, 0.06, 0.08), rail)
+	_box(Vector3(0, 1.02, 2.82), Vector3(7.76, 0.06, 0.08), rail)
+	_box(Vector3(-3.84, 1.02, 0), Vector3(0.08, 0.06, 5.72), rail)
+	_box(Vector3(3.84, 1.02, 0), Vector3(0.08, 0.06, 5.72), rail)
 
 func _ceiling() -> void:
 	var beam := _pbr("oak_wood_planks", Color(0.24, 0.20, 0.15), 1.6, true, 0.95, 1.0)
-	for z in [-1.45, 0.0, 1.45]:
-		_box(Vector3(0, 2.96, z), Vector3(5.95, 0.16, 0.17), beam)
-	_box(Vector3(0, 2.96, -2.32), Vector3(5.95, 0.12, 0.12), beam)
-	_cyl(Vector3(0, 2.86, 0.15), 0.007, 0.32, _plain(Color(0.06,0.06,0.06), 0.6), 6)
+	for z in [-2.20, -0.75, 0.70, 2.15]:
+		_box(Vector3(0, 2.96, z), Vector3(7.82, 0.16, 0.17), beam)
+	_box(Vector3(0, 2.96, -2.86), Vector3(7.82, 0.12, 0.12), beam)
+	_cyl(Vector3(0, 2.86, 0.25), 0.007, 0.32, _plain(Color(0.06,0.06,0.06), 0.6), 6)
 
 func _window() -> void:
 	var frame := _plain(Color(0.34, 0.36, 0.31), 0.62)
-	var frame_dark := _plain(Color(0.24, 0.26, 0.23), 0.72)
-	_box(Vector3(-1.58, 1.70, 2.44), Vector3(0.10, 1.56, 0.12), frame)
-	_box(Vector3(1.58, 1.70, 2.44), Vector3(0.10, 1.56, 0.12), frame)
-	_box(Vector3(0, 2.45, 2.44), Vector3(3.26, 0.10, 0.12), frame)
-	_box(Vector3(0, 0.95, 2.44), Vector3(3.26, 0.10, 0.12), frame)
-
-
-	_box(Vector3(0, 0.90, 2.62), Vector3(3.42, 0.07, 0.34), _plain(Color(0.52, 0.50, 0.44), 0.7))
+	_box(Vector3(-1.58, 1.70, 2.89), Vector3(0.10, 1.56, 0.12), frame)
+	_box(Vector3(1.58, 1.70, 2.89), Vector3(0.10, 1.56, 0.12), frame)
+	_box(Vector3(0, 2.45, 2.89), Vector3(3.26, 0.10, 0.12), frame)
+	_box(Vector3(0, 0.95, 2.89), Vector3(3.26, 0.10, 0.12), frame)
+	_box(Vector3(0, 0.90, 3.06), Vector3(3.42, 0.07, 0.34), _plain(Color(0.52, 0.50, 0.44), 0.7))
 	var glass := MeshInstance3D.new()
 	var qm := QuadMesh.new()
 	qm.size = Vector2(3.10, 1.48)
 	glass.mesh = qm
-	glass.position = Vector3(0, 1.70, 2.47)
+	glass.position = Vector3(0, 1.70, 2.93)
 	glass.material_override = _glass_rain()
 	glass.name = "WindowGlass"
 	root.add_child(glass)
-	_cyl(Vector3(0, 2.55, 2.31), 0.018, 3.46, _plain(Color(0.20,0.18,0.15), 0.55, 0.45), 10, "x")
+	_cyl(Vector3(0, 2.55, 2.77), 0.018, 3.46, _plain(Color(0.20,0.18,0.15), 0.55, 0.45), 10, "x")
 	for sx in [-1.73, 1.73]:
-		_cyl(Vector3(sx, 2.55, 2.31), 0.035, 0.07, _plain(Color(0.20,0.18,0.15), 0.55, 0.45), 10, "x")
+		_cyl(Vector3(sx, 2.55, 2.77), 0.035, 0.07, _plain(Color(0.20,0.18,0.15), 0.55, 0.45), 10, "x")
 	var curtain_mat := _fabric("rough_linen", Color(0.30, 0.34, 0.27), true)
-	_curtain(-1.42, 2.30, 2.53, 0.86, 1.62, curtain_mat, 0.4)
-	_curtain(1.42, 2.30, 2.53, 0.86, 1.62, curtain_mat, 2.1)
+	_curtain(-1.42, 2.76, 2.53, 0.86, 1.62, curtain_mat, 0.4)
+	_curtain(1.42, 2.76, 2.53, 0.86, 1.62, curtain_mat, 2.1)
 
 func _radio() -> void:
-	# 父亲的旧收音机：放在窗台上，异常前可以打开听一段 2009 年的呼叫
-	var body := _bev(Vector3(0.55, 1.025, 2.62), Vector3(0.36, 0.18, 0.14), _plain(Color(0.26, 0.22, 0.18), 0.55), 0.025)
+	# 父亲的旧收音机：只是普通生活背景，放在窗台上，能听深夜广播和电流声。
+	var body := _bev(Vector3(1.18, 1.025, 2.93), Vector3(0.36, 0.18, 0.14), _plain(Color(0.26, 0.22, 0.18), 0.55), 0.025)
 	body.name = "OldRadio"
-	_bev(Vector3(0.55, 0.944, 2.62), Vector3(0.30, 0.018, 0.10), _plain(Color(0.10, 0.09, 0.08), 0.8), 0.006)
-	# 喇叭网罩
-	_box(Vector3(0.48, 1.03, 2.548), Vector3(0.17, 0.12, 0.008), _plain(Color(0.06, 0.06, 0.055), 0.85), false)
+	_bev(Vector3(1.18, 0.944, 2.93), Vector3(0.30, 0.018, 0.10), _plain(Color(0.10, 0.09, 0.08), 0.8), 0.006)
+	_box(Vector3(1.11, 1.03, 2.858), Vector3(0.17, 0.12, 0.008), _plain(Color(0.06, 0.06, 0.055), 0.85), false)
 	for gy in [-0.045, -0.015, 0.015, 0.045]:
-		_box(Vector3(0.48, 1.03 + gy, 2.543), Vector3(0.15, 0.006, 0.006), _plain(Color(0.42, 0.35, 0.25), 0.5), false)
-	# 刻度盘与指针
-	_cyl(Vector3(0.64, 1.06, 2.545), 0.034, 0.012, _plain(Color(0.68, 0.56, 0.34), 0.35, 0.3), 16, "z")
-	_box(Vector3(0.64, 1.06, 2.538), Vector3(0.004, 0.028, 0.004), _plain(Color(0.10, 0.08, 0.06), 0.6), false)
-	for kx in [1.00, 1.08]:
-		_cyl(Vector3(kx - 0.40, 0.965, 2.545), 0.012, 0.016, _plain(Color(0.16, 0.13, 0.10), 0.45, 0.3), 10, "z")
-	# 天线
-	var ant := _cyl(Vector3(0.40, 1.16, 2.62), 0.004, 0.30, _plain(Color(0.35, 0.33, 0.28), 0.35, 0.7), 8)
+		_box(Vector3(1.11, 1.03 + gy, 2.853), Vector3(0.15, 0.006, 0.006), _plain(Color(0.42, 0.35, 0.25), 0.5), false)
+	_cyl(Vector3(1.27, 1.06, 2.855), 0.034, 0.012, _plain(Color(0.68, 0.56, 0.34), 0.35, 0.3), 16, "z")
+	_box(Vector3(1.27, 1.06, 2.848), Vector3(0.004, 0.028, 0.004), _plain(Color(0.10, 0.08, 0.06), 0.6), false)
+	for kx in [0.60, 0.68]:
+		_cyl(Vector3(kx, 0.965, 2.855), 0.012, 0.016, _plain(Color(0.16, 0.13, 0.10), 0.45, 0.3), 10, "z")
+	var ant := _cyl(Vector3(1.03, 1.16, 2.93), 0.004, 0.30, _plain(Color(0.35, 0.33, 0.28), 0.35, 0.7), 8)
 	ant.rotation.z = 0.38
-	# 打开时才亮的指示灯
-	var light := _box(Vector3(0.72, 1.085, 2.548), Vector3(0.012, 0.012, 0.006), _emit(Color(1.0, 0.42, 0.16), 2.2), false)
+	var light := _box(Vector3(1.35, 1.085, 2.858), Vector3(0.012, 0.012, 0.006), _emit(Color(1.0, 0.42, 0.16), 2.2), false)
 	light.name = "RadioLight"
 	light.visible = false
 	host.set_meta("room_radio_light", light)
@@ -431,120 +451,154 @@ func _radio() -> void:
 func _door() -> void:
 	var door_mat := _pbr("oak_wood_planks", Color(0.32, 0.24, 0.18), 1.5, true, 0.85, 1.0)
 	var trim := _plain(Color(0.28, 0.26, 0.22), 0.7)
-	_box(Vector3(0, 1.08, -2.455), Vector3(1.02, 2.16, 0.07), door_mat, false)
+	_box(Vector3(0, 1.08, -2.895), Vector3(1.02, 2.16, 0.07), door_mat, false)
 	for py in [1.55, 0.62]:
-		_bev(Vector3(0, py, -2.412), Vector3(0.64, 0.62 if py > 1.0 else 0.55, 0.022), _plain(Color(0.18,0.20,0.17), 0.8), 0.012)
-	_box(Vector3(-0.55, 1.12, -2.43), Vector3(0.09, 2.30, 0.15), trim)
-	_box(Vector3(0.55, 1.12, -2.43), Vector3(0.09, 2.30, 0.15), trim)
-	_box(Vector3(0, 2.24, -2.43), Vector3(1.22, 0.10, 0.15), trim)
-	_cyl(Vector3(0.37, 1.02, -2.39), 0.038, 0.04, _plain(Color(0.76,0.58,0.26), 0.30, 0.85), 14, "z")
-	_cyl(Vector3(0.37, 1.02, -2.34), 0.014, 0.11, _plain(Color(0.76,0.58,0.26), 0.30, 0.85), 10, "z")
+		_bev(Vector3(0, py, -2.852), Vector3(0.64, 0.62 if py > 1.0 else 0.55, 0.022), _plain(Color(0.18,0.20,0.17), 0.8), 0.012)
+	_box(Vector3(-0.55, 1.12, -2.87), Vector3(0.09, 2.30, 0.15), trim)
+	_box(Vector3(0.55, 1.12, -2.87), Vector3(0.09, 2.30, 0.15), trim)
+	_box(Vector3(0, 2.24, -2.87), Vector3(1.22, 0.10, 0.15), trim)
+	_cyl(Vector3(0.37, 1.02, -2.83), 0.038, 0.04, _plain(Color(0.76,0.58,0.26), 0.30, 0.85), 14, "z")
+	_cyl(Vector3(0.37, 1.02, -2.78), 0.014, 0.11, _plain(Color(0.76,0.58,0.26), 0.30, 0.85), 10, "z")
 	for hy in [0.5, 1.65]:
-		_cyl(Vector3(-0.49, hy, -2.40), 0.014, 0.06, _plain(Color(0.42,0.36,0.24), 0.5, 0.7), 8, "z")
+		_cyl(Vector3(-0.49, hy, -2.84), 0.014, 0.06, _plain(Color(0.42,0.36,0.24), 0.5, 0.7), 8, "z")
 	var env := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = Vector3(0.36, 0.012, 0.23)
 	env.mesh = bm
-	env.position = Vector3(0, 0.012, -2.34)
+	env.position = Vector3(0, 0.012, -2.78)
 	env.material_override = _plain(Color(0.86, 0.83, 0.72), 0.9)
 	env.name = "Envelope"
 	root.add_child(env)
 	host.prologue_envelope = env
 	env.visible = false
 
+func _light_switch() -> void:
+	# 门边真实墙面板：底板 + 小拨杆。game.gd 切灯时拨杆会翻转。
+	var plate := _plain(Color(0.78, 0.76, 0.68), 0.58)
+	var inner := _plain(Color(0.34, 0.33, 0.30), 0.55)
+	_box(Vector3(0.78, 1.18, -2.875), Vector3(0.13, 0.18, 0.025), plate)
+	_box(Vector3(0.78, 1.18, -2.858), Vector3(0.075, 0.105, 0.010), inner)
+	var lever := _bev(Vector3(0.78, 1.18, -2.845), Vector3(0.038, 0.070, 0.020), _plain(Color(0.25, 0.24, 0.20), 0.42, 0.55), 0.004)
+	lever.name = "RoomLightSwitchLever"
+	lever.rotation.x = -0.38
+	host.set_meta("room_switch_lever", lever)
+
 func _bed() -> void:
-	_model("old_bed_frame/old_bed_frame_2k.gltf", Vector3(-2.15, 0, -0.20), 0.0, 0.0, Color(0.40, 0.35, 0.31))
+	# 左后角：床头靠北墙 (-Z)，床侧靠西墙 (-X)，不挡门也不挡窗。
+	_model("old_bed_frame/old_bed_frame_2k.gltf", Vector3(-3.45, 0, -1.95), 0.0, 0.0, Color(0.40, 0.35, 0.31))
 	var sheet := _fabric("rough_linen", Color(0.72, 0.70, 0.62))
 	var duvet := _fabric("rough_linen", Color(0.40, 0.46, 0.42))
 	var throw_mat := _fabric("poly_wool_herringbone", Color(0.34, 0.26, 0.20))
-	_bev(Vector3(-2.15, 0.50, -0.18), Vector3(0.88, 0.26, 1.88), _plain(Color(0.55,0.53,0.46), 0.9), 0.06)
-	_bev(Vector3(-2.15, 0.645, -0.18), Vector3(0.90, 0.07, 1.90), sheet, 0.03)
-	_bev(Vector3(-2.15, 0.75, 0.08), Vector3(0.94, 0.22, 1.36), duvet, 0.09)
-	_cloth_top(Vector3(-2.15, 0.865, 0.04), 0.94, 1.38, duvet, 0.022, 1.2)
-	_cloth_top(Vector3(-2.15, 0.80, 0.72), 0.94, 0.62, throw_mat, 0.014, 3.4)
-	_bev(Vector3(-1.665, 0.60, 0.12), Vector3(0.035, 0.48, 1.10), throw_mat, 0.015)
-	_bev(Vector3(-1.655, 0.56, 0.44), Vector3(0.02, 0.40, 0.08), throw_mat, 0.008)
-	_bev(Vector3(-1.655, 0.56, -0.16), Vector3(0.02, 0.40, 0.08), throw_mat, 0.008)
-	_cloth_top(Vector3(-2.15, 0.815, -0.58), 0.94, 0.34, _fabric("poly_wool_herringbone", Color(0.46, 0.37, 0.28)), 0.012, 5.1)
-	_bev(Vector3(-2.15, 0.70, -0.93), Vector3(0.68, 0.17, 0.38), sheet, 0.07)
-	_bev(Vector3(-2.15, 0.81, -0.90), Vector3(0.62, 0.14, 0.34), _fabric("rough_linen", Color(0.78,0.76,0.68)), 0.06)
-	for z in [-0.75, 0.15]:
-		_bev(Vector3(-2.15, 0.13, z), Vector3(0.78, 0.22, 0.62), _plain(Color(0.20,0.21,0.22), 0.9), 0.02)
-	_box(Vector3(-2.15, 0.012, 1.12), Vector3(1.30, 0.02, 1.10), _fabric("poly_wool_herringbone", Color(0.34,0.32,0.28)), false)
-	for x in [-2.28, -2.02]:
-		_bev(Vector3(x, 0.055, 1.28), Vector3(0.16, 0.09, 0.31), _plain(Color(0.20,0.20,0.22), 0.85), 0.025)
-	_col(Vector3(-2.15, 0.38, -0.18), Vector3(1.00, 0.76, 1.95))
+	_bev(Vector3(-3.45, 0.50, -1.93), Vector3(0.88, 0.26, 1.88), _plain(Color(0.55,0.53,0.46), 0.9), 0.06)
+	_bev(Vector3(-3.45, 0.645, -1.93), Vector3(0.90, 0.07, 1.90), sheet, 0.03)
+	_bev(Vector3(-3.45, 0.75, -1.67), Vector3(0.94, 0.22, 1.36), duvet, 0.09)
+	_cloth_top(Vector3(-3.45, 0.865, -1.71), 0.94, 1.38, duvet, 0.022, 1.2)
+	_cloth_top(Vector3(-3.45, 0.80, -1.23), 0.94, 0.62, throw_mat, 0.014, 3.4)
+	_bev(Vector3(-2.965, 0.60, -1.83), Vector3(0.035, 0.48, 1.10), throw_mat, 0.015)
+	_bev(Vector3(-2.955, 0.56, -1.51), Vector3(0.02, 0.40, 0.08), throw_mat, 0.008)
+	_bev(Vector3(-2.955, 0.56, -2.11), Vector3(0.02, 0.40, 0.08), throw_mat, 0.008)
+	_cloth_top(Vector3(-3.45, 0.815, -2.33), 0.94, 0.34, _fabric("poly_wool_herringbone", Color(0.46, 0.37, 0.28)), 0.012, 5.1)
+	_bev(Vector3(-3.45, 0.70, -2.68), Vector3(0.68, 0.17, 0.38), sheet, 0.07)
+	_bev(Vector3(-3.45, 0.81, -2.65), Vector3(0.62, 0.14, 0.34), _fabric("rough_linen", Color(0.78,0.76,0.68)), 0.06)
+	for z in [-2.50, -1.60]:
+		_bev(Vector3(-3.45, 0.13, z), Vector3(0.78, 0.22, 0.62), _plain(Color(0.20,0.21,0.22), 0.9), 0.02)
+	_box(Vector3(-3.45, 0.012, -0.63), Vector3(1.30, 0.02, 1.10), _fabric("poly_wool_herringbone", Color(0.34,0.32,0.28)), false)
+	# 床右侧的拖鞋：生活气，不占通道
+	for i in range(2):
+		var sl := _bev(Vector3(-2.78 + float(i) * 0.22, 0.055, -1.42 - float(i) * 0.16), Vector3(0.16, 0.09, 0.31), _plain(Color(0.20,0.20,0.22), 0.85), 0.025)
+		sl.rotation.y = -0.22 + float(i) * 0.45
+	_col(Vector3(-3.45, 0.38, -1.93), Vector3(1.00, 0.76, 1.95))
 
 func _nightstand() -> void:
-	_model("ClassicNightstand_01/ClassicNightstand_01_1k.gltf", Vector3(-1.30, 0, -1.24), 0.0, 0.0, Color(0.95, 0.90, 0.83))
-	_model("desk_lamp_arm_01/desk_lamp_arm_01_1k.gltf", Vector3(-1.42, 0.70, -1.32), -0.5, 0.55, Color(0.92,0.88,0.80))
-	_model("alarm_clock_01/alarm_clock_01_1k.gltf", Vector3(-1.14, 0.70, -1.06), PI * 0.5, 0.16)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-1.24, 0.70, -1.26), PI * 0.5, 0.12)
-	_cyl(Vector3(-1.45, 0.735, -1.12), 0.035, 0.09, _plain(Color(0.80,0.78,0.70), 0.4), 14)
-	_col(Vector3(-1.30, 0.36, -1.24), Vector3(0.56, 0.72, 0.46))
+	_model("ClassicNightstand_01/ClassicNightstand_01_1k.gltf", Vector3(-2.42, 0, -2.55), 0.0, 0.0, Color(0.95, 0.90, 0.83))
+	_model("desk_lamp_arm_01/desk_lamp_arm_01_1k.gltf", Vector3(-2.54, 0.70, -2.63), -0.5, 0.55, Color(0.92,0.88,0.80))
+	_model("alarm_clock_01/alarm_clock_01_1k.gltf", Vector3(-2.26, 0.70, -2.37), PI * 0.5, 0.16)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-2.36, 0.70, -2.57), PI * 0.5, 0.12)
+	_cyl(Vector3(-2.57, 0.735, -2.42), 0.035, 0.09, _plain(Color(0.80,0.78,0.70), 0.4), 14)
+	_col(Vector3(-2.42, 0.36, -2.55), Vector3(0.56, 0.72, 0.46))
 
 func _desk() -> void:
-	_model("wooden_table_02/wooden_table_02_1k.gltf", Vector3(2.10, 0, 1.55), 0.0, 0.0, Color(0.92, 0.90, 0.85))
-	_model("painted_wooden_chair_01/painted_wooden_chair_01_1k.gltf", Vector3(2.10, 0, 0.83), PI, 0.0, Color(0.72,0.66,0.56))
-	_model("desk_lamp_arm_01/desk_lamp_arm_01_1k.gltf", Vector3(2.52, 0.80, 1.78), -2.4, 0.46, Color(0.86,0.82,0.74))
-	var phone := _bev(Vector3(2.06, 0.815, 1.38), Vector3(0.078, 0.010, 0.155), _plain(Color(0.045,0.05,0.055), 0.32), 0.006)
+	# 右前区域：书桌 + 椅子 + 台灯，和厨房分开。
+	_model("wooden_table_02/wooden_table_02_1k.gltf", Vector3(2.55, 0, 1.75), 0.0, 0.0, Color(0.92, 0.90, 0.85))
+	_model("painted_wooden_chair_01/painted_wooden_chair_01_1k.gltf", Vector3(2.55, 0, 1.03), PI, 0.0, Color(0.72,0.66,0.56))
+	_model("desk_lamp_arm_01/desk_lamp_arm_01_1k.gltf", Vector3(2.97, 0.80, 1.98), -2.4, 0.46, Color(0.86,0.82,0.74))
+	var phone := _bev(Vector3(2.51, 0.815, 1.58), Vector3(0.078, 0.010, 0.155), _plain(Color(0.045,0.05,0.055), 0.32), 0.006)
 	phone.rotation.y = 0.22
-	var screen := _box(Vector3(2.06, 0.821, 1.38), Vector3(0.066, 0.002, 0.138), _emit(Color(0.55, 0.75, 0.78), 0.55), false)
+	var screen := _box(Vector3(2.51, 0.821, 1.58), Vector3(0.066, 0.002, 0.138), _emit(Color(0.55, 0.75, 0.78), 0.55), false)
 	screen.rotation.y = 0.22
 	host.set_meta("phone_screen", screen)
-	_model("binder_notebook/binder_notebook_1k.gltf", Vector3(1.82, 0.805, 1.62), 0.35, 0.0, Color(0.94,0.92,0.86))
-	_bev(Vector3(2.32, 0.806, 1.44), Vector3(0.24, 0.006, 0.31), _plain(Color(0.86,0.84,0.75), 0.92), 0.004)
-	_cyl(Vector3(2.42, 0.845, 1.32), 0.042, 0.09, _plain(Color(0.72,0.70,0.62), 0.35), 16)
-	_cyl(Vector3(2.46, 0.845, 1.32), 0.012, 0.055, _plain(Color(0.72,0.70,0.62), 0.35), 8, "z")
-	_cyl(Vector3(1.78, 0.812, 1.46), 0.005, 0.16, _plain(Color(0.12,0.12,0.13), 0.4), 6, "x")
-	_bev(Vector3(1.75, 0.835, 1.80), Vector3(0.22, 0.07, 0.28), _plain(Color(0.80,0.78,0.70), 0.9), 0.008)
-	_bev(Vector3(2.48, 0.20, 1.30), Vector3(0.44, 0.40, 0.42), _plain(Color(0.44,0.33,0.22), 0.95), 0.02)
-	_col(Vector3(2.10, 0.40, 1.55), Vector3(1.10, 0.80, 0.72))
+	_model("binder_notebook/binder_notebook_1k.gltf", Vector3(2.27, 0.805, 1.82), 0.35, 0.0, Color(0.94,0.92,0.86))
+	_bev(Vector3(2.77, 0.806, 1.64), Vector3(0.24, 0.006, 0.31), _plain(Color(0.86,0.84,0.75), 0.92), 0.004)
+	_cyl(Vector3(2.87, 0.845, 1.52), 0.042, 0.09, _plain(Color(0.72,0.70,0.62), 0.35), 16)
+	_cyl(Vector3(2.91, 0.845, 1.52), 0.012, 0.055, _plain(Color(0.72,0.70,0.62), 0.35), 8, "z")
+	_cyl(Vector3(2.23, 0.812, 1.66), 0.005, 0.16, _plain(Color(0.12,0.12,0.13), 0.4), 6, "x")
+	_bev(Vector3(2.20, 0.835, 2.00), Vector3(0.22, 0.07, 0.28), _plain(Color(0.80,0.78,0.70), 0.9), 0.008)
+	_bev(Vector3(2.93, 0.20, 1.50), Vector3(0.44, 0.40, 0.42), _plain(Color(0.44,0.33,0.22), 0.95), 0.02)
+	_col(Vector3(2.55, 0.40, 1.75), Vector3(1.10, 0.80, 0.72))
 
 func _cabinet_and_tv() -> void:
-	_model("painted_wooden_cabinet/painted_wooden_cabinet_1k.gltf", Vector3(2.62, 0, -1.00), PI * 0.5, 0.0, Color(0.80, 0.82, 0.78))
-	_model("Television_01/Television_01_1k.gltf", Vector3(2.62, 1.19, -1.00), PI * 0.5, 0.0, Color(0.72,0.74,0.72))
-	_box(Vector3(2.30, 1.16, -0.88), Vector3(0.006, 0.012, 0.012), _emit(Color(0.30, 1.0, 0.45), 3.0), false)
-	_bev(Vector3(2.58, 1.24, -1.38), Vector3(0.26, 0.06, 0.34), _plain(Color(0.10,0.11,0.11), 0.55, 0.2), 0.012)
-	_bev(Vector3(2.58, 1.29, -1.38), Vector3(0.18, 0.01, 0.10), _plain(Color(0.32,0.32,0.30), 0.5), 0.004)
-	_col(Vector3(2.62, 0.60, -1.00), Vector3(0.96, 1.20, 0.64))
+	# 右墙中段：小电视柜，夹在厨房和书桌之间。
+	_model("painted_wooden_cabinet/painted_wooden_cabinet_1k.gltf", Vector3(3.62, 0, -0.35), PI * 0.5, 0.0, Color(0.80, 0.82, 0.78))
+	_model("Television_01/Television_01_1k.gltf", Vector3(3.62, 1.19, -0.35), PI * 0.5, 0.0, Color(0.72,0.74,0.72))
+	_box(Vector3(3.30, 1.16, -0.23), Vector3(0.006, 0.012, 0.012), _emit(Color(0.30, 1.0, 0.45), 3.0), false)
+	_bev(Vector3(3.58, 1.24, -0.73), Vector3(0.26, 0.06, 0.34), _plain(Color(0.10,0.11,0.11), 0.55, 0.2), 0.012)
+	_bev(Vector3(3.58, 1.29, -0.73), Vector3(0.18, 0.01, 0.10), _plain(Color(0.32,0.32,0.30), 0.5), 0.004)
+	_col(Vector3(3.62, 0.60, -0.35), Vector3(0.64, 1.20, 0.96))
 
 func _kitchen() -> void:
+	# 右后区域：半开放小厨房。沿右墙一字台面 + 北墙转角灶台。
 	var cabinet := _pbr("oak_wood_planks", Color(0.34, 0.30, 0.24), 1.2, true, 0.9, 1.0)
 	var top := _plain(Color(0.44, 0.44, 0.42), 0.55)
-	_box(Vector3(2.45, 0.40, -2.14), Vector3(1.04, 0.76, 0.60), cabinet, true)
-	_box(Vector3(2.45, 0.80, -2.14), Vector3(1.10, 0.06, 0.66), top)
-	for x in [2.18, 2.72]:
-		_box(Vector3(x, 0.42, -1.835), Vector3(0.02, 0.66, 0.02), _plain(Color(0.22,0.20,0.16), 0.8))
-		_box(Vector3(x + 0.10 if x < 2.4 else x - 0.10, 0.62, -1.80), Vector3(0.10, 0.02, 0.02), _plain(Color(0.58,0.50,0.38), 0.5, 0.5))
-	_box(Vector3(2.45, 0.825, -2.16), Vector3(0.46, 0.02, 0.32), _plain(Color(0.22,0.23,0.24), 0.35, 0.6))
-	_cyl(Vector3(2.45, 0.92, -2.30), 0.016, 0.26, _plain(Color(0.55,0.56,0.55), 0.3, 0.8), 10)
-	_cyl(Vector3(2.45, 1.04, -2.24), 0.014, 0.14, _plain(Color(0.55,0.56,0.55), 0.3, 0.8), 10, "z")
-	_cyl(Vector3(2.74, 0.90, -2.20), 0.085, 0.15, _plain(Color(0.62,0.62,0.58), 0.3, 0.6), 16)
-	_cyl(Vector3(2.74, 0.99, -2.20), 0.028, 0.06, _plain(Color(0.30,0.30,0.28), 0.4), 10)
-	_cyl(Vector3(2.18, 0.86, -2.20), 0.075, 0.055, _plain(Color(0.78,0.76,0.68), 0.5), 16)
-	_box(Vector3(2.45, 1.18, -2.43), Vector3(1.06, 0.70, 0.03), _plain(Color(0.68,0.68,0.62), 0.35))
-	for gy in [0.96, 1.12, 1.28, 1.44]:
-		_box(Vector3(2.45, gy, -2.41), Vector3(1.06, 0.006, 0.008), _plain(Color(0.44,0.44,0.40), 0.7))
-	for gx in [2.10, 2.45, 2.80]:
-		_box(Vector3(gx, 1.18, -2.41), Vector3(0.006, 0.70, 0.008), _plain(Color(0.44,0.44,0.40), 0.7))
-	_box(Vector3(2.45, 2.10, -2.28), Vector3(1.02, 0.62, 0.34), cabinet)
-	_box(Vector3(2.45, 2.10, -2.10), Vector3(0.46, 0.58, 0.02), _plain(Color(0.30,0.27,0.22), 0.8))
-	_col(Vector3(2.45, 0.42, -2.14), Vector3(1.05, 0.84, 0.64))
+	var steel := _plain(Color(0.56, 0.57, 0.56), 0.30, 0.75)
+	var tile := _pbr("painted_plaster_wall", Color(0.62, 0.66, 0.62), 1.1, true, 0.55, 0.35)
+	# 厨房地面材质，和睡眠区区分
+	_box(Vector3(2.95, 0.011, -2.02), Vector3(1.82, 0.022, 1.92), _pbr("painted_plaster_wall", Color(0.46, 0.48, 0.46), 1.8, true, 0.65, 0.4), false)
+	# 右墙一字台面
+	_box(Vector3(3.56, 0.40, -1.95), Vector3(0.68, 0.76, 1.95), cabinet, true)
+	_box(Vector3(3.56, 0.80, -1.95), Vector3(0.74, 0.06, 2.05), top)
+	for z in [-2.55, -1.95, -1.35]:
+		_box(Vector3(3.215, 0.42, z), Vector3(0.02, 0.66, 0.02), _plain(Color(0.22,0.20,0.16), 0.8))
+		_box(Vector3(3.195, 0.62, z + 0.16), Vector3(0.10, 0.02, 0.02), _plain(Color(0.58,0.50,0.38), 0.5, 0.5))
+	# 北墙转角灶台
+	_box(Vector3(2.58, 0.40, -2.62), Vector3(1.08, 0.76, 0.58), cabinet, true)
+	_box(Vector3(2.58, 0.80, -2.62), Vector3(1.16, 0.06, 0.64), top)
+	# 水槽 + 龙头
+	_box(Vector3(3.52, 0.825, -1.75), Vector3(0.42, 0.02, 0.34), steel)
+	_box(Vector3(3.52, 0.812, -1.75), Vector3(0.31, 0.012, 0.24), _plain(Color(0.18,0.19,0.20), 0.45, 0.5))
+	_cyl(Vector3(3.76, 0.94, -1.75), 0.016, 0.26, steel, 12)
+	_cyl(Vector3(3.69, 1.06, -1.75), 0.014, 0.15, steel, 10, "x")
+	_cyl(Vector3(3.62, 1.02, -1.75), 0.013, 0.08, steel, 10)
+	# 灶台与锅
+	_cyl(Vector3(2.45, 0.835, -2.62), 0.12, 0.025, _plain(Color(0.18,0.18,0.19), 0.55, 0.4), 18)
+	_cyl(Vector3(2.80, 0.835, -2.62), 0.10, 0.022, _plain(Color(0.18,0.18,0.19), 0.55, 0.4), 18)
+	_cyl(Vector3(2.45, 0.90, -2.62), 0.085, 0.11, _plain(Color(0.72,0.73,0.72), 0.28, 0.65), 16)
+	# 防溅板 + 吊柜 + 开放层架
+	_box(Vector3(3.885, 1.13, -1.95), Vector3(0.02, 0.62, 2.00), tile)
+	_box(Vector3(3.76, 2.06, -2.28), Vector3(0.26, 0.62, 1.00), cabinet)
+	_box(Vector3(3.62, 2.06, -2.28), Vector3(0.02, 0.56, 0.44), _plain(Color(0.30,0.27,0.22), 0.8))
+	_box(Vector3(3.84, 1.48, -1.04), Vector3(0.24, 0.035, 0.72), _plain(Color(0.34,0.31,0.26), 0.75))
+	for z in [-1.30, -1.06, -0.82]:
+		_cyl(Vector3(3.82, 1.55, z), 0.035, 0.10, _plain(Color(0.70,0.66,0.52), 0.55), 12)
+	# 半开放矮隔断：挡住灶台侧面，不挡镜头
+	_box(Vector3(1.98, 0.55, -2.10), Vector3(0.09, 1.10, 1.50), _pbr("oak_wood_planks", Color(0.30, 0.27, 0.22), 1.1, true, 0.9, 1.0), true)
+	_box(Vector3(1.98, 1.11, -2.10), Vector3(0.16, 0.05, 1.56), _plain(Color(0.48,0.42,0.32), 0.6))
+	_col(Vector3(3.56, 0.42, -1.95), Vector3(0.70, 0.84, 2.00))
+	_col(Vector3(2.58, 0.42, -2.62), Vector3(1.12, 0.84, 0.62))
 
 func _shelf() -> void:
-	_model("wooden_bookshelf_worn/wooden_bookshelf_worn_1k.gltf", Vector3(1.25, 0, -2.16), 0.0, 0.0, Color(0.86, 0.82, 0.76))
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(0.92, 0.40, -2.14), 0.0, 0.0)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(1.34, 0.40, -2.14), 0.0, 0.0)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(1.10, 1.06, -2.14), 0.0, 0.0)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(1.54, 1.06, -2.14), 0.0, 0.0)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(1.02, 1.46, -2.14), 0.0, 0.0)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(1.46, 1.46, -2.14), 0.0, 0.0)
-	_bev(Vector3(1.25, 1.78, -2.12), Vector3(0.34, 0.16, 0.26), _plain(Color(0.38,0.36,0.31), 0.95), 0.02)
-	_cyl(Vector3(1.66, 2.02, -2.12), 0.055, 0.10, _plain(Color(0.46,0.30,0.20), 0.9), 12)
+	# 左前 / 靠窗：书架单独放在西墙，不跟厨房挤在同一面墙。
+	_model("wooden_bookshelf_worn/wooden_bookshelf_worn_1k.gltf", Vector3(-3.62, 0, 1.65), PI * 0.5, 0.0, Color(0.86, 0.82, 0.76))
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 0.40, 1.34), PI * 0.5, 0.0)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 0.40, 1.58), PI * 0.5, 0.0)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 1.06, 1.42), PI * 0.5, 0.0)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 1.06, 1.66), PI * 0.5, 0.0)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 1.46, 1.38), PI * 0.5, 0.0)
+	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 1.46, 1.62), PI * 0.5, 0.0)
+	_bev(Vector3(-3.60, 1.80, 1.74), Vector3(0.24, 0.16, 0.34), _plain(Color(0.38,0.36,0.31), 0.95), 0.02)
+	_cyl(Vector3(-3.60, 2.02, 1.82), 0.055, 0.10, _plain(Color(0.46,0.30,0.20), 0.9), 12)
 	for k in range(5):
-		_cone_leaf(Vector3(1.66, 2.14, -2.12), 0.05, 0.22, k)
-	_col(Vector3(1.25, 0.95, -2.16), Vector3(0.96, 1.90, 0.36))
+		_cone_leaf(Vector3(-3.60, 2.14, 1.82), 0.05, 0.22, k)
+	_col(Vector3(-3.62, 0.95, 1.65), Vector3(0.36, 1.90, 0.96))
 
 func _cone_leaf(pos: Vector3, r: float, h: float, k: int) -> void:
 	var mi := MeshInstance3D.new()
@@ -561,35 +615,55 @@ func _cone_leaf(pos: Vector3, r: float, h: float, k: int) -> void:
 	root.add_child(mi)
 
 func _floor_props() -> void:
-	_bev(Vector3(0.10, 0.014, 0.80), Vector3(2.70, 0.024, 1.86), _fabric("poly_wool_herringbone", Color(0.42, 0.38, 0.32)), 0.012)
-	_box(Vector3(0.10, 0.027, 0.80), Vector3(2.42, 0.004, 1.60), _pbr("poly_wool_herringbone", Color(0.50, 0.45, 0.37), 1.4, true, 1.0, 0.8), false)
-	_model("cardboard_box_01/cardboard_box_01_1k.gltf", Vector3(-0.70, 0, 1.66), 0.45, 0.50, Color(0.78, 0.70, 0.58))
-	var lid := _bev(Vector3(-0.70, 0.49, 1.86), Vector3(0.48, 0.02, 0.32), _plain(Color(0.52,0.39,0.25), 0.95), 0.005)
+	# 中央地毯
+	_bev(Vector3(0.10, 0.014, 0.75), Vector3(3.40, 0.024, 2.20), _fabric("poly_wool_herringbone", Color(0.42, 0.38, 0.32)), 0.012)
+	_box(Vector3(0.10, 0.027, 0.75), Vector3(3.10, 0.004, 1.95), _pbr("poly_wool_herringbone", Color(0.50, 0.45, 0.37), 1.4, true, 1.0, 0.8), false)
+	# 父亲的纸箱：靠窗、在书桌左侧，不挡门
+	_model("cardboard_box_01/cardboard_box_01_1k.gltf", Vector3(0.78, 0, 1.90), 0.45, 0.50, Color(0.78, 0.70, 0.58))
+	var lid := _bev(Vector3(0.78, 0.49, 2.10), Vector3(0.48, 0.02, 0.32), _plain(Color(0.52,0.39,0.25), 0.95), 0.005)
 	lid.rotation.x = -0.9
-	_cyl(Vector3(-0.80, 0.39, 1.62), 0.045, 0.22, _plain(Color(0.55,0.56,0.52), 0.35, 0.6), 14)
-	_bev(Vector3(-0.56, 0.41, 1.66), Vector3(0.16, 0.02, 0.10), _plain(Color(0.78,0.74,0.62), 0.8), 0.004)
-	_cyl(Vector3(-2.45, 0.22, 2.10), 0.23, 0.42, _plain(Color(0.34,0.33,0.28), 0.95), 16)
+	_cyl(Vector3(0.68, 0.39, 1.86), 0.045, 0.22, _plain(Color(0.55,0.56,0.52), 0.35, 0.6), 14)
+	_bev(Vector3(0.92, 0.41, 1.90), Vector3(0.16, 0.02, 0.10), _plain(Color(0.78,0.74,0.62), 0.8), 0.004)
+	# 洗衣篮、植物、垃圾桶、书堆
+	_cyl(Vector3(-3.25, 0.22, -0.75), 0.23, 0.42, _plain(Color(0.34,0.33,0.28), 0.95), 16)
 	for i in range(3):
-		_bev(Vector3(-2.45 + (i - 1) * 0.05, 0.45, 2.10), Vector3(0.20, 0.06, 0.26), _plain(Color(0.40,0.42,0.44), 0.95), 0.02)
-	_model("potted_plant_01/potted_plant_01_1k.gltf", Vector3(-1.95, 0, 2.12), 0.6, 1.05, Color(0.92,0.94,0.86))
-	_cyl(Vector3(2.86, 0.30, 1.55), 0.008, 0.30, _plain(Color(0.08,0.08,0.08), 0.7), 6)
-	_cyl(Vector3(2.78, 0.28, 1.42), 0.008, 0.26, _plain(Color(0.08,0.08,0.08), 0.7), 6, "x")
+		_bev(Vector3(-3.25 + (i - 1) * 0.05, 0.45, -0.75), Vector3(0.20, 0.06, 0.26), _plain(Color(0.40,0.42,0.44), 0.95), 0.02)
+	_model("potted_plant_01/potted_plant_01_1k.gltf", Vector3(-3.10, 0, 2.56), 0.6, 1.05, Color(0.92,0.94,0.86))
+	_cyl(Vector3(0.55, 0.22, 2.55), 0.16, 0.44, _plain(Color(0.26,0.27,0.26), 0.95), 14)
+	_bev(Vector3(-1.55, 0.055, -2.20), Vector3(0.30, 0.11, 0.22), _plain(Color(0.74,0.72,0.62), 0.95), 0.012)
+	_bev(Vector3(-1.58, 0.135, -2.22), Vector3(0.28, 0.08, 0.20), _plain(Color(0.66,0.64,0.54), 0.95), 0.012)
+	# 书桌下的线
+	_cyl(Vector3(3.72, 0.30, 1.55), 0.008, 0.30, _plain(Color(0.08,0.08,0.08), 0.7), 6)
+	_cyl(Vector3(3.64, 0.28, 1.42), 0.008, 0.26, _plain(Color(0.08,0.08,0.08), 0.7), 6, "x")
 
 func _wall_decor() -> void:
-	_wall_frame(-2.90, 1.95, -1.45, 0.48, 0.62, Color(0.46, 0.41, 0.31))
-	_wall_frame(-2.90, 1.86, -0.62, 0.38, 0.50, Color(0.36, 0.41, 0.36))
-	_model("vintage_telephone_wall_clock/vintage_telephone_wall_clock_1k.gltf", Vector3(-0.95, 2.18, -2.43), 0.0, 0.0, Color(0.92,0.88,0.80))
-	_box(Vector3(2.925, 1.80, 1.15), Vector3(0.018, 0.56, 0.40), _plain(Color(0.86,0.84,0.74), 0.9))
-	_box(Vector3(2.913, 1.98, 1.15), Vector3(0.004, 0.05, 0.34), _plain(Color(0.55,0.48,0.36), 0.9))
+	# 床头上方：普通家庭照
+	_wall_frame_back(-2.42, 1.85, -2.895, 0.46, 0.60, Color(0.46, 0.41, 0.31))
+	# 西墙两幅小画
+	_wall_frame(-3.885, 1.95, -1.90, 0.42, 0.56, Color(0.36, 0.41, 0.36))
+	_wall_frame(-3.885, 1.86, -1.12, 0.34, 0.46, Color(0.44, 0.38, 0.30))
+	# 门边旧电话（没接线，只是父亲留下的旧物）
+	_model("vintage_telephone_wall_clock/vintage_telephone_wall_clock_1k.gltf", Vector3(-1.45, 1.62, -2.885), 0.0, 0.0, Color(0.92,0.88,0.80))
+	# 书桌右墙上的便签 / 日历
+	_box(Vector3(3.885, 1.80, 1.55), Vector3(0.018, 0.56, 0.40), _plain(Color(0.86,0.84,0.74), 0.9))
+	_box(Vector3(3.873, 1.98, 1.55), Vector3(0.004, 0.05, 0.34), _plain(Color(0.55,0.48,0.36), 0.9))
 	for i in range(4):
-		_box(Vector3(2.913, 1.58 + i * 0.10, 1.15), Vector3(0.004, 0.004, 0.32), _plain(Color(0.58,0.55,0.48), 0.9))
-	var poster := _box(Vector3(-2.42, 1.85, 2.43), Vector3(0.62, 0.86, 0.012), _plain(Color(0.42,0.44,0.38), 0.92))
-	poster.rotation.y = PI
-	_box(Vector3(-2.42, 2.10, 2.42), Vector3(0.44, 0.10, 0.004), _plain(Color(0.66,0.62,0.48), 0.9))
-	for x in [1.02, 1.20, 1.38]:
-		_cyl(Vector3(x, 1.78, -2.40), 0.012, 0.10, _plain(Color(0.34,0.30,0.24), 0.6, 0.4), 8, "z")
-	_bev(Vector3(1.22, 1.38, -2.33), Vector3(0.42, 0.72, 0.16), _plain(Color(0.20,0.24,0.26), 0.95), 0.04)
+		_box(Vector3(3.873, 1.58 + i * 0.10, 1.55), Vector3(0.004, 0.004, 0.32), _plain(Color(0.58,0.55,0.48), 0.9))
+	# 门边小日历
+	_box(Vector3(-1.02, 1.86, -2.885), Vector3(0.30, 0.40, 0.018), _plain(Color(0.72,0.68,0.56), 0.9))
+	_box(Vector3(-1.02, 2.01, -2.872), Vector3(0.26, 0.06, 0.004), _plain(Color(0.48,0.38,0.28), 0.9))
 	_string_lights()
+
+func _wall_frame_back(x: float, y: float, z: float, w: float, h: float, photo: Color) -> void:
+	var wood := _plain(Color(0.20, 0.16, 0.12), 0.82)
+	_box(Vector3(x, y, z), Vector3(w, h, 0.035), wood)
+	_box(Vector3(x, y, z + 0.021), Vector3(w - 0.10, h - 0.10, 0.006), _plain(photo, 0.9))
+	_box(Vector3(x, y + h * 0.12, z + 0.025), Vector3(w - 0.14, h * 0.22, 0.004), _plain(photo.lightened(0.16), 0.9))
+	var t := 0.045
+	_box(Vector3(x, y + h * 0.5 - t * 0.5, z + 0.030), Vector3(w, t, 0.028), wood)
+	_box(Vector3(x, y - h * 0.5 + t * 0.5, z + 0.030), Vector3(w, t, 0.028), wood)
+	_box(Vector3(x + w * 0.5 - t * 0.5, y, z + 0.030), Vector3(t, h, 0.028), wood)
+	_box(Vector3(x - w * 0.5 + t * 0.5, y, z + 0.030), Vector3(t, h, 0.028), wood)
 
 func _wall_frame(x: float, y: float, z: float, w: float, h: float, photo: Color) -> void:
 	var wood := _plain(Color(0.20, 0.16, 0.12), 0.82)
@@ -602,18 +676,18 @@ func _wall_frame(x: float, y: float, z: float, w: float, h: float, photo: Color)
 	_box(Vector3(x + 0.030, y, z + w * 0.5 - t * 0.5), Vector3(0.028, h, t), wood)
 	_box(Vector3(x + 0.030, y, z - w * 0.5 + t * 0.5), Vector3(0.028, h, t), wood)
 func _string_lights() -> void:
+	# 窗上方的暖色串灯：关灯后留一点低亮度的生活气息。
 	var wire := _plain(Color(0.12, 0.11, 0.09), 0.8)
 	for i in range(10):
-		var z0 := -1.95 + float(i) * 0.25
-		var z1 := z0 + 0.25
+		var x0 := -2.20 + float(i) * 0.44
+		var x1 := x0 + 0.44
 		var y0 := 2.40 - sin(float(i) / 9.0 * PI) * 0.13
 		var y1 := 2.40 - sin(float(i + 1) / 9.0 * PI) * 0.13
-		var mid := Vector3(-2.90, (y0 + y1) * 0.5, (z0 + z1) * 0.5)
-		var seg := _box(mid, Vector3(0.006, 0.006, 0.26), wire)
-		seg.rotation.x = -atan2(y1 - y0, z1 - z0)
+		var seg := _box(Vector3((x0 + x1) * 0.5, (y0 + y1) * 0.5, 2.86), Vector3(0.45, 0.006, 0.006), wire)
+		seg.rotation.z = atan2(y1 - y0, x1 - x0)
 	for i in range(9):
 		var u := float(i) / 8.0
-		var z := -1.90 + u * 2.15
+		var x := -2.10 + u * 4.20
 		var y := 2.39 - sin(u * PI) * 0.13
 		var mi := MeshInstance3D.new()
 		var sm := SphereMesh.new()
@@ -622,27 +696,31 @@ func _string_lights() -> void:
 		sm.radial_segments = 8
 		sm.rings = 4
 		mi.mesh = sm
-		mi.position = Vector3(-2.87, y, z)
-		mi.material_override = _emit(Color(1.0, 0.74, 0.42), 1.1)
+		mi.position = Vector3(x, y, 2.86)
+		mi.material_override = _emit_unique(Color(1.0, 0.74, 0.42), 1.0)
 		root.add_child(mi)
 		if i % 3 == 1:
 			var l := OmniLight3D.new()
-			l.position = Vector3(-2.78, y - 0.02, z)
+			l.position = Vector3(x, y - 0.02, 2.80)
 			l.light_color = Color(1.0, 0.66, 0.34)
-			l.light_energy = 0.18
-			l.omni_range = 1.4
+			l.light_energy = 0.16
+			l.omni_range = 1.5
 			l.shadow_enabled = false
 			root.add_child(l)
+			_register_warm_light(l)
+
 func _kitchen_details() -> void:
-	_box(Vector3(2.935, 1.55, -1.72), Vector3(0.006, 0.20, 0.15), _plain(Color(0.80,0.76,0.58), 0.9))
-	_box(Vector3(2.935, 1.55, -1.92), Vector3(0.006, 0.16, 0.12), _plain(Color(0.62,0.70,0.64), 0.9))
-	var switch_mat := _plain(Color(0.78,0.76,0.68), 0.6)
-	_box(Vector3(0.78, 1.16, -2.43), Vector3(0.10, 0.16, 0.025), switch_mat)
-	_box(Vector3(0.78, 1.16, -2.415), Vector3(0.04, 0.06, 0.008), _plain(Color(0.36,0.34,0.30), 0.5))
-	_box(Vector3(1.35, 0.30, -2.43), Vector3(0.16, 0.10, 0.02), switch_mat)
+	# 厨房小物件：抹布、调味罐、沥水架、墙上挂钩。
+	_box(Vector3(3.86, 1.36, -0.82), Vector3(0.015, 0.26, 0.18), _plain(Color(0.62,0.68,0.61), 0.95))
+	for z in [-1.28, -1.10, -0.92]:
+		_cyl(Vector3(3.82, 1.55, z), 0.030, 0.09, _plain(Color(0.74,0.70,0.56), 0.55), 10)
+	_box(Vector3(3.82, 1.30, -0.62), Vector3(0.10, 0.04, 0.34), _plain(Color(0.54,0.56,0.55), 0.4, 0.5))
+	for z in [-0.76, -0.62, -0.48]:
+		_box(Vector3(3.80, 1.34, z), Vector3(0.06, 0.10, 0.02), _plain(Color(0.80,0.78,0.70), 0.6))
+	_box(Vector3(3.86, 1.72, -2.60), Vector3(0.012, 0.10, 0.10), _plain(Color(0.62,0.62,0.58), 0.5, 0.4))
 
 func _lights() -> void:
-	_cyl(Vector3(0, 2.88, 0.15), 0.006, 0.24, _plain(Color(0.08,0.08,0.07), 0.6), 6)
+	_cyl(Vector3(0, 2.88, 0.25), 0.006, 0.24, _plain(Color(0.08,0.08,0.07), 0.6), 6)
 	var shade := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = 0.038
@@ -650,54 +728,69 @@ func _lights() -> void:
 	cm.height = 0.20
 	cm.radial_segments = 24
 	shade.mesh = cm
-	shade.position = Vector3(0, 2.66, 0.15)
+	shade.position = Vector3(0, 2.66, 0.25)
 	var shm := _plain(Color(0.24, 0.26, 0.21), 0.5, 0.3)
 	shm.cull_mode = BaseMaterial3D.CULL_DISABLED
 	shade.material_override = shm
 	root.add_child(shade)
-	_cyl(Vector3(0, 2.565, 0.15), 0.155, 0.012, _emit(Color(1.0, 0.78, 0.48), 0.7), 24)
+	_cyl(Vector3(0, 2.565, 0.25), 0.155, 0.012, _emit_unique(Color(1.0, 0.78, 0.48), 0.7), 24)
 	var bulb := MeshInstance3D.new()
 	var bsm := SphereMesh.new()
 	bsm.radius = 0.052
 	bsm.height = 0.104
 	bulb.mesh = bsm
-	bulb.position = Vector3(0, 2.56, 0.15)
-	bulb.material_override = _emit(Color(1.0, 0.84, 0.58), 1.8)
+	bulb.position = Vector3(0, 2.56, 0.25)
+	bulb.material_override = _emit_unique(Color(1.0, 0.84, 0.58), 1.8)
 	root.add_child(bulb)
 	var main := OmniLight3D.new()
-	main.position = Vector3(0, 2.55, 0.15)
+	main.position = Vector3(0, 2.55, 0.25)
 	main.light_color = Color(1.0, 0.74, 0.46)
-	main.light_energy = 1.65
-	main.omni_range = 7.5
+	main.light_energy = 1.75
+	main.omni_range = 9.0
 	main.omni_attenuation = 1.2
 	main.shadow_enabled = true
 	main.shadow_opacity = 0.38
 	main.shadow_blur = 2.0
 	main.light_volumetric_fog_energy = 0.55
 	root.add_child(main)
+	_register_warm_light(main)
 	host.set_meta("room_main_light", main)
 	var bounce := OmniLight3D.new()
-	bounce.position = Vector3(0, 1.35, 0.2)
+	bounce.position = Vector3(0, 1.35, 0.30)
 	bounce.light_color = Color(0.86, 0.80, 0.70)
-	bounce.light_energy = 0.24
-	bounce.omni_range = 5.6
+	bounce.light_energy = 0.26
+	bounce.omni_range = 6.5
 	bounce.shadow_enabled = false
 	root.add_child(bounce)
+	_register_warm_light(bounce)
 	var desk_l := OmniLight3D.new()
-	desk_l.position = Vector3(2.38, 1.02, 1.66)
+	desk_l.position = Vector3(2.85, 1.02, 1.90)
 	desk_l.light_color = Color(1.0, 0.64, 0.34)
 	desk_l.light_energy = 1.45
-	desk_l.omni_range = 4.0
+	desk_l.omni_range = 4.2
 	desk_l.shadow_enabled = false
 	root.add_child(desk_l)
+	_register_warm_light(desk_l)
 	host.set_meta("room_desk_light", desk_l)
 	var bed_l := OmniLight3D.new()
-	bed_l.position = Vector3(-1.42, 1.05, -1.24)
+	bed_l.position = Vector3(-2.45, 1.05, -2.45)
 	bed_l.light_color = Color(1.0, 0.70, 0.42)
 	bed_l.light_energy = 0.90
-	bed_l.omni_range = 3.4
+	bed_l.omni_range = 3.5
 	bed_l.shadow_enabled = false
 	root.add_child(bed_l)
+	_register_warm_light(bed_l)
+	host.set_meta("room_bed_light", bed_l)
+	var kitchen_l := OmniLight3D.new()
+	kitchen_l.position = Vector3(3.25, 1.55, -1.95)
+	kitchen_l.light_color = Color(1.0, 0.72, 0.42)
+	kitchen_l.light_energy = 0.55
+	kitchen_l.omni_range = 3.6
+	kitchen_l.shadow_enabled = false
+	root.add_child(kitchen_l)
+	_register_warm_light(kitchen_l)
+	host.set_meta("room_kitchen_light", kitchen_l)
+	# 窗外冷光：关灯后保留
 	var win := SpotLight3D.new()
 	win.position = Vector3(0.0, 14.15, 326.75)
 	win.rotation.x = -0.30
@@ -711,10 +804,10 @@ func _lights() -> void:
 	root.add_child(win)
 	host.set_meta("room_window_light", win)
 	var fill := OmniLight3D.new()
-	fill.position = Vector3(0, 1.55, 1.95)
+	fill.position = Vector3(0, 1.55, 2.30)
 	fill.light_color = Color(0.42, 0.58, 0.70)
 	fill.light_energy = 0.55
-	fill.omni_range = 4.8
+	fill.omni_range = 5.5
 	fill.shadow_enabled = false
 	root.add_child(fill)
 
@@ -723,11 +816,11 @@ func _atmosphere() -> void:
 	dust.amount = 18
 	dust.lifetime = 16.0
 	dust.preprocess = 12.0
-	dust.visibility_aabb = AABB(Vector3(-3, 0, -2.5), Vector3(6, 3, 5))
-	dust.position = Vector3(0, 1.4, 0.6)
+	dust.visibility_aabb = AABB(Vector3(-4, 0, -3), Vector3(8, 3, 6))
+	dust.position = Vector3(0, 1.4, 0.4)
 	var pm := ParticleProcessMaterial.new()
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(2.4, 1.2, 2.0)
+	pm.emission_box_extents = Vector3(3.4, 1.2, 2.5)
 	pm.direction = Vector3(0, 1, 0)
 	pm.spread = 180.0
 	pm.initial_velocity_min = 0.005

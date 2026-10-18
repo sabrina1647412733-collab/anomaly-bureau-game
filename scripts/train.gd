@@ -20,6 +20,7 @@ var cars: Array = []
 var lamps: Array = []
 var length := 0.0
 var divert := false
+var side_fill_scale := 1.0
 
 var _pts := PackedVector3Array()
 var _s := PackedFloat32Array()
@@ -109,6 +110,12 @@ func reset() -> void:
     set_divert(false)
     place(0.0)
 
+func set_side_fill_scale(scale: float) -> void:
+    side_fill_scale = clampf(scale, 0.0, 1.0)
+    for l in lamps:
+        if l is OmniLight3D and l.has_meta("side_light") and l.visible:
+            l.light_energy = 3.0 * side_fill_scale
+
 func lights_on(v: bool) -> void:
     for l in lamps:
         if l is SpotLight3D:
@@ -116,7 +123,8 @@ func lights_on(v: bool) -> void:
             l.light_energy = SPOT_ON if v else 0.02
         elif l is OmniLight3D:
             l.visible = v
-            l.light_energy = (3.0 if l.has_meta("side_light") else OMNI_ON) if v else 0.04
+            var base: float = 3.0 if l.has_meta("side_light") else OMNI_ON
+            l.light_energy = (base * (side_fill_scale if l.has_meta("side_light") else 1.0)) if v else 0.04
 
 # ------------------------------------------------------------------ 几何
 func _build_car(b, car: Node3D, is_head: bool, is_tail: bool) -> void:

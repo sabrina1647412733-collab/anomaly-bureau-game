@@ -69,6 +69,8 @@ var prologue_ui: CanvasLayer = null
 var prologue_paper: Control = null
 var prologue_paper_text: Label = null
 var prologue_anomaly_done := false
+var prologue_room_lights_on := true
+var station_lights_on := true
 var prologue_radio_on := false
 var prologue_radio_played := false
 var prologue_wallphone_checked := false
@@ -245,6 +247,7 @@ func _ready() -> void:
 		{"id":"studio_dial", "pos":Vector3(-15.35, 1.1, 34.8), "r": 1.8, "label":"转动频率旋钮"},
 		{"id":"studio_onair", "pos":Vector3(-12.0, 1.9, 36.5), "r": 2.0, "label":"切换 ON AIR"},
 		{"id":"studio_tape", "pos":Vector3(-19.2, 1.4, 42.5), "r": 2.2, "label":"翻找磁带架"},
+		{"id":"station_light_switch", "pos":Vector3(-17.55, 1.25, -11.05), "r": 2.4, "label":"关闭站台照明"},
 	]
 	for s in builder.seats:
 		spots.append({"id":"seat", "pos": s["pos"] + Vector3(0, 0.55, 0), "r": 2.1, "label": "坐下", "seat": s})
@@ -494,40 +497,6 @@ func _make_prologue_ui() -> void:
 	close.pressed.connect(_close_letter)
 	prologue_paper.add_child(close)
 
-	if prologue_clock_label == null:
-		var clock_root := Control.new()
-		clock_root.set_anchors_preset(Control.PRESET_FULL_RECT)
-		clock_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		prologue_ui.add_child(clock_root)
-		prologue_clock_label = _label(clock_root, 0, Vector2(650, 38), Vector2(300, 84), 54, Color(0.96, 0.72, 0.36))
-		prologue_clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		prologue_clock_label.visible = false
-	if prologue_end_card == null:
-		prologue_end_card = Control.new()
-		prologue_end_card.set_anchors_preset(Control.PRESET_FULL_RECT)
-		prologue_end_card.mouse_filter = Control.MOUSE_FILTER_STOP
-		prologue_end_card.visible = false
-		prologue_ui.add_child(prologue_end_card)
-		var black := ColorRect.new()
-		black.color = Color(0.012, 0.016, 0.018, 0.965)
-		black.set_anchors_preset(Control.PRESET_FULL_RECT)
-		black.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		prologue_end_card.add_child(black)
-		var t := _label(prologue_end_card, 0, Vector2(400, 300), Vector2(800, 96), 76, Color(0.92, 0.67, 0.34))
-		t.text = "0 0 1 7"
-		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		var ln := ColorRect.new()
-		ln.color = Color(0.55, 0.42, 0.22, 0.65)
-		ln.position = Vector2(650, 404)
-		ln.size = Vector2(300, 1)
-		ln.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		prologue_end_card.add_child(ln)
-		var sub2 := _label(prologue_end_card, 0, Vector2(400, 418), Vector2(800, 40), 21, Color(0.70, 0.76, 0.73))
-		sub2.text = "第 一 夜 · 0 0 : 1 7"
-		sub2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		var hint := _label(prologue_end_card, 0, Vector2(400, 540), Vector2(800, 30), 15, Color(0.46, 0.50, 0.48))
-		hint.text = "按 E 开门　按 R 重新开始"
-		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if prologue_travel_card == null:
 		prologue_travel_card = Control.new()
 		prologue_travel_card.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -585,7 +554,7 @@ func _make_prologue_ui() -> void:
 func _show_letter_ui() -> void:
 	if prologue_paper == null:
 		return
-	prologue_paper_text.text = "事件编号：0017\n工作地点：岚桥站\n报酬：足够付清你欠下的三个月房租\n权限：D\n\n背面手写：\n不要相信广播的最后一句。\n\n信封内附：\n旧钞一叠。\n2009.11.03 夜班值班表一张。\n值班人：林远舟。\n\n值班表上，父亲的名字下面有一道被橡皮擦过的痕迹。\n纸被擦破了，仍能看出一个「林」字。"
+	prologue_paper_text.text = "异常事件处置岗（临时）\n工作地点：岚桥站\n报酬：足够付清你欠下的三个月房租\n权限：D\n\n入职说明：\n岗位为临时编制，试用期一个月。\n报到时请携带本通知书与旧工牌。\n夜班期间请服从调度席指令。\n\n信封内附：\n旧钞一叠。\n一张泛黄的值班表，日期栏被水渍晕开。\n值班人：林远舟。"
 	prologue_paper.visible = true
 	state = "prologue_ui"
 	player.can_move = false
@@ -616,94 +585,8 @@ func _setup_prologue_camera() -> void:
 	attrs.dof_blur_near_enabled = false
 	player.cam.attributes = attrs
 
-func _prologue_anomaly() -> void:
-	if prologue_anomaly_done:
-		return
-	prologue_anomaly_done = true
-	state = "prologue_cutscene"
-	player.can_move = false
-	player.dragging = false
-	player.allow_capture = false
-	player.lock_look = true
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	# 先清掉房间里还没读完的日常字幕，异常瞬间从 00:17 开始
-	_clear_sub()
-	# 过场里只保留时钟和字幕，目标/交互提示全部收起
-	if hud_objective != null:
-		hud_objective.visible = false
-	if hud_prompt != null:
-		hud_prompt.text = ""
-	# 镜头从窗边缓慢转到正对窗外，锁住鼠标，避免过场被带跑
-	player.rotation.y = PI - 0.18
-	player.pitch = -0.02
-	player.cam.rotation.x = -0.02
-	var turn := create_tween()
-	turn.tween_property(player, "rotation:y", PI, 0.65).set_trans(Tween.TRANS_SINE)
-	if prologue_clock_label != null:
-		prologue_clock_label.visible = true
-		prologue_clock_label.text = "00:16"
-		prologue_clock_label.modulate.a = 0.0
-		create_tween().tween_property(prologue_clock_label, "modulate:a", 1.0, 0.6)
-	await get_tree().create_timer(1.5).timeout
-	if prologue_clock_label != null:
-		prologue_clock_label.text = "00:17"
-	# 字幕在 00:17 这一刻就出现，不排在开场白后面
-	_show_sub("旁白", "00:17。", 1.0, false)
-	play_chime(0.42, -8.0)
-	var main_light: OmniLight3D = get_meta("room_main_light", null)
-	var desk_light: OmniLight3D = get_meta("room_desk_light", null)
-	for i in range(3):
-		if main_light != null:
-			main_light.light_energy = 0.12
-		if desk_light != null:
-			desk_light.light_energy = 0.08
-		await get_tree().create_timer(0.08).timeout
-		if main_light != null:
-			main_light.light_energy = 1.55
-		if desk_light != null:
-			desk_light.light_energy = 1.25
-		await get_tree().create_timer(0.13 + float(i) * 0.05).timeout
-	if prologue_cabin_light != null:
-		prologue_cabin_light.light_energy = 0.0
-	if prologue_cabin_window_mat != null:
-		prologue_cabin_window_mat.emission_enabled = false
-	if prologue_figure != null:
-		prologue_figure.visible = true
-		if prologue_figure_mat != null:
-			prologue_figure_mat.albedo_color.a = 0.0
-			create_tween().tween_property(prologue_figure_mat, "albedo_color:a", 0.78, 1.1)
-		var eye_mat = prologue_figure.get_meta("eye_mat", null)
-		if eye_mat is StandardMaterial3D:
-			eye_mat.albedo_color.a = 0.0
-			create_tween().tween_property(eye_mat, "albedo_color:a", 1.0, 0.45).set_delay(0.75)
-	if prologue_fx_mat != null:
-		var glitch_tw := create_tween()
-		glitch_tw.tween_method(func(v: float): prologue_fx_mat.set_shader_parameter("glitch", v), 0.0, 0.9, 0.16)
-		glitch_tw.tween_method(func(v: float): prologue_fx_mat.set_shader_parameter("glitch", v), 0.9, 0.0, 0.55)
-	# 00:17 那一行读完后再接第二句；两句都要足够时间停留
-	_say_seq("旁白", "雾里有什么东西，朝这边看了一眼。", 2.6, false)
-	await get_tree().create_timer(4.2).timeout
-	if prologue_figure != null:
-		prologue_figure.visible = false
-		var eye_off = prologue_figure.get_meta("eye_mat", null)
-		if eye_off is StandardMaterial3D:
-			eye_off.albedo_color.a = 0.0
-	if prologue_fx_mat != null:
-		prologue_fx_mat.set_shader_parameter("glitch", 0.0)
-	_fade_to(1.0, 1.5)
-	await get_tree().create_timer(1.7).timeout
-	if prologue_clock_label != null:
-		prologue_clock_label.visible = false
-	if prologue_end_card != null:
-		prologue_end_card.visible = true
-		prologue_end_card.modulate.a = 0.0
-		create_tween().tween_property(prologue_end_card, "modulate:a", 1.0, 1.0)
-	state = "prologue_end"
-	player.can_move = false
-	if hud_objective != null:
-		hud_objective.visible = false
-	if hud_prompt != null:
-		hud_prompt.text = ""
+## 出租屋不再有 0017 / 00:17 异象。第一个 0017 事件留到岚桥站正式值班。
+
 func _pro_mat(c: Color, emit := 0.0) -> StandardMaterial3D:
 	var ci := 0
 	var best := 1e9
@@ -839,13 +722,15 @@ func _make_prologue_world() -> void:
 func _build_pro_room(root: Node3D) -> void:
 	var art := ProRoomArtScript.new(self)
 	art.build(root)
-	prologue_spots.append({"stage":"room", "id":"phone", "pos":Vector3(2.06, 12.82, 324.05), "r":1.7})
-	prologue_spots.append({"stage":"room", "id":"box", "pos":Vector3(-0.70, 12.38, 324.16), "r":1.7})
-	prologue_spots.append({"stage":"room", "id":"window", "pos":Vector3(0, 13.55, 325.10), "r":2.2})
-	prologue_spots.append({"stage":"room", "id":"door", "pos":Vector3(0, 13.05, 320.10), "r":1.9})
-	prologue_spots.append({"stage":"room", "id":"radio", "pos":Vector3(0.55, 12.98, 325.12), "r":1.9})
-	prologue_spots.append({"stage":"room", "id":"wallphone", "pos":Vector3(-0.95, 14.18, 320.10), "r":2.2})
-	prologue_spots.append({"stage":"room", "id":"photo", "pos":Vector3(-2.86, 13.95, 321.05), "r":2.1})
+	# 8 x 6 m 新坐标：房间根节点 (0, 12, 322.5)，本地 z + 322.5。
+	prologue_spots.append({"stage":"room", "id":"phone", "pos":Vector3(2.51, 12.95, 324.08), "r":1.8})
+	prologue_spots.append({"stage":"room", "id":"box", "pos":Vector3(0.78, 12.35, 324.40), "r":1.8})
+	prologue_spots.append({"stage":"room", "id":"window", "pos":Vector3(0, 13.60, 325.40), "r":2.4})
+	prologue_spots.append({"stage":"room", "id":"door", "pos":Vector3(0, 13.05, 319.65), "r":2.0})
+	prologue_spots.append({"stage":"room", "id":"radio", "pos":Vector3(1.18, 13.00, 325.20), "r":1.8})
+	prologue_spots.append({"stage":"room", "id":"wallphone", "pos":Vector3(-1.45, 13.50, 319.75), "r":2.0})
+	prologue_spots.append({"stage":"room", "id":"photo", "pos":Vector3(-2.42, 13.75, 319.80), "r":2.1})
+	prologue_spots.append({"stage":"room", "id":"light_switch", "pos":Vector3(0.78, 13.18, 319.78), "r":1.9})
 
 func _build_pro_room_legacy(root: Node3D) -> void:
 	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.16, 0.12, 0.09))
@@ -1142,7 +1027,7 @@ func _build_pro_store(root: Node3D) -> void:
 	_pro_box(root, Vector3(3.62, 0.52, -2.55), Vector3(0.10, 0.62, 0.10), Color(0.36, 0.30, 0.22), false)
 	_pro_box(root, Vector3(1.30, 0.30, 2.55), Vector3(0.34, 0.60, 0.34), Color(0.18, 0.22, 0.21))
 	_pro_box(root, Vector3(3.20, 0.34, -1.75), Vector3(0.28, 0.58, 0.06), Color(0.90, 0.72, 0.18), false, 0.10)
-	# 招牌 / 价格牌 / 00:17 挂钟
+	# 招牌 / 价格牌 / 夜班挂钟
 	_pro_box(root, Vector3(0, 2.78, -3.03), Vector3(2.9, 1.05, 0.04), Color(0.10, 0.13, 0.12), false)
 	var sign := Label3D.new()
 	sign.font = font
@@ -1170,7 +1055,7 @@ func _build_pro_store(root: Node3D) -> void:
 	root.add_child(hot)
 	var clock := Label3D.new()
 	clock.font = font
-	clock.text = "00:17"
+	clock.text = "23:58"
 	clock.font_size = 34
 	clock.pixel_size = 0.009
 	clock.modulate = Color(0.92, 0.30, 0.24)
@@ -1380,54 +1265,6 @@ void fragment(){
 	# 雨幕
 	_pro_rain_plane(root, Vector3(0, 13.4, 327.2), Vector2(16, 9), 0.15)
 	_pro_rain_plane(root, Vector3(0, 13.4, 330.6), Vector2(22, 11), 0.08)
-
-	# 雾中的人影（异常时刻才出现）
-	prologue_figure = Node3D.new()
-	prologue_figure.position = Vector3(-1.15, 11.20, 330.55)
-	prologue_figure.scale = Vector3(1.08, 1.08, 1.08)
-	prologue_figure.visible = false
-	root.add_child(prologue_figure)
-	prologue_figure_mat = StandardMaterial3D.new()
-	prologue_figure_mat.albedo_color = Color(0.012, 0.016, 0.014, 0.0)
-	prologue_figure_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	prologue_figure_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	prologue_figure_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var body_cap := MeshInstance3D.new()
-	var cap := CapsuleMesh.new()
-	cap.radius = 0.16
-	cap.height = 1.55
-	body_cap.mesh = cap
-	body_cap.position = Vector3(0, 0.95, 0)
-	body_cap.material_override = prologue_figure_mat
-	prologue_figure.add_child(body_cap)
-	var head := MeshInstance3D.new()
-	var hm := SphereMesh.new()
-	hm.radius = 0.14
-	hm.height = 0.28
-	head.mesh = hm
-	head.position = Vector3(0, 1.86, 0)
-	head.material_override = prologue_figure_mat
-	prologue_figure.add_child(head)
-	# 两点很淡的反光：它确实朝窗口看了一眼
-	var eye_mat := StandardMaterial3D.new()
-	eye_mat.albedo_color = Color(0.86, 0.92, 0.82, 0.0)
-	eye_mat.emission_enabled = true
-	eye_mat.emission = Color(0.80, 0.92, 0.78)
-	eye_mat.emission_energy_multiplier = 2.2
-	eye_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	eye_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	prologue_figure.set_meta("eye_mat", eye_mat)
-	for ex in [-0.047, 0.047]:
-		var eye := MeshInstance3D.new()
-		var es := SphereMesh.new()
-		es.radius = 0.014
-		es.height = 0.028
-		es.radial_segments = 8
-		es.rings = 4
-		eye.mesh = es
-		eye.position = Vector3(ex, 1.885, 0.145)
-		eye.material_override = eye_mat
-		prologue_figure.add_child(eye)
 
 func _pro_fog_plane(root: Node3D, pos: Vector3, size: Vector2, alpha: float) -> void:
 	var mi := MeshInstance3D.new()
@@ -1806,18 +1643,9 @@ func _start_prologue() -> void:
 	var radio_light_off = get_meta("room_radio_light", null)
 	if radio_light_off != null:
 		radio_light_off.visible = false
-	# 重开时把异常段落改过的灯光、人影和故障特效恢复到开场状态
-	if prologue_cabin_light != null:
-		prologue_cabin_light.light_energy = 2.1
-	if prologue_cabin_window_mat != null:
-		prologue_cabin_window_mat.emission_enabled = true
-	if prologue_figure != null:
-		prologue_figure.visible = false
-		var eye_mat = prologue_figure.get_meta("eye_mat", null)
-		if eye_mat is StandardMaterial3D:
-			eye_mat.albedo_color.a = 0.0
-	if prologue_figure_mat != null:
-		prologue_figure_mat.albedo_color.a = 0.0
+	# 重开时把出租屋灯光恢复到开场：开灯、拨杆归位、串灯/台灯/主灯全亮。
+	prologue_room_lights_on = true
+	_set_prologue_room_lights(true)
 	if prologue_fx_mat != null:
 		prologue_fx_mat.set_shader_parameter("glitch", 0.0)
 	prologue_objective = "看看手机"
@@ -1833,9 +1661,6 @@ func _start_prologue() -> void:
 		prologue_end_card.modulate.a = 0.0
 	if prologue_travel_card != null:
 		prologue_travel_card.visible = false
-	if prologue_clock_label != null:
-		prologue_clock_label.visible = false
-		prologue_clock_label.modulate.a = 0.0
 	if player.sitting:
 		player.stand_up()
 	player.cam_mode = 0
@@ -1953,22 +1778,20 @@ func _prologue_act(id: String) -> void:
 					_say_seq("手机", "余额：83.60 元。")
 			elif not prologue_call_done:
 				prologue_call_done = true
-				_prologue_set_objective("去窗边看看")
-				_say_seq("接线员", "异常事件 0017。")
-				_say_seq("接线员", "处置权限 D。")
-				_say_seq("接线员", "请活到交班。")
-				_say_seq("林屿", "你是谁？")
-				_say_seq("旁白", "电话挂断了。没有“喂”，没有“你好”。窗外，雾比刚才更浓。")
+				_prologue_set_objective("去便利店")
+				_say_seq("接线员", "你的岗位已生效。请在 23:50 前到岚桥站调度席报到。处置权限 D。请活到交班。")
+				_say_seq("林屿", "……你是谁？")
+				_say_seq("旁白", "电话挂断了。窗外还是雨声。")
 			else:
 				_say_seq("手机", "没有信号。")
 		"box":
 			if not prologue_seen.has("box"):
 				_prologue_mark_seen("box")
 				_say_seq("旁白", "纸箱里是父亲的旧物。")
-				_say_seq("旁白", "保温杯、旧工牌、值班表。保温杯底有一道磕痕。")
-				_say_seq("林屿", "这张值班表……2009 年 11 月 3 日。")
+				_say_seq("旁白", "保温杯、旧工牌、一叠泛黄的值班表。保温杯底有一道磕痕。")
+				_say_seq("林屿", "他总说夜班冷，带点热水。")
 			else:
-				_say_seq("旁白", "保温杯里的水还是温的。")
+				_say_seq("旁白", "保温杯里的水早凉了。")
 		"radio":
 			if not prologue_radio_played:
 				prologue_radio_played = true
@@ -1977,9 +1800,8 @@ func _prologue_act(id: String) -> void:
 				var radio_light = get_meta("room_radio_light", null)
 				if radio_light != null:
 					radio_light.visible = true
-				_say_seq("收音机", "……岚桥站，0017 次，请回答。", 1.8)
-				_say_seq("收音机", "……2009 年 11 月 3 日，值班员林远舟，最后一次呼叫。", 2.6)
-				_say_seq("林屿", "这是父亲的班。", 1.8)
+				_say_seq("收音机", "……沙……沙……这里是岚桥交通台，夜间节目。", 1.8)
+				_say_seq("收音机", "……临江里一带，雨势还会持续。", 2.2)
 				_say_seq("旁白", "收音机里只剩下电流声。", 2.0)
 			else:
 				prologue_radio_on = not prologue_radio_on
@@ -1995,29 +1817,26 @@ func _prologue_act(id: String) -> void:
 		"wallphone":
 			if not prologue_wallphone_checked:
 				prologue_wallphone_checked = true
-				play_chime(0.55, -14.0)
-				_say_seq("旁白", "墙上的旧电话没有接线。听筒里却有很轻的呼吸声。", 2.6)
-				_say_seq("林屿", "……爸？", 1.4)
-				_say_seq("旁白", "呼吸声停了。", 1.8)
+				_say_seq("旁白", "墙上的旧电话没有接线。听筒安静地挂在叉簧上。", 2.4)
+				_say_seq("林屿", "……爸以前总用这台。", 1.6)
 			else:
 				_say_seq("旁白", "电话还是没有接线。", 1.6)
 		"photo":
 			if not prologue_photo_checked:
 				prologue_photo_checked = true
-				_say_seq("旁白", "照片里，父亲站在岚桥站的调度席前。他身后那班车的车头灯，亮得不像照片。", 3.0)
-				_say_seq("林屿", "这张照片……我不记得拍过。", 2.0)
+				_say_seq("旁白", "照片里，父亲站在岚桥站门口，手里提着一袋橘子。你站在他旁边，眼睛被闪光灯照得睁不开。", 3.0)
+				_say_seq("林屿", "那天风很大。", 1.6)
 			else:
-				_say_seq("旁白", "照片里的父亲没有看镜头。", 1.8)
+				_say_seq("旁白", "照片的边角已经卷了。", 1.6)
 		"window":
-			if prologue_call_done and not prologue_anomaly_done:
-				_prologue_anomaly()
-				return
 			if not prologue_seen.has("window"):
 				_prologue_mark_seen("window")
-				_say_seq("旁白", "窗外起了雾。林子深处，有一盏暖黄的灯。")
-				_say_seq("林屿", "临江里后面……什么时候有这片林子了？")
+				_say_seq("旁白", "窗外起了雾。临江里的路灯在雨里晕成一团。")
+				_say_seq("旁白", "远处有列车经过的声音。")
 			else:
-				_say_seq("旁白", "雾更浓了。那盏灯还在。")
+				_say_seq("旁白", "雨还在下。")
+		"light_switch":
+			_toggle_prologue_room_lights()
 		"door":
 			if not prologue_letter_ready:
 				_say_seq("旁白", "门锁着。门外没有声音。")
@@ -2025,9 +1844,6 @@ func _prologue_act(id: String) -> void:
 				_show_letter_ui()
 			elif not prologue_call_done:
 				_say_seq("旁白", "电话还在响。先接电话。")
-			elif not prologue_anomaly_done:
-				_say_seq("旁白", "门锁着。门缝里有雾渗进来。")
-				_say_seq("林屿", "先看看窗外。")
 			else:
 				_open_travel_menu()
 		"counter":
@@ -2040,31 +1856,30 @@ func _prologue_act(id: String) -> void:
 				_say_seq("林屿", "……你怎么知道？")
 				_say_seq("店员", "你工牌露出来了。")
 				_say_seq("店员", "你父亲的班，也是这个点。")
-				_say_seq("旁白", "你用旧钞买了一份关东煮。收据上的时间印着 00:17。")
-				_say_seq("旁白", "店员把找零压在收据下面。背面有一行铅笔字：员工通道，刷旧工牌。")
+				_say_seq("旁白", "你用旧钞买了一份关东煮。店员把找零和一张小票一起推过来。")
+				_say_seq("旁白", "小票背面有一行铅笔字：员工通道，刷旧工牌。")
 			else:
 				_say_seq("店员", "关东煮要凉了。")
 		"fridge":
 			if not prologue_seen.has("store_fridge"):
 				_prologue_mark_seen("store_fridge")
-				_say_seq("旁白", "冷柜最里面有一瓶没有标签的水。瓶身的水珠是温的。")
-				_say_seq("林屿", "……这瓶水是谁放进来的？")
+				_say_seq("旁白", "冷柜最里面有一瓶没有标签的水。店员说，是上一位客人落下的。")
+				_say_seq("林屿", "……连标签都没有。")
 			else:
-				_say_seq("旁白", "冷柜的压缩机响了三下，像有人隔着墙敲门。")
+				_say_seq("旁白", "冷柜的压缩机轻轻震着。")
 		"shelf":
 			if not prologue_seen.has("store_shelf"):
 				_prologue_mark_seen("store_shelf")
-				_say_seq("旁白", "货架最上层少了一包泡面。空出来的位置，刚好能放下那张值班表。")
-				_say_seq("林屿", "……尺寸一模一样。")
+				_say_seq("旁白", "货架最上层少了一包泡面。空出来的位置放着一张促销单。")
 			else:
 				_say_seq("旁白", "泡面还是少一包。")
 		"magazine":
 			if not prologue_seen.has("store_magazine"):
 				_prologue_mark_seen("store_magazine")
-				_say_seq("旁白", "杂志封面是十七年前的岚桥站。照片里，站台上站着一个人，脸被闪光灯烧白了。")
-				_say_seq("林屿", "这张照片，和床头那张是同一个角度。")
+				_say_seq("旁白", "杂志封面是好几年前的岚桥站。照片里，站台上人来人往。")
+				_say_seq("林屿", "那时候的灯，比现在亮。")
 			else:
-				_say_seq("旁白", "杂志上的日期永远是 2009 年 11 月。")
+				_say_seq("旁白", "杂志的纸边被翻得起了毛。")
 		"travel":
 			_open_travel_menu()
 		"reader":
@@ -2110,21 +1925,11 @@ func _open_travel_menu() -> void:
 func _close_travel_menu() -> void:
 	if prologue_travel_card != null:
 		prologue_travel_card.visible = false
-	if prologue_travel_return_state == "prologue_end":
-		state = "prologue_end"
-		player.can_move = false
-		player.lock_look = true
-		player.allow_capture = false
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		if prologue_end_card != null:
-			prologue_end_card.visible = true
-			prologue_end_card.modulate.a = 1.0
-	else:
-		state = "prologue"
-		player.can_move = true
-		player.lock_look = false
-		player.allow_capture = true
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	state = "prologue"
+	player.can_move = true
+	player.lock_look = false
+	player.allow_capture = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _travel_to(place: String) -> void:
 	if place == "station" and not prologue_store_done:
@@ -2138,9 +1943,6 @@ func _travel_to(place: String) -> void:
 	player.lock_look = true
 	_fade_to(1.0, 0.45)
 	await get_tree().create_timer(0.55).timeout
-	if prologue_end_card != null:
-		prologue_end_card.visible = false
-		prologue_end_card.modulate.a = 0.0
 	prologue_objective = "去柜台买点热的" if place == "store" else "刷工牌进站"
 	_show_prologue_stage(place)
 	_fade_to(0.0, 0.55)
@@ -2194,9 +1996,60 @@ func _prologue_enter_station() -> void:
 	player.velocity = Vector3.ZERO
 	player.can_move = true
 	player.allow_capture = true
+	_set_station_lights(true)
 	round = -2
 	_start_round()
 	_fade_to(0.0, 1.2)
+
+func _set_prologue_room_lights(on: bool) -> void:
+	prologue_room_lights_on = on
+	for l in get_tree().get_nodes_in_group("room_warm_light"):
+		if l is OmniLight3D:
+			var base := float(l.get_meta("base_energy", l.light_energy))
+			l.light_energy = base if on else base * 0.12
+	var mats: Array = get_meta("room_warm_emit_mats", [])
+	if mats != null:
+		for m in mats:
+			if m is StandardMaterial3D:
+				var e := float(m.get_meta("base_emission", 1.0))
+				m.emission_energy_multiplier = e if on else e * 0.08
+	var lever = get_meta("room_switch_lever", null)
+	if lever is Node3D:
+		lever.rotation.x = -0.38 if on else 0.30
+
+func _toggle_prologue_room_lights() -> void:
+	_set_prologue_room_lights(not prologue_room_lights_on)
+	play_click()
+	if prologue_room_lights_on:
+		_say_seq("旁白", "灯亮了。", 1.0)
+	else:
+		_say_seq("旁白", "灯灭了。窗外还有一点冷光。", 1.4)
+
+func _set_station_lights(on: bool) -> void:
+	station_lights_on = on
+	for l in get_tree().get_nodes_in_group("station_light_platform"):
+		if l is OmniLight3D:
+			var base := float(l.get_meta("base_energy", l.light_energy))
+			l.light_energy = base if on else base * 0.16
+	for l2 in get_tree().get_nodes_in_group("station_light_tunnel"):
+		if l2 is OmniLight3D:
+			var base2 := float(l2.get_meta("base_energy", l2.light_energy))
+			l2.light_energy = base2 if on else base2 * 0.20
+	if builder != null:
+		builder.set_main_lights(on)
+		var lever = builder.get("switch_lever")
+		if lever is Node3D:
+			lever.rotation.z = -0.30 if on else 0.30
+	if train != null:
+		train.set_side_fill_scale(1.0 if on else 0.30)
+
+func _toggle_station_lights() -> void:
+	_set_station_lights(not station_lights_on)
+	play_click()
+	if station_lights_on:
+		_say_seq("旁白", "站台照明恢复。灯带一盏接一盏亮起来。", 1.6)
+	else:
+		_say_seq("旁白", "站台主灯熄灭。应急灯和出口指示还亮着。", 1.8)
 
 func _update_prologue_interaction() -> void:
 	prompt = null
@@ -2232,8 +2085,6 @@ func _prologue_label(sp: Dictionary) -> String:
 		"box":
 			return "父亲的纸箱"
 		"window":
-			if prologue_call_done and not prologue_anomaly_done:
-				return "去窗边看看"
 			return "窗外"
 		"radio":
 			if not prologue_radio_played:
@@ -2243,6 +2094,8 @@ func _prologue_label(sp: Dictionary) -> String:
 			return "墙上的旧电话"
 		"photo":
 			return "床头的相框"
+		"light_switch":
+			return "关灯" if prologue_room_lights_on else "开灯"
 		"door":
 			if not prologue_letter_ready:
 				return "门"
@@ -2250,8 +2103,6 @@ func _prologue_label(sp: Dictionary) -> String:
 				return "捡起信封"
 			if not prologue_call_done:
 				return "先接电话"
-			if not prologue_anomaly_done:
-				return "先看看窗外"
 			return "开门 · 选择地点"
 		"counter":
 			return "便利店柜台"
@@ -3236,6 +3087,8 @@ func _press_button(idx: int) -> void:
 
 func _act(id: String) -> void:
 	match id:
+		"station_light_switch":
+			_toggle_station_lights()
 		"power":
 			power = true
 			play_relay(0.82)
@@ -3424,6 +3277,8 @@ func _update_interaction() -> void:
 				txt = "拉下总调度手柄" if _got_count() >= 5 else "总调度手柄 · 缺少证据"
 			if sk == "seat":
 				txt = "坐下"
+			if sk == "station_light_switch":
+				txt = "关闭站台照明" if station_lights_on else "打开站台照明"
 			if sk == "divert":
 				txt = "改环线 · 扳动道岔 1"
 				if not (_has_clue(2) or _has_clue(3)):
@@ -3432,27 +3287,63 @@ func _update_interaction() -> void:
 	if prompt != null:
 		hud_prompt.text = "[E]  " + str(prompt["text"])
 
-## 交互目标脚下的「呼吸环」：以前只有 HUD 上一行 [E] 文字，世界里的东西不说话。
-## 现在给当前目标在地面投影一圈琥珀色光环（呼吸），按下 E 的一瞬间整圈高亮 1 秒。
+## 交互提示：贴地细虚线环。只在目标靠近时出现，不抢桌面和灯光的注意力。
+func _make_dashed_ring_mesh(radius: float, half_width: float, dashes: int, fill_ratio: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var count := maxi(dashes, 1)
+	var step := TAU / float(count)
+	var span := step * clampf(fill_ratio, 0.10, 0.90)
+	var inner := radius - half_width
+	var outer := radius + half_width
+	var subdiv := 3
+	var next_idx := 0
+	for i in range(count):
+		var a0 := float(i) * step
+		for j in range(subdiv):
+			var a := a0 + span * float(j) / float(subdiv)
+			var b := a0 + span * float(j + 1) / float(subdiv)
+			var idx: int = next_idx
+			next_idx += 4
+			st.add_vertex(Vector3(cos(a) * inner, 0.0, sin(a) * inner))
+			st.add_vertex(Vector3(cos(a) * outer, 0.0, sin(a) * outer))
+			st.add_vertex(Vector3(cos(b) * outer, 0.0, sin(b) * outer))
+			st.add_vertex(Vector3(cos(b) * inner, 0.0, sin(b) * inner))
+			st.add_index(idx)
+			st.add_index(idx + 1)
+			st.add_index(idx + 2)
+			st.add_index(idx)
+			st.add_index(idx + 2)
+			st.add_index(idx + 3)
+	var mesh := ArrayMesh.new()
+	st.commit(mesh)
+	return mesh
+
 func _make_prompt_ring() -> void:
 	prompt_ring = MeshInstance3D.new()
-	var tm := TorusMesh.new()
-	tm.inner_radius = 0.200
-	tm.outer_radius = 0.245
-	tm.rings = 28                # 绕一圈 28 段（少了会变成方框，第一版 rings=4 渲出来是个菱形）
-	tm.ring_segments = 4      # 截面 4 边：低多边形，跟站体的棱面感一致
-	prompt_ring.mesh = tm
+	prompt_ring.mesh = _make_dashed_ring_mesh(0.172, 0.009, 8, 0.54)
 	prompt_ring_mat = StandardMaterial3D.new()
-	prompt_ring_mat.albedo_color = Color(0.95, 0.72, 0.34, 0.5)
+	prompt_ring_mat.albedo_color = Color(0.90, 0.72, 0.42, 0.20)
 	prompt_ring_mat.emission_enabled = true
-	prompt_ring_mat.emission = Color(0.95, 0.72, 0.34)
-	prompt_ring_mat.emission_energy_multiplier = 0.75
+	prompt_ring_mat.emission = Color(0.90, 0.72, 0.42)
+	prompt_ring_mat.emission_energy_multiplier = 0.16
 	prompt_ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	prompt_ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	prompt_ring_mat.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	prompt_ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	prompt_ring.material_override = prompt_ring_mat
 	prompt_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	prompt_ring.visible = false
 	add_child(prompt_ring)
+
+func _ring_floor_y(p: Vector3) -> float:
+	if state == "prologue" or state.begins_with("prologue"):
+		if prologue_stage == "room":
+			return prologue_roots["room"].position.y + 0.012
+		return 0.012
+	if p.z < -60.0 and p.y < 0.2:
+		return -1.138
+	return 0.012
 
 func _update_prompt_ring(delta: float) -> void:
 	if prompt_ring == null:
@@ -3483,23 +3374,25 @@ func _update_prompt_ring(delta: float) -> void:
 	if not ok:
 		prompt_ring.visible = false
 		return
-	# 环要贴在地板上：从目标往上一点往下打一条射线，用命中的那个面当"地面"
-	var fy := p.y
-	var q := PhysicsRayQueryParameters3D.create(p + Vector3(0, 1.4, 0), p + Vector3(0, -6.0, 0))
-	q.collide_with_areas = false
-	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
-	if not hit.is_empty():
-		fy = float(hit["position"].y)
+	# 高处目标（桌/书架/窗/墙）把环移到靠玩家一侧的地面或桌脚边，绝不贴在桌面上。
+	var fy := _ring_floor_y(p)
+	var rp := Vector3(p.x, fy, p.z)
+	if p.y - fy > 0.45:
+		var to_player: Vector3 = player.global_position - Vector3(p.x, fy, p.z)
+		to_player.y = 0.0
+		if to_player.length() > 0.10:
+			var fwd2 := to_player.normalized()
+			var side := Vector3(fwd2.z, 0.0, -fwd2.x)
+			rp += fwd2 * 0.26 + side * 0.32
 	prompt_ring.visible = true
-	prompt_ring.global_position = Vector3(p.x, fy + 0.025, p.z)
+	prompt_ring.global_position = Vector3(rp.x, fy + 0.012, rp.z)
 	var t := float(Time.get_ticks_msec()) * 0.001
 	var breathe := sin(t * 3.4)
-	var br := 1.0 + 0.055 * breathe + ring_flash * 0.30
+	var br := 1.0 + 0.020 * breathe + ring_flash * 0.06
 	prompt_ring.scale = Vector3(br, 1.0, br)
-	prompt_ring_mat.albedo_color.a = clampf(0.42 + 0.16 * breathe + ring_flash * 0.5, 0.0, 1.0)
-	prompt_ring_mat.emission_energy_multiplier = 0.75 + 0.30 * breathe + ring_flash * 1.5
-## 调度台台面上的三件小物件：保温杯 / 值班日志 / 老式电话。
-## 台面高度 1.15（和 ITEM_DEFS 里那两件线索摆在同一个面上）。
+	prompt_ring_mat.albedo_color.a = clampf(0.16 + 0.035 * breathe + ring_flash * 0.20, 0.0, 0.45)
+	prompt_ring_mat.emission_energy_multiplier = 0.14 + 0.035 * breathe + ring_flash * 0.32
+
 func _make_desk_props() -> void:
 	var root3 := Node3D.new()
 	root3.name = "DeskProps"
@@ -3813,14 +3706,6 @@ func _unhandled_input(event: InputEvent) -> void:
 						_travel_to("station")
 				KEY_3, KEY_ESCAPE:
 					_close_travel_menu()
-		return
-	if state == "prologue_end":
-		if event is InputEventKey and event.pressed and not event.echo:
-			if event.physical_keycode == KEY_E:
-				_open_travel_menu()
-			elif event.physical_keycode == KEY_R:
-				_start_prologue()
-				_fade_to(0.0, 0.5)
 		return
 	if state == "minigame":
 		if event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
@@ -4248,6 +4133,7 @@ func _on_new_game() -> void:
 
 func _on_start() -> void:
 	_reset_case()
+	_set_station_lights(true)
 	_start_round()
 	state = "play"
 	_hide_menu()

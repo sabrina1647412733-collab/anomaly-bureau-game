@@ -18,13 +18,11 @@ func _run() -> void:
 		await process_frame
 	game.menu.start_game.emit()
 	await create_timer(0.4).timeout
-	# 直接把出租屋段推到异常结束，专测后半段流程
+	# 直接把出租屋段推到接完电话，专测开门选地点后的流程
 	game.prologue_letter_ready = true
 	game.prologue_letter_read = true
 	game.prologue_call_done = true
-	game.prologue_anomaly_done = true
-	game.state = "prologue_end"
-	game.prologue_end_card.visible = true
+	game._prologue_set_objective("去便利店")
 	game._open_travel_menu()
 	await process_frame
 	var menu_ok: bool = game.state == "prologue_travel" and game.prologue_travel_card.visible

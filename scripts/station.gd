@@ -66,6 +66,7 @@ var prop_tris := 0
 var col_count := 0
 var seats: Array = []
 var lights: Array = []
+var switch_lever: MeshInstance3D = null
 var font: Font = null
 
 static var ALL: Array = []
@@ -387,6 +388,16 @@ func slab(key: String, x0: float, z0: float, x1: float, z1: float, y_top: float,
 ## 全局灯光强度：地下地铁要暗，只留灯带与应急灯
 const LIGHT_SCALE := 0.42
 
+func _light_role(c: Color) -> String:
+    # 自动分组：应急灯的绿光永远保留；暖色是站台主灯；冷蓝是隧道/车侧补光。
+    if c.g > 0.70 and c.g > c.r + 0.22 and c.g > c.b + 0.12:
+        return "emergency"
+    if c.r > c.b + 0.08:
+        return "platform"
+    if c.b > c.r + 0.08:
+        return "tunnel"
+    return "accent"
+
 func light(pos: Vector3, color: Color, energy: float, rng: float, shadows := false) -> OmniLight3D:
     var l := OmniLight3D.new()
     l.position = pos
@@ -403,7 +414,26 @@ func light(pos: Vector3, color: Color, energy: float, rng: float, shadows := fal
     l.light_specular = 0.6
     body.add_child(l)
     lights.append(l)
+    l.set_meta("base_energy", l.light_energy)
+    var role := _light_role(color)
+    l.set_meta("light_role", role)
+    l.add_to_group("station_light")
+    l.add_to_group("station_light_" + role)
     return l
+
+func set_main_lights(on: bool) -> void:
+    # 站台照明开关：只压暗主灯/灯带/广告灯箱的自发光，应急灯、出口灯、蓝色指示牌保持。
+    for key in _mats.keys():
+        var name := String(key).split("|")[0]
+        if name != "lamp" and name != "lampC" and name != "glow":
+            continue
+        var m = _mats[key]
+        if not (m is ShaderMaterial):
+            continue
+        var sm: ShaderMaterial = m
+        var base := float(sm.get_meta("base_emission", MATS[name].get("energy", 1.0)))
+        sm.set_meta("base_emission", base)
+        sm.set_shader_parameter("emission_energy", base if on else base * 0.10)
 
 func tube(key: String, x0: float, y: float, z0: float, x1: float, z1: float, h := 0.10) -> void:
     box(key, Vector3(x0, y - h, z0), Vector3(x1, y, z1), false, "bt")
