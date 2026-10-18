@@ -631,23 +631,17 @@ func _build_pro_room(root: Node3D) -> void:
 	_pro_box(root, Vector3(1.42, 1.15, 0.20), Vector3(0.50, 0.06, 0.50), Color(0.34, 0.31, 0.28), false)
 	_pro_box(root, Vector3(1.42, 1.12, 0.20), Vector3(0.38, 0.03, 0.38), Color(0.16, 0.16, 0.16), false, 0.8)
 	_pro_box(root, Vector3(0, 2.42, 2.34), Vector3(3.2, 0.04, 0.04), Color(0.22, 0.20, 0.18), false)
-	# 床：单人床架 + 床垫 + 床单 + 被子 + 枕头 + 床头板 + 床下收纳
-	for lx in [-2.88, -1.82]:
-		for lz in [-2.04, -0.16]:
-			_pro_box(root, Vector3(lx, 0.14, lz), Vector3(0.08, 0.28, 0.08), Color(0.12, 0.12, 0.13))
-	_pro_box(root, Vector3(-2.88, 0.28, -1.10), Vector3(0.07, 0.12, 2.0), Color(0.16, 0.16, 0.17))
-	_pro_box(root, Vector3(-1.82, 0.28, -1.10), Vector3(0.07, 0.12, 2.0), Color(0.16, 0.16, 0.17))
-	_pro_box(root, Vector3(-2.35, 0.28, -2.10), Vector3(1.20, 0.12, 0.07), Color(0.16, 0.16, 0.17))
-	_pro_box(root, Vector3(-2.35, 0.28, -0.10), Vector3(1.20, 0.12, 0.07), Color(0.16, 0.16, 0.17))
-	_pro_bev(root, Vector3(-2.35, 0.50, -1.10), Vector3(1.02, 0.22, 1.90), Color(0.74, 0.72, 0.66), 0.07)
-	_pro_bev(root, Vector3(-2.35, 0.64, -0.92), Vector3(1.04, 0.045, 1.28), Color(0.46, 0.54, 0.62), 0.025)
-	_pro_bev(root, Vector3(-2.35, 0.71, -0.62), Vector3(1.06, 0.13, 1.06), Color(0.25, 0.31, 0.39), 0.06)
-	_pro_bev(root, Vector3(-2.35, 0.78, -1.12), Vector3(1.06, 0.08, 0.30), Color(0.38, 0.45, 0.54), 0.045)
-	_pro_bev(root, Vector3(-2.35, 0.68, -1.68), Vector3(0.66, 0.14, 0.36), Color(0.80, 0.79, 0.73), 0.06)
-	_pro_box(root, Vector3(-2.35, 0.92, -2.14), Vector3(1.18, 0.98, 0.08), Color(0.24, 0.18, 0.14))
-	for hx in [-2.82, -2.58, -2.34, -2.10, -1.86]:
-		_pro_box(root, Vector3(hx, 0.92, -2.09), Vector3(0.035, 0.86, 0.05), Color(0.18, 0.13, 0.10), false)
-	_pro_box(root, Vector3(-2.35, 0.55, -0.06), Vector3(1.18, 0.46, 0.06), Color(0.24, 0.18, 0.14))
+	# 床：Poly Haven「old_bed_frame」（CC0）+ 床品
+	var bed_scene = load("res://assets/models/old_bed_frame/old_bed_frame_2k.gltf")
+	if bed_scene != null:
+		var bed_root = bed_scene.instantiate()
+		bed_root.position = Vector3(-2.35, 0.0, -1.10)
+		root.add_child(bed_root)
+	_pro_bev(root, Vector3(-2.35, 0.61, -1.10), Vector3(0.86, 0.22, 1.90), Color(0.74, 0.72, 0.66), 0.07)
+	_pro_bev(root, Vector3(-2.35, 0.75, -0.92), Vector3(0.88, 0.045, 1.28), Color(0.46, 0.54, 0.62), 0.025)
+	_pro_bev(root, Vector3(-2.35, 0.82, -0.62), Vector3(0.90, 0.13, 1.06), Color(0.25, 0.31, 0.39), 0.06)
+	_pro_bev(root, Vector3(-2.35, 0.89, -1.12), Vector3(0.90, 0.08, 0.30), Color(0.38, 0.45, 0.54), 0.045)
+	_pro_bev(root, Vector3(-2.35, 0.79, -1.68), Vector3(0.58, 0.14, 0.36), Color(0.80, 0.79, 0.73), 0.06)
 	_pro_box(root, Vector3(-2.35, 0.14, -1.55), Vector3(0.86, 0.22, 0.62), Color(0.30, 0.24, 0.18))
 	_pro_box(root, Vector3(-2.35, 0.14, -0.78), Vector3(0.86, 0.22, 0.62), Color(0.26, 0.22, 0.18))
 	_pro_box(root, Vector3(-1.50, 0.26, -1.88), Vector3(0.46, 0.52, 0.46), Color(0.34, 0.28, 0.21))
@@ -693,6 +687,7 @@ func _build_pro_room(root: Node3D) -> void:
 	_pro_box(root, Vector3(0, 2.72, 0), Vector3(0.22, 0.12, 0.22), Color(1.0, 0.86, 0.60), false, 2.2)
 	_pro_light(root, Vector3(0, 2.65, 0), Color(1.0, 0.80, 0.55), 4.2, 10.0)
 	_pro_light(root, Vector3(1.55, 1.14, 0.55), Color(1.0, 0.72, 0.40), 2.2, 4.0)
+	_pro_light(root, Vector3(-2.0, 2.2, -0.8), Color(1.0, 0.76, 0.48), 1.6, 5.5)
 	_pro_light(root, Vector3(0, 1.7, 2.0), Color(0.42, 0.56, 0.78), 1.1, 5.0)
 	# 窗外小阳台
 	_pro_box(root, Vector3(0, 0.92, 2.92), Vector3(3.3, 0.10, 0.72), Color(0.34, 0.32, 0.29), false)

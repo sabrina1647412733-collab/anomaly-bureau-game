@@ -1227,4 +1227,5 @@ Web 低画质档（只在 `OS.has_feature("web")` 生效）：
 - 街道：新增排水沟、井盖、电缆、垃圾袋、街牌、卷帘门、自行车、水洼、路缘与车道线。
 - 便利店：新增地砖、吊灯、冷柜、饮料、收银机、菜单、价签、门垫、货架商品。
 - 员工通道：新增瓷砖缝、告示栏、摄像头、黄线、台阶、门把手、对讲机。
+- 床架改用 Poly Haven `old_bed_frame`（CC0）2k PBR 资产（约 35,560 顶点）；序章总计约 55.4k 三角面、136 个可见网格、46 个材质，床架带真实木纹/法线/粗糙度贴图。
 - 验收：`prologue_test`、`flow_test`、`skip_test`、`roundsummary`、`feature_test`、`audio_test`、`ending_a_test`、`narrative_test`、`audit` 全部 PASS。

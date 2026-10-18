@@ -1,0 +1,4 @@
+Old Bed Frame
+Source: https://polyhaven.com/a/old_bed_frame
+License: CC0 (public domain)
+Files used: old_bed_frame_2k.gltf, old_bed_frame.bin, 2k diffuse/normal/arm textures.
