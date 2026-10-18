@@ -15,6 +15,21 @@ func _run() -> void:
 		await process_frame
 	var start_ok: bool = game.state == "prologue" and game.prologue_stage == "room"
 	print("[SLICE] start state=", game.state, " stage=", game.prologue_stage)
+	# 小物件叙事层：收音机 / 墙上旧电话 / 床头相框
+	var radio_label_before: String = game._prologue_label({"id": "radio"})
+	game._prologue_act("radio")
+	game._prologue_act("wallphone")
+	game._prologue_act("photo")
+	await process_frame
+	var radio_light = game.get_meta("room_radio_light", null)
+	var props_ok: bool = game.prologue_radio_played and game.prologue_radio_on
+	props_ok = props_ok and game.prologue_wallphone_checked and game.prologue_photo_checked
+	props_ok = props_ok and radio_light != null and radio_light.visible and game.radio_player != null
+	game._prologue_act("radio")
+	var radio_toggle_ok: bool = not game.prologue_radio_on
+	radio_toggle_ok = radio_toggle_ok and radio_light != null and not radio_light.visible
+	print("[SLICE] props=", props_ok, " radio_label=", radio_label_before, " toggle=", radio_toggle_ok)
+	game._clear_sub()
 	game._prologue_act("phone")
 	game._prologue_act("box")
 	var letter_ok: bool = game.prologue_letter_ready
@@ -42,8 +57,9 @@ func _run() -> void:
 	var restart_ok: bool = game.state == "prologue" and game.prologue_stage == "room"
 	restart_ok = restart_ok and (game.prologue_figure == null or not game.prologue_figure.visible)
 	restart_ok = restart_ok and (game.prologue_cabin_light == null or game.prologue_cabin_light.light_energy > 1.0)
+	restart_ok = restart_ok and (radio_light == null or not radio_light.visible)
 	restart_ok = restart_ok and game.hud_objective != null and game.hud_objective.visible
 	print("[SLICE] restart=", restart_ok, " state=", game.state)
-	var ok := start_ok and letter_ok and ui_ok and call_ok and window_label == "去窗边看看" and end_ok and hud_ok and restart_ok
+	var ok := start_ok and props_ok and radio_toggle_ok and letter_ok and ui_ok and call_ok and window_label == "去窗边看看" and end_ok and hud_ok and restart_ok
 	print("[SLICE] PASS=", ok)
 	quit(0 if ok else 1)

@@ -1257,6 +1257,19 @@ Web 低画质档（只在 `OS.has_feature("web")` 生效）：
 
 验收：
 
-- `prologue_test` 9 项 PASS：start / letter_ready / letter_ui / call / window_label / anomaly_done / end / hud_hidden / restart。
+- `prologue_test` 10 项 PASS：start / props / radio_toggle / letter_ready / letter_ui / call / window_label / anomaly_done / end / hud_hidden / restart。
 - `flow_test`、`skip_test`、`roundsummary`、`feature_test`、`audio_test`、`ending_a_test`、`narrative_test`、`layout_check`、`audit` 全部 PASS。
-- 截图：`scripts/tests/prologue_shot.gd` 输出 `_预览/look/slice_01_start.png`、`slice_02_bed.png`、`slice_03_desk.png`、`slice_04_window.png`、`slice_05_letter.png`、`slice_06a_clock.png`、`slice_06_0017.png`、`slice_07_end.png`。
+- 截图：`scripts/tests/prologue_shot.gd` 输出 `_预览/look/slice_01_start.png`、`slice_02_bed.png`、`slice_03_desk.png`、`slice_04_window.png`、`slice_04b_radio.png`、`slice_05_letter.png`、`slice_06a_clock.png`、`slice_06_0017.png`、`slice_07_end.png`。
+
+### 52 · 序章小物件叙事层：收音机 / 旧电话 / 相框
+
+- `scripts/pro_room_art.gd`：窗台新增父亲遗留的旧收音机（机身 / 喇叭网罩 / 刻度盘 / 旋钮 / 天线 / 指示灯）；墙上的旧电话与床头相框接入交互。
+- `scripts/game.gd`：新增 `radio` / `wallphone` / `photo` 三个交互点，互不阻塞主线。收音机首次开启会播放 2009 年 11 月 3 日的最后一次呼叫，之后可反复开关并联动指示灯。
+- 背景信息：收音机补出父亲林远舟的最后值班；旧电话补出“没有接线却有呼吸声”；相框补出父亲站在岚桥站调度席前的旧照片。三个物件都能在离开出租屋前反复查看。
+- `scripts/tests/prologue_test.gd`：新增 props / radio_toggle 检查，并验证重开后收音机灯复位。
+
+验收：
+
+- `prologue_test` PASS：start / props / radio_toggle / letter_ready / letter_ui / call / window_label / anomaly_done / end / hud_hidden / restart。
+- `flow_test`、`skip_test`、`roundsummary`、`feature_test`、`audio_test`、`ending_a_test`、`narrative_test`、`layout_check`、`audit` 全部 PASS；headless 30 秒无 SCRIPT ERROR。
+- 截图：`_预览/look/slice_04b_radio.png`（窗台收音机与交互提示）。

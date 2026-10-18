@@ -54,6 +54,10 @@ func _run() -> void:
 	await _shot("slice_03_desk")
 	await _pose(Vector3(-0.10, 12.1, 323.40), PI, 0.0)
 	await _shot("slice_04_window")
+	# 窗台上的旧收音机：验证小物件位置与交互提示
+	await _pose(Vector3(0.55, 12.1, 323.75), PI, -0.38)
+	await create_timer(0.35).timeout
+	await _shot("slice_04b_radio")
 	game._prologue_act("phone")
 	game._prologue_act("box")
 	await process_frame

@@ -69,6 +69,10 @@ var prologue_ui: CanvasLayer = null
 var prologue_paper: Control = null
 var prologue_paper_text: Label = null
 var prologue_anomaly_done := false
+var prologue_radio_on := false
+var prologue_radio_played := false
+var prologue_wallphone_checked := false
+var prologue_photo_checked := false
 var prologue_figure: Node3D = null
 var prologue_figure_mat: StandardMaterial3D = null
 var prologue_cabin_light: OmniLight3D = null
@@ -149,12 +153,14 @@ var sfx_step: AudioStreamWAV
 var sfx_horn: AudioStreamWAV
 var sfx_brake: AudioStreamWAV
 var sfx_train: AudioStreamWAV
+var sfx_radio: AudioStreamWAV
 var relay_player: AudioStreamPlayer
 var chime_player: AudioStreamPlayer
 var step_player: AudioStreamPlayer
 var horn_player: AudioStreamPlayer
 var brake_player: AudioStreamPlayer
 var train_player: AudioStreamPlayer
+var radio_player: AudioStreamPlayer
 var cutcam: Camera3D
 var cut_t := 0.0
 var train_started := false
@@ -745,6 +751,9 @@ func _build_pro_room(root: Node3D) -> void:
 	prologue_spots.append({"stage":"room", "id":"box", "pos":Vector3(-0.70, 12.38, 324.16), "r":1.7})
 	prologue_spots.append({"stage":"room", "id":"window", "pos":Vector3(0, 13.55, 325.10), "r":2.2})
 	prologue_spots.append({"stage":"room", "id":"door", "pos":Vector3(0, 13.05, 320.10), "r":1.9})
+	prologue_spots.append({"stage":"room", "id":"radio", "pos":Vector3(0.55, 12.98, 325.12), "r":1.9})
+	prologue_spots.append({"stage":"room", "id":"wallphone", "pos":Vector3(-0.95, 14.18, 320.10), "r":2.2})
+	prologue_spots.append({"stage":"room", "id":"photo", "pos":Vector3(-2.86, 13.95, 321.05), "r":2.1})
 
 func _build_pro_room_legacy(root: Node3D) -> void:
 	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.16, 0.12, 0.09))
@@ -1480,6 +1489,13 @@ func _start_prologue() -> void:
 	prologue_anomaly_done = false
 	prologue_store_done = false
 	prologue_reader_done = false
+	prologue_radio_on = false
+	prologue_radio_played = false
+	prologue_wallphone_checked = false
+	prologue_photo_checked = false
+	var radio_light_off = get_meta("room_radio_light", null)
+	if radio_light_off != null:
+		radio_light_off.visible = false
 	# 重开时把异常段落改过的灯光、人影和故障特效恢复到开场状态
 	if prologue_cabin_light != null:
 		prologue_cabin_light.light_energy = 2.1
@@ -1624,6 +1640,45 @@ func _prologue_act(id: String) -> void:
 				_say_seq("林屿", "这张值班表……2009 年 11 月 3 日。")
 			else:
 				_say_seq("旁白", "保温杯里的水还是温的。")
+		"radio":
+			if not prologue_radio_played:
+				prologue_radio_played = true
+				prologue_radio_on = true
+				play_radio()
+				var radio_light = get_meta("room_radio_light", null)
+				if radio_light != null:
+					radio_light.visible = true
+				_say_seq("收音机", "……岚桥站，0017 次，请回答。", 1.8)
+				_say_seq("收音机", "……2009 年 11 月 3 日，值班员林远舟，最后一次呼叫。", 2.6)
+				_say_seq("林屿", "这是父亲的班。", 1.8)
+				_say_seq("旁白", "收音机里只剩下电流声。", 2.0)
+			else:
+				prologue_radio_on = not prologue_radio_on
+				var radio_light2 = get_meta("room_radio_light", null)
+				if radio_light2 != null:
+					radio_light2.visible = prologue_radio_on
+				if prologue_radio_on:
+					play_radio()
+					_say_seq("收音机", "……沙……沙……", 1.2)
+				else:
+					play_click()
+					_say_seq("旁白", "你把收音机关了。", 1.6)
+		"wallphone":
+			if not prologue_wallphone_checked:
+				prologue_wallphone_checked = true
+				play_chime(0.55, -14.0)
+				_say_seq("旁白", "墙上的旧电话没有接线。听筒里却有很轻的呼吸声。", 2.6)
+				_say_seq("林屿", "……爸？", 1.4)
+				_say_seq("旁白", "呼吸声停了。", 1.8)
+			else:
+				_say_seq("旁白", "电话还是没有接线。", 1.6)
+		"photo":
+			if not prologue_photo_checked:
+				prologue_photo_checked = true
+				_say_seq("旁白", "照片里，父亲站在岚桥站的调度席前。他身后那班车的车头灯，亮得不像照片。", 3.0)
+				_say_seq("林屿", "这张照片……我不记得拍过。", 2.0)
+			else:
+				_say_seq("旁白", "照片里的父亲没有看镜头。", 1.8)
 		"window":
 			if prologue_call_done and not prologue_anomaly_done:
 				_prologue_anomaly()
@@ -1754,6 +1809,14 @@ func _prologue_label(sp: Dictionary) -> String:
 			if prologue_call_done and not prologue_anomaly_done:
 				return "去窗边看看"
 			return "窗外"
+		"radio":
+			if not prologue_radio_played:
+				return "父亲的收音机"
+			return "关掉收音机" if prologue_radio_on else "打开收音机"
+		"wallphone":
+			return "墙上的旧电话"
+		"photo":
+			return "床头的相框"
 		"door":
 			if not prologue_letter_ready:
 				return "门"
@@ -3541,6 +3604,19 @@ func _make_audio() -> void:
 		chime[i] = clampf(vc, -1.0, 1.0)
 	sfx_chime = _wav(chime, false)
 	chime_player = _make_sfx_player(sfx_chime, -9.0)
+	# 收音机：短促电流 + 失谐人声
+	var n_radio := int(rate * 0.85)
+	var radio := PackedFloat32Array(); radio.resize(n_radio)
+	var lp_radio := 0.0
+	for i in range(n_radio):
+		var tr := float(i) / rate
+		lp_radio = lp_radio * 0.62 + rng.randf_range(-1.0, 1.0) * 0.38
+		var vr := lp_radio * (0.55 + 0.45 * sin(TAU * 6.5 * tr))
+		if tr > 0.16 and tr < 0.62:
+			vr += sin(TAU * 330.0 * tr + sin(TAU * 2.2 * tr) * 3.0) * 0.10
+		radio[i] = clampf(vr, -1.0, 1.0) * 0.55
+	sfx_radio = _wav(radio, false)
+	radio_player = _make_sfx_player(sfx_radio, -13.0)
 	# 脚步：短噪声 + 低频落地
 	var n_step := int(rate * 0.1)
 	var step := PackedFloat32Array(); step.resize(n_step)
@@ -3605,6 +3681,11 @@ func play_chime(pitch := 1.0, vol := -9.0) -> void:
 		chime_player.pitch_scale = clampf(pitch, 0.6, 1.4)
 		chime_player.volume_db = vol
 		chime_player.play()
+
+func play_radio() -> void:
+	if radio_player != null:
+		radio_player.pitch_scale = randf_range(0.96, 1.04)
+		radio_player.play()
 
 func play_step(running := false) -> void:
 	if step_player != null:

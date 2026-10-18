@@ -307,6 +307,7 @@ func build(r: Node3D) -> void:
 	_wainscot()
 	_ceiling()
 	_window()
+	_radio()
 	_door()
 	_bed()
 	_nightstand()
@@ -403,6 +404,29 @@ func _window() -> void:
 	var curtain_mat := _fabric("rough_linen", Color(0.30, 0.34, 0.27), true)
 	_curtain(-1.42, 2.30, 2.53, 0.86, 1.62, curtain_mat, 0.4)
 	_curtain(1.42, 2.30, 2.53, 0.86, 1.62, curtain_mat, 2.1)
+
+func _radio() -> void:
+	# 父亲的旧收音机：放在窗台上，异常前可以打开听一段 2009 年的呼叫
+	var body := _bev(Vector3(0.55, 1.025, 2.62), Vector3(0.36, 0.18, 0.14), _plain(Color(0.26, 0.22, 0.18), 0.55), 0.025)
+	body.name = "OldRadio"
+	_bev(Vector3(0.55, 0.944, 2.62), Vector3(0.30, 0.018, 0.10), _plain(Color(0.10, 0.09, 0.08), 0.8), 0.006)
+	# 喇叭网罩
+	_box(Vector3(0.48, 1.03, 2.548), Vector3(0.17, 0.12, 0.008), _plain(Color(0.06, 0.06, 0.055), 0.85), false)
+	for gy in [-0.045, -0.015, 0.015, 0.045]:
+		_box(Vector3(0.48, 1.03 + gy, 2.543), Vector3(0.15, 0.006, 0.006), _plain(Color(0.42, 0.35, 0.25), 0.5), false)
+	# 刻度盘与指针
+	_cyl(Vector3(0.64, 1.06, 2.545), 0.034, 0.012, _plain(Color(0.68, 0.56, 0.34), 0.35, 0.3), 16, "z")
+	_box(Vector3(0.64, 1.06, 2.538), Vector3(0.004, 0.028, 0.004), _plain(Color(0.10, 0.08, 0.06), 0.6), false)
+	for kx in [1.00, 1.08]:
+		_cyl(Vector3(kx - 0.40, 0.965, 2.545), 0.012, 0.016, _plain(Color(0.16, 0.13, 0.10), 0.45, 0.3), 10, "z")
+	# 天线
+	var ant := _cyl(Vector3(0.40, 1.16, 2.62), 0.004, 0.30, _plain(Color(0.35, 0.33, 0.28), 0.35, 0.7), 8)
+	ant.rotation.z = 0.38
+	# 打开时才亮的指示灯
+	var light := _box(Vector3(0.72, 1.085, 2.548), Vector3(0.012, 0.012, 0.006), _emit(Color(1.0, 0.42, 0.16), 2.2), false)
+	light.name = "RadioLight"
+	light.visible = false
+	host.set_meta("room_radio_light", light)
 
 func _door() -> void:
 	var door_mat := _pbr("oak_wood_planks", Color(0.32, 0.24, 0.18), 1.5, true, 0.85, 1.0)
