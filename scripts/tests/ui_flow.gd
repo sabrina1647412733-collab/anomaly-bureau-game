@@ -6,8 +6,12 @@ func _initialize() -> void:
     root.add_child(game)
 func find_btn(node: Node, prefix: String) -> Button:
     for c in node.get_children():
-        if c is Button and String(c.text).begins_with(prefix):
-            return c
+        if c is Button:
+            if String(c.text).begins_with(prefix):
+                return c
+            for ch in c.get_children():
+                if ch is Label and String(ch.text).begins_with(prefix):
+                    return c
         var r := find_btn(c, prefix)
         if r != null:
             return r
@@ -73,3 +77,4 @@ func _process(_d: float) -> bool:
             print("[F] 回主菜单后 state=", game.state, " center=", game.menu.center.visible, " 暂停=", game.menu.pause_panel.visible)
             return true
     return false
+

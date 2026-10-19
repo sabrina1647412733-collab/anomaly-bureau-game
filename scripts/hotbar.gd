@@ -49,13 +49,16 @@ func _draw() -> void:
             var d: Dictionary = items[i]["def"]
             ICONS.icon(self, r.get_center(), SLOT * 0.66, String(d["id"]), Color(d["col"]), false)
         draw_string(font, r.position + Vector2(5, 15), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 12,
-            Color(0.62, 0.70, 0.78) if got else Color(0.34, 0.40, 0.47))
+            Color(0.74, 0.80, 0.87) if got else Color(0.52, 0.58, 0.66))
     # 选中物品的一行说明（放在格子上方）
     if sel < items.size():
         var dd: Dictionary = items[sel]["def"]
         var g2 := bool(items[sel]["got"])
         var t := String(dd["name"]) + ("　—　" + String(dd["where"]) if g2 else "　—　还没找到")
+        draw_string(font, Vector2(1, TOP - 11), t, HORIZONTAL_ALIGNMENT_CENTER, 1600, 14, Color(0.0, 0.0, 0.0, 0.55))
         draw_string(font, Vector2(0, TOP - 12), t, HORIZONTAL_ALIGNMENT_CENTER, 1600, 14,
-            Color(0.90, 0.93, 0.97) if g2 else Color(0.44, 0.50, 0.58))
+            Color(0.94, 0.96, 0.99) if g2 else Color(0.62, 0.68, 0.76))
     # 操作提示挪到左下角，避免和字幕/格子打架
-    draw_string(font, Vector2(28, TOP + 24), "B 背包　·　1~5 选择", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.40, 0.47, 0.55))
+    draw_string(font, Vector2(29, TOP + 25), "B 背包　·　1~5 选择", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.0, 0.0, 0.0, 0.55))
+    draw_string(font, Vector2(28, TOP + 24), "B 背包　·　1~5 选择", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.68, 0.74, 0.82))
+

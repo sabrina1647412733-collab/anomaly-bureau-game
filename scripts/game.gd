@@ -298,14 +298,14 @@ func _make_font() -> void:
 
 func _make_env() -> void:
 	# —— 观感可调参数：改这两个数就能整体调亮暗 / 调泛光强度 ——
-	const LOOK_EXPOSURE := 0.58      # 曝光：0.8 更暗更夜，1.2 更亮
+	const LOOK_EXPOSURE := 0.72      # 曝光：0.8 更暗更夜，1.2 更亮
 	const LOOK_GLOW := 0.45          # 泛光强度：只让灯本身发光，不做梦幻感
 	var e := Environment.new()
 	e.background_mode = Environment.BG_COLOR
 	e.background_color = Color(0.027, 0.043, 0.063)
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	e.ambient_light_color = Color(0.52, 0.62, 0.78)
-	e.ambient_light_energy = 0.18
+	e.ambient_light_energy = 0.28
 	e.fog_enabled = false
 	# —— 电影感调色（2026-10-16 观感升级）：ACES 色调映射让高光有滚降、泛光让灯带真的发光、SSAO 补角落接触阴影 ——
 	e.tonemap_mode = Environment.TONE_MAPPER_ACES
@@ -1996,8 +1996,8 @@ func _prologue_enter_station() -> void:
 	if hotbar != null:
 		hotbar.visible = true
 	if env_node != null and env_node.environment != null:
-		env_node.environment.tonemap_exposure = 0.58
-		env_node.environment.ambient_light_energy = 0.18
+		env_node.environment.tonemap_exposure = 0.72
+		env_node.environment.ambient_light_energy = 0.28
 	state = "play"
 	player.position = Vector3(-15.05, 0.15, -12.90)
 	player.rotation.y = PI * 0.5
@@ -4126,6 +4126,7 @@ func _show_menu() -> void:
 	menu.hide_all()
 	menu.visible = true
 	menu.center.visible = true
+	menu.focus_main()
 	menu.set_slots(slots_info(), "load")
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if player != null:

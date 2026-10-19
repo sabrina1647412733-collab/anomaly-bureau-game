@@ -405,11 +405,10 @@ func light(pos: Vector3, color: Color, energy: float, rng: float, shadows := fal
     l.light_energy = energy * LIGHT_SCALE
     l.omni_range = rng
     if OS.has_feature("web"):
-        if l.light_energy < 1.3:
-            l.visible = false
-        else:
-            l.omni_range *= 0.78
-            l.light_energy *= 1.10
+        # 旧逻辑会把网页版大部分弱光直接关掉，导致站台明显偏暗。
+        # 保留全部灯，只轻微收范围、补一点能量。
+        l.omni_range *= 0.92
+        l.light_energy *= 1.18
     l.shadow_enabled = shadows
     l.light_specular = 0.6
     body.add_child(l)
@@ -501,3 +500,4 @@ func commit() -> void:
         var idx := _mesh.get_surface_count() - 1
         _mesh.surface_set_material(idx, _mat(k))
     mesh_inst.mesh = _mesh
+
