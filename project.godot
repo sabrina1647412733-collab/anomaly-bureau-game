@@ -28,3 +28,7 @@ window/size/viewport_height=900
 
 anti_aliasing/quality/msaa_3d=2
 environment/defaults/default_clear_color=Color(0.011, 0.014, 0.022, 1)
+; 网页版走 Compatibility(GLES3)，默认一帧只渲染 32 盏灯。本作场景里有 106 盏，
+; 超出部分会被静默丢弃，表现为“走到某些角度整片区域没灯”。128 覆盖全部灯，
+; 单对象仍是最多 8 盏（默认值），片元开销不变。
+limits/opengl/max_renderable_lights=128

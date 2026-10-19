@@ -41,22 +41,29 @@
 
 ## 导出 Web 版（重要，别踩这个坑）
 
-Web 导出**必须**走 Compatibility（GLES3）渲染器。`project.godot` 里已写入这三行，**删掉会导致导出的网页版打不开**：
+Web 导出只能走 Compatibility（GLES3）渲染器，Godot 在 Web 平台会自动使用它，`project.godot` 不需要额外写 `renderer` 行。
 
-```ini
-[rendering]
-renderer/rendering_method.web="gl_compatibility"
+兼容渲染器默认**一帧只渲染 32 盏灯**（`rendering/limits/opengl/max_renderable_lights`）。本作场景有 106 盏，
+所以 `project.godot` 已把它提到 **128**；以后场景灯数超过 128 时还要继续提高，否则会重新出现
+「某些角度突然没灯」。详见第 61 节。
+
+导出模板已装在 `%APPDATA%\Godot\export_templates\4.7.2.stable`（含 `web_nothreads_release.zip`）。推荐直接用脚本：
+
+```powershell
+powershell -File F:\诡异事务局\_handover\scripts\export_web.ps1 -Root "F:\诡异事务局"
 ```
 
-导出模板已装在 `%APPDATA%\Godot\export_templates\4.7.2.stable`（含 `web_nothreads_release.zip`）。导出命令：
+脚本会导出到 `deploy\game\` 并把浏览器标题统一成《诡异事务局 · 第一季「补丁」》。
+手动导出命令（与脚本等价，但不改标题）：
 
 ```powershell
 $G = "C:\Users\Sabrina\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_win64.exe"
-& $G --headless --path "C:\Users\Sabrina\Documents\ChatGPT\最后的地铁：0017\岚桥站0017-Godot" `
-     --export-release "Web" "C:\Users\Sabrina\Documents\ChatGPT\最后的地铁：0017\deploy\game\index.html"
+& $G --headless --path "F:\诡异事务局\岚桥站0017-Godot" `
+     --export-release "Web" "F:\诡异事务局\deploy\game\index.html"
 ```
 
 产物是 `deploy\game\` 下的 `index.html / index.js / index.wasm / index.pck`，再由工作区根目录打包成 `0017-网页版.zip`。
+
 
 ## 逐件精修与自查（开发用）
 
@@ -1398,3 +1405,116 @@ Web 低画质档（只在 `OS.has_feature("web")` 生效）：
 - 不改剧情、交互距离、灯光能量、列车进站、存档和 UI 布局。
 
 验收：`prologue_test`、`store_flow_test`、`flow_test`、`skip_test`、`roundsummary`、`feature_test`、`audio_test`、`ending_a_test`、`narrative_test`、`layout_check`、`audit` 全部 PASS；`--headless --quit-after 30` exit 0，无 `SCRIPT ERROR`。
+### 59 · 存档档案 + 案卷目录 + 导出/导入
+
+本轮把「单局现场」和「长期记录」分开：三个槽位仍然只存当前这一局，新增 `user://archive.json` 作为跨槽位的档案。删槽位不再丢进度记录。
+
+档案结构（`scripts/archive.gd`，`schema_version = 1`）：
+
+```json
+{
+  "schema_version": 1,
+  "updated": "2026-10-19T14:28:00",
+  "cases": {
+    "0017": {
+      "completed": true,
+      "endings": ["A"],
+      "best_round": 3,
+      "best_clock": 1456.7,
+      "plays": 1,
+      "started": true,
+      "last_played": "2026-10-19T14:28:00"
+    }
+  }
+}
+```
+
+- `completed`：是否至少走完一个结局；`endings`：已见 A/B/C 去重集合。
+- `best_round` / `best_clock`：只升不降的最远轮次与最晚时钟（8 秒节流落盘，关键节点立即落盘）。
+- `plays`：新开一局 +1；`started` 区分「未开始 / 进行中」。
+- 读取时补齐缺失字段，旧档不会因缺字段报错；以后加字段不需要迁移脚本。
+- 0018–0022 与终章已在档案表里占位（编号/案名/类型），接入时把 `CASES` 的 `open` 打开即可。
+
+案卷目录（载入存档页，1600×900 单栏加宽到 1000 px）：
+
+- 顶部汇总：`已结案 X/6 · 结局 Y/3`（六案为 0017–0022，终章不计入分母）。
+- 0017：`未开始` / `进行中` / `已结案` + `已见 X/3 结局`，第二行显示 `最佳：第 N 轮 · HH:MM`。
+- 0018–0022 与终章：`尚未开启`，并保留案名与异常类型。
+- 槽位区保持三个槽位，每行新增「删除」；点击一次变「确认删除」，4 秒内再点才删，避免误触。删除只调 `DirAccess` 删 `user://save_N.json`，不会碰档案。
+- 旧版本只有槽位没有档案时，打开菜单会自动补一条 0017「进行中」。
+
+导出 / 导入：
+
+- `导出档案`：桌面端弹出保存对话框；Web 端用 `JavaScriptBridge.download_buffer()` 直接下载 `anomaly_bureau_archive.json`。无论哪种端都会在 `user://archive_export.json` 留一份。
+- `导入档案`：桌面端选择 JSON；Web 端用隐藏的 `<input type=file>` + `FileReader` 回调进 Godot。导入为**合并**：结局取并集、轮次/时钟取更远、游玩次数取较大值，重复导入幂等；坏 JSON、缺 `cases`、版本高于当前游戏都会被拒绝并提示。
+
+验收：
+
+- 新增 `scripts/tests/archive_test.gd`：空档案 → 新档「进行中」→ 结局 A → `已结案 1/6 · 结局 1/3`；存档到槽位 1 再删除，档案仍是已结案且结局保留；导出/重复导入/合并导入/坏文件拒绝全部断言。测试会备份并还原本机 `archive.json` 与三个槽位。
+- 新增 `scripts/tests/archive_ui_shot.gd`：输出 `_预览/截图/archive_empty.png`、`archive_progress.png`、`archive_save_mode.png`。
+- 新增 `scripts/tests/archive_play_shot.gd`：真·新档玩到结局 A 后打开案卷目录，截图 `_预览/截图/archive_after_ending_a.png`，汇总为 `已结案 1/6 · 结局 1/3`。
+- 回归：`archive_test`、`ending_a_test`、`flow_test`、`slot_test` 全部 PASS；`--headless --quit-after 150` 无 `SCRIPT ERROR`；Web 导出到临时目录成功（未覆盖线上 `deploy/`）。
+
+### 60 · UI 优化：案卷目录 / 设置 / 暂停
+
+在 59 的档案功能之上做了一轮界面收口，不改玩法与数据结构。
+
+案卷目录：
+
+- 面板从 1000×788 收到 1000×780，顶部加金色装订线；标题加粗、副标题与「载入 / 存档模式」提示分列左右。
+- 汇总条重做：左侧 `已结案 X/6 · 结局 Y/3` 大字，右侧六案进度条（金=已结案、蓝=进行中、灰=未开启）和 A/B/C 三枚结局章（已见为金色）。
+- 案卷行改成表格化：`编号 / 案名 + 类型 / 状态章 / 结局章 + 已见 X/3`。0017 行有金色左侧色条与淡金底；状态章按「已结案 / 进行中 / 未开始 / 尚未开启」换色；锁定案卷保留可读性更低的灰色。
+- 0017 的副行改为 `甲 · 重复 · 游玩 N 次 · 最佳：第 N 轮 · HH:MM`。
+- 槽位区：有存档的槽位加金色左条与淡金底；空槽位在存档模式显示「点击写入」，载入模式则整体压暗。删除按钮改成小号幽灵按钮，空槽位时禁用并压低描边；页脚把说明、`ESC 返回`、返回按钮压到底部。
+- 槽位时间从原始 `2026-10-19T14:27:52` 改成 `2026-10-19 14:27`。
+
+设置：
+
+- 面板从 600×600 收到 600×500，去掉底部大片留白；加金色顶部细线、`SETTINGS` 英文与说明行。
+- 六个滑杆补上百分比数值、金色填充条和更细的轨道；标签、滑杆、数值三列对齐。
+- 「显示模式」改为次级幽灵按钮，「保存并返回」改为金色主按钮。
+
+暂停：
+
+- 面板从 360×360 收到 360×328，加金色顶线、`PAUSED` 副标；「继续」为主按钮，其余三项为幽灵按钮。
+
+验收：
+
+- `archive_test`、`ending_a_test`、`flow_test` 全部 PASS；`archive_test` 的汇总、状态、结局、删槽位断言未变。
+- 重新输出 `_预览/截图/archive_empty.png`、`archive_progress.png`、`archive_save_mode.png`、`archive_after_ending_a.png`、`menu_settings_after.png`、`menu_pause_after.png`。
+
+### 61 · 网页版「某些角度突然没灯」：Compatibility 灯上限 32
+
+现象（玩家反馈）：
+
+- 网页版里，灯光会随视角/位置变化突然整片消失；序章出租屋和车站都遇到过，走近或转个方向又亮回来。
+
+根因：
+
+- Web 导出走 Compatibility（GLES3）渲染器。Godot 默认 `rendering/limits/opengl/max_renderable_lights = 32`，
+  即**一帧最多只渲染 32 盏灯**；本作场景共 **106 盏**，超出的灯被静默丢弃，不会报错。
+- 每帧保留哪 32 盏会随可见灯列表变化，所以表现成「某些角度没灯」，而不是固定区域黑。
+- 桌面端默认 Forward+ 不受这个上限影响，因此只出现在网页版（以及手动用 `--rendering-driver opengl3` 时）。
+
+修复：
+
+- `project.godot` 写入 `limits/opengl/max_renderable_lights=128`，覆盖全部 106 盏灯；单对象上限保持默认 8 盏，
+  片元着色器开销不变。
+- `game.gd` 网页版启动日志新增 `[WEB] light_limits renderable=... per_object=...`，以后一眼能看出是否又踩回去。
+
+实测（同一机位、网页版 WebGL2 + RTX 3070）：
+
+| 场景 | 修复前（32） | 修复后（128） |
+|---|---|---|
+| 车站 · 站台中段平均亮度 | 10.78 / 255 | 44.71 / 255 |
+| 车站 · 关灯后的应急灯 | 10.77 / 255 | 19.21 / 255 |
+| 序章出租屋（门口机位） | 78.07 / 255 | 78.06 / 255（本就够用） |
+| 帧率 | 60 FPS | 58–60 FPS |
+
+- 桌面 Compatibility 对照：出租屋开灯前后平均亮度 `0.082 → 0.283`（修复前开关灯完全没变化）。
+- 对比图：`_预览/look/web_lights_before_32.png` / `web_lights_after_128.png`、
+  `web_room_before_32.png` / `web_room_after_128.png`。
+- 回归：`prologue_test`、`feature_test`、`audit` 全部 PASS；`--headless --quit-after 90` exit 0。
+- 重新导出：`deploy/game/index.pck` 75.18 MB、`index.wasm` 37.68 MB；线上日志确认
+  `[WEB] light_limits renderable=128 per_object=8`，公开链接不变。
+

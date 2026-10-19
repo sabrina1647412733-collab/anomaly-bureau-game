@@ -12,6 +12,7 @@ const MenuScript := preload("res://scripts/menu.gd")
 const BagScript := preload("res://scripts/bag.gd")
 const HotbarScript := preload("res://scripts/hotbar.gd")
 const ProRoomArtScript := preload("res://scripts/pro_room_art.gd")
+const Archive := preload("res://scripts/archive.gd")
 
 const T_START := 1430.0
 const T_TRAIN := 1456.0
@@ -103,6 +104,8 @@ var late := false
 var divert := false
 var shown_end := ""
 var end_t := 0.0
+var archive_tracking := false   # 只有真正开局/读档后才把进度写进档案
+var archive_acc := 0.0
 var items := []
 var npcs := []
 var buttons := []
@@ -269,6 +272,9 @@ func _ready() -> void:
 	_start_round()
 	_show_menu()
 	print("[0017] 就绪 · 三角 ", builder.tri_count, " · 碰撞 ", builder.col_count, " · 灯 ", builder.lights.size())
+	if OS.has_feature("web"):
+		print("[WEB] light_limits renderable=", ProjectSettings.get_setting("rendering/limits/opengl/max_renderable_lights", -1),
+			" per_object=", ProjectSettings.get_setting("rendering/limits/opengl/max_lights_per_object", -1))
 
 func _apply_web_quality() -> void:
 	var vp := get_viewport()
@@ -2511,6 +2517,8 @@ func _start_round() -> void:
 	round_elapsed = 0.0
 	clock_min = T_START
 	train_started = false
+	if archive_tracking:
+		Archive.note_progress("0017", round, clock_min)
 	_set_switch_green(divert)
 	train.reset()
 	state = "play"
@@ -2553,6 +2561,12 @@ func _process(delta: float) -> void:
 		round_elapsed += delta
 		clock_min += delta / SEC_PER_MIN
 		_check_scripted()
+		# 档案里的最佳时钟：每 8 秒落一次盘，避免每帧写文件
+		if archive_tracking:
+			archive_acc += delta
+			if archive_acc >= 8.0:
+				archive_acc = 0.0
+				Archive.note_progress("0017", round, clock_min)
 		if clock_min >= T_ARRIVE:
 			_begin_cutscene()
 	elif state == "cutscene":
@@ -2907,6 +2921,8 @@ func _show_end(kind: String) -> void:
 		ending_key_desk.visible = (kind == "A")
 	shown_end = kind
 	state = "ending"
+	# 档案：结案 + 登记已见结局（A/B/C）
+	Archive.note_ending("0017", kind, round, clock_min)
 	hud_end_title.add_theme_color_override("font_color", Color(0.88, 0.64, 0.29))
 	var lan_a := "林岚站了出来，把工牌放在桌上。她说：这次，换我签字。" if lan_trust else "林岚没有来。她的工位空着，工具盒也不见了。"
 	var tape_a := "周砚把录音播了出去。节目开头第一次没有配乐。" if tape_air else "周砚把录音锁进抽屉。他在节目里放了一首很旧的歌。"
@@ -4090,6 +4106,7 @@ func _make_menu() -> void:
 	menu.start_game.connect(_on_new_game)
 	menu.load_slot.connect(_on_load_slot)
 	menu.save_slot.connect(_on_save_slot)
+	menu.delete_slot.connect(_on_delete_slot)
 	menu._pause_wants_save.connect(func():
 		menu.set_slots(slots_info(), "save")
 		menu.show_slots("save")
@@ -4127,6 +4144,7 @@ func _show_menu() -> void:
 	menu.visible = true
 	menu.center.visible = true
 	menu.focus_main()
+	_archive_migrate_slots()
 	menu.set_slots(slots_info(), "load")
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if player != null:
@@ -4150,11 +4168,18 @@ func _reset_case() -> void:
 
 func _on_new_game() -> void:
 	_reset_case()
+	# 档案：新局 +1 次游玩，状态进入「进行中」
+	Archive.note_play("0017")
+	archive_tracking = true
+	archive_acc = 0.0
 	_start_prologue()
 	_hide_menu()
 
 func _on_start() -> void:
 	_reset_case()
+	archive_tracking = true
+	archive_acc = 0.0
+	Archive.note_progress("0017", round, clock_min)
 	_set_station_lights(true)
 	_start_round()
 	state = "play"
@@ -4162,6 +4187,9 @@ func _on_start() -> void:
 
 func _on_load_slot(i: int) -> void:
 	if game_load(i):
+		archive_tracking = true
+		archive_acc = 0.0
+		Archive.note_progress("0017", round, clock_min)
 		state = "play"
 		menu.hide_all()
 		_hide_menu()
@@ -4175,6 +4203,26 @@ func _on_save_slot(i: int) -> void:
 		state = "play"
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		player.allow_capture = true
+
+func _on_delete_slot(i: int) -> void:
+	var ok := delete_slot(i)
+	# 槽位是单局现场，档案在 user://archive.json，删槽位不会动它。
+	menu.set_slots(slots_info(), menu.slot_mode)
+	if ok:
+		menu.set_archive_note("槽位 %d 已删除 · 档案记录不受影响" % (i + 1))
+	else:
+		menu.set_archive_note("槽位 %d 没有可删除的存档" % (i + 1))
+
+func delete_slot(i: int) -> bool:
+	if i < 0 or i >= SLOT_PATHS.size():
+		return false
+	if not FileAccess.file_exists(SLOT_PATHS[i]):
+		return false
+	# 用 user:// 目录相对删除，桌面端与 Web（IndexedDB 虚拟文件系统）都能生效
+	var dir := DirAccess.open("user://")
+	if dir == null:
+		return false
+	return dir.remove(SLOT_PATHS[i].get_file()) == OK
 
 func slots_info() -> Array:
 	var out := []
@@ -4191,7 +4239,10 @@ func slots_info() -> Array:
 					var cm := float(j.get("clock", T_START))
 					var mm := ((int(cm) % 1440) + 1440) % 1440
 					d["clock"] = "%02d:%02d" % [mm / 60, mm % 60]
-					d["time"] = str(j.get("time", ""))
+					var t := str(j.get("time", "")).replace("T", " ")
+					if t.length() > 16:
+						t = t.substr(0, 16)
+					d["time"] = t
 		out.append(d)
 	return out
 
@@ -4219,6 +4270,16 @@ func game_has_save() -> bool:
 			return true
 	return false
 
+func _archive_migrate_slots() -> void:
+	# 旧版本只有槽位、没有档案：只要还有存档，就给 0017 补一条「进行中」。
+	if not game_has_save():
+		return
+	var d := Archive.load_data()
+	var e: Dictionary = d["cases"].get("0017", {})
+	if bool(e.get("started", false)) or bool(e.get("completed", false)):
+		return
+	Archive.note_progress("0017", -1, T_START)
+
 func game_save(i: int) -> bool:
 	var f := FileAccess.open(SLOT_PATHS[i], FileAccess.WRITE)
 	if f == null:
@@ -4234,6 +4295,7 @@ func game_save(i: int) -> bool:
 			  "time": Time.get_datetime_string_from_system(false, false)}
 	f.store_string(JSON.stringify(d))
 	f.close()
+	Archive.note_progress("0017", round, clock_min)
 	return true
 
 func game_load(i: int) -> bool:
