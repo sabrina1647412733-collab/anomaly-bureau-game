@@ -99,6 +99,7 @@ func run():
  ceiling.queue_free();await physics_frame;await physics_frame
  check(game.player.can_stand(),"离开低顶可正常站起")
  check(game.player.SPEED_CROUCH==.58 and game.player.EYE_CROUCH==1.2,"蹲行速度与动作及视线高度匹配")
+ box=null;col=null;ceiling=null;actor=null
  kit.generation+=1;game._discard_laundry();game.queue_free()
  await process_frame;await process_frame
  print("RESULT: %d passed / %d failed"%[passed,failed]);quit(0 if failed==0 else 1)

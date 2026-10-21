@@ -121,7 +121,7 @@ func step(delta: float) -> void:
 		game.wclock._update_hands()
 	if free:
 		idle += delta
-		if idle > 45.0 and game.field_kit.letter_accepted:
+		if idle > 45.0 and game.field_kit.letter_accepted and game.case_mode != "laundry":
 			idle = 0.0
 			var objective: String = game.case_objective if game.case_mode == "laundry" else game.prologue_objective
 			send_once("hint_"+objective,"派遣科" if game.prologue_call_done else "房东",objective)

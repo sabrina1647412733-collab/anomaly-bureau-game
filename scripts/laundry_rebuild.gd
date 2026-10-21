@@ -10,7 +10,7 @@ const POINTS := {
 	"l_m9":Vector3(2.35,4.2,4.1),"l_m7":Vector3(0,4.25,2.75),
 	"l_backdoor":Vector3(-1.65,4.5,1.9),"l_sign":Vector3(-2.1,4.1,-.2),
 	"l_registry":Vector3(-2.6,4.1,.36),"l_boiler":Vector3(-.55,4.4,.6),
-	"l_clipping":Vector3(-2.8,4.8,.9),"l_photowall":Vector3(-2.85,4.8,.9),
+	"l_clipping":Vector3(-2.88,4.42,.48),"l_photowall":Vector3(-2.85,4.8,.9),
 	"l_keyring":Vector3(-.45,4.85,.6),"l_raincoat":Vector3(-.3,4.5,.1),
 	"c1_valve":Vector3(2.7,-2.15,.52),"c1_notice":Vector3(3.04,-1.7,-6.9),
 	"c1_waterline":Vector3(2.95,-1.65,-.5),"c1_accident":Vector3(2.58,-1.6,-3.8),
@@ -54,12 +54,17 @@ func build() -> void:
 	door("401",Vector3(1.65,9.8,5.4),.9,2.05,0)
 	# 有实体、可辨识的调查对象，避免凭空的交互点。
 	a.label("得利自助洗衣店",Vector3(1.55,6.0,9.92),.12,Color("dfd0a1"),PI)
-	a.label("夜班交接簿  /  E 签到",Vector3(-.7,1.65,9),.06,Color("e4d6b7"),0)
+	var handover=a.label("夜班交接簿",Vector3(-.7,1.65,9),.045,Color("e4d6b7"),0)
+	handover.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	a.label("交班终端",Vector3(-2.1,4.8,8.35),.055,Color("d8ceae"),0)
 	a.label("7  专用 · 请勿使用",Vector3(0,4.85,2.66),.06,Color("d4be8f"),0)
 	a.label("9",Vector3(2.32,4.52,4.1),.05,Color("dfd2b6"),-PI/2)
 	a.label("配电房 →",Vector3(2.0,5.4,8.03),.06,Color("e4d6b7"),0)
 	a.label("秀 兰 干 洗",Vector3(-2.1,4.1,-.2),.09,Color("bcb99c"),0)
+	# 剪报和照片各有自己的实体与瞄准位置，不再挤在同一个点。
+	a.box(Vector3(-2.96,4.42,.48),Vector3(.018,.24,.18),a.plain(Color("d3c4a2")),false)
+	for line in range(4):
+		a.box(Vector3(-2.945,4.49-float(line)*.045,.48),Vector3(.008,.008,.13),a.plain(Color("665f51")),false)
 	a.box(Vector3(4.65,4.7,6.95),Vector3(.4,.7,.18),a.plain(Color("354b46")),false)
 	for floor in [1,2,3,4,5]:
 		var y: float=[0,3.5,6.9,9.8,12.7][floor-1]

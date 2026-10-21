@@ -175,11 +175,12 @@ func stow() -> void:
 		close_letter()
 	if held_id != "" and not game.bag_has(held_id):
 		return
+	var previous := held_id
 	held_id = ""
 	rig.set_item("")
 	game.audio_system.sfx("stow")
 	sync_world()
-	game._say_seq("旁白", "收进背包了。空手时按 B，可以再取出来。", 1.2, false)
+	if previous != "":game.feedback.notify("物品已收纳","手持模型已收起。空手按 B 打开背包，可再次取出。")
 
 func open_inventory(on: bool) -> void:
 	game.bag_open = on
@@ -237,6 +238,7 @@ func take_selected() -> void:
 		return
 	open_inventory(false)
 	equip(selected_id)
+	game.feedback.notify("已取出物品","E / F 查看当前持物，B 收回背包。")
 
 func show_letter(decision: bool) -> void:
 	if game.phone_open:
@@ -350,6 +352,7 @@ func pickup_clock() -> void:
 	game.director.open_clock()
 
 func reset() -> void:
+	if game.feedback != null:game.feedback.reset()
 	generation += 1
 	held_id = ""
 	phone_owned = false
@@ -372,6 +375,8 @@ func _input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	var key: int = event.physical_keycode
+	if key==KEY_E and game.choice==null and game.state in ["prologue","play"] and game.focus!=null:
+		game._update_interaction()
 	if key == KEY_B and game.state in ["prologue", "play", "prologue_ui"]:
 		if inventory.visible:
 			open_inventory(false)

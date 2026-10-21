@@ -26,6 +26,8 @@
 - 当前路线、操作和验证见 `第一案三夜_操作与验收.md`；旧验收文件仅代表历史版本。
 
 ## 修改与验证
+- 2026-10-22：准星选择在`interaction_focus.gd`，脱困在`play_safety.gd`，退出自动档在`exit_autosave.gd`。保留三个手动槽位；`--verify`不得触发自动写入玩家目录。新增回归`focus_safety_save_test.gd`使用自己的临时测试文件并删除它。
+- Windows导出与安装包流程见`distribution/README.md`，安装包放GitHub Release，禁止加入Git大文件历史。当前发行v0.3.1，本轮验收见`20261022_引导交互与发行验收.md`。
 - 小范围修改，先读对应脚本和测试，保留 `.uid` 与资源导入设置文件；不要提交 `.godot/`。
 - 测试脚本在 `scripts/tests/`，例如：`godot --headless --path . -s res://scripts/tests/case1_flow_test.gd`。
 - `case1_flow_test.gd` 兼容入口继承 `case1_three_nights_test.gd`，不再测试旧B/C结局。

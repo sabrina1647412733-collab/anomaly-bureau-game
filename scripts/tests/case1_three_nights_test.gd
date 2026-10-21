@@ -32,6 +32,7 @@ func close() -> void:
 
 func act(id: String) -> void:
 	close()
+	if id=="c1_lady" and lc.night != null and lc.night.lady_state=="walk":lc.night._npc_step(6.1)
 	lc.interact(id)
 	drain_dialogue()
 

@@ -45,6 +45,10 @@ var dawn_node: Node3D
 var reflection
 var dialogue
 var guidance
+var power_lamp: MeshInstance3D
+var power_lever: MeshInstance3D
+var power_caption: Label3D
+var pump: AudioStreamPlayer3D
 
 func setup(case_world) -> void:
 	lc = case_world
@@ -53,6 +57,7 @@ func setup(case_world) -> void:
 	dialogue=preload("res://scripts/spoken_dialogue.gd").new()
 	add_child(dialogue);dialogue.setup(game)
 	_build_evidence()
+	_build_power_feedback()
 	reflection = preload("res://scripts/case1_mirror.gd").new()
 	lc.world.add_child(reflection)
 	reflection.setup(lc)
@@ -261,6 +266,9 @@ func interact(id: String) -> bool:
 				show_page("后房外门","门锁着。等到03:40回应老妇人，她会交出外门钥匙。\n这把钥匙不能开启七号机。")
 			else:
 				lc.has_back_key = true
+				if not lc.back_open:
+					game.audio_system.sfx("door",-10)
+					game.feedback.notify("后房门已打开","先查看旧招牌；外门钥匙仍不能开启七号机。")
 				lc.back_open = true
 				lc.f2.doors["back"].rotation.y = 1.25
 				show_page("后房","旧招牌露出秀兰干洗四字。照片里孩子的脸被刮去。\n锅炉上的钥匙是外门备用钥匙，七号机钥匙已移存楼上检修盒。")
@@ -312,6 +320,9 @@ func interact(id: String) -> bool:
 		"c1_unlock503":
 			if game.player.global_position.z > 5.35: show_page("插销在门内","先经502共用维修通道进入503，才能从内打开走廊门。")
 			else:
+				if not flag("503_open"):
+					game.audio_system.sfx("door",-10)
+					game.feedback.notify("503捷径已打开","走廊门的插销已解除，可以直接进出。")
 				mark("503_open")
 				lc.buildings.f5.doors["503"].rotation.y = -1.35
 				show_page("503捷径已打开","三道插销退开。现在可以从走廊直接进入，不必再绕维修通道。")
@@ -327,6 +338,8 @@ func interact(id: String) -> bool:
 		"c1_valve":
 			if int(progress.power) == 2:
 				progress.power = 3
+				sync_power_feedback()
+				game.feedback.notify("排水完成","水位已经下降。先放下竖井检修梯，再取蓝布鞋。")
 				mark("drained")
 				lc.buildings.b1.water.position.y -= .8
 				game.audio_system.sfx("door",-14)
@@ -337,6 +350,7 @@ func interact(id: String) -> bool:
 		"c1_ladder":
 			if flag("drained"):
 				mark("ladder")
+				game.feedback.notify("检修梯已固定","现在可以走近竖井边，按 E 拾取蓝布鞋。")
 				game.audio_system.sfx("ladder",-8)
 				show_page("检修梯放下了","梯脚已经抵到井底。沿步道靠近蓝布鞋，按E拾取，记得核对补线。")
 			else: show_page("危险水域","漏电警告：浸水线路未隔离，水位尚未下降。先完成配电与排水。")
@@ -362,6 +376,9 @@ func give_back_key() -> void:
 	update_objective()
 
 func lady_talk() -> void:
+	if lc.night != null and lc.night.lady_state=="walk":
+		game.feedback.notify("先观察来客","她正在走向长椅。等她坐稳后，走近按 E 交谈。")
+		return
 	if flag("recognized"):
 		show_page("认领已经完成","原衣已经交还。接下来等待交班、录名和长椅尾声，可用T拨时。")
 		return
@@ -397,6 +414,7 @@ func open_zhou() -> void:
 		show_page("你是来找人的？","老周：先告诉我，你找谁？\n需要拿到九号烘干机的洗衣单，才能向他说明来意。")
 		return
 	mark("zhou_open")
+	game.audio_system.sfx("door",-12)
 	game.bag_add("drawer_key","303抽屉钥匙","老周交付，只开303最下层抽屉。")
 	game.bag_add("mail_key","503信箱钥匙","只开一楼503信箱，不开五楼房门。")
 	lc.buildings.f4.k.doors["402"].rotation.y = 1.25
@@ -440,15 +458,22 @@ func power_page() -> void:
 		["先收起图纸",close_page]])
 
 func power_action(step: int) -> void:
+	game.audio_system.sfx("breaker",-10)
 	if step == 1:
 		progress.power = 1
+		sync_power_feedback()
+		game.feedback.notify("浸水回路已切断","控制盘变为黄灯。下一步：接通独立排水泵。")
 		show_page("浸水回路已隔离","红色危险指示熄灭。接下来接通独立排水泵回路。",[["接通独立排水泵",func(): power_action(2)],["暂时离开",close_page]])
 	elif int(progress.power) == 1:
 		progress.power = 2
+		sync_power_feedback()
+		game.feedback.notify("排水泵已通电","绿灯亮起，泵声启动。沿1F检修梯下B1开排水阀。")
 		game.director.send_once("pump_notice","派遣科","涉水作业不计特殊津贴。请按图隔离回路，排水后再取证。")
 		show_page("独立回路接通","许砚：先问了我才知道。\n\n现在沿一楼检修梯下B1，到标有排水的阀门确认方向并开启。")
 	else:
 		progress.power = 0
+		sync_power_feedback()
+		game.feedback.notify("保护跳闸","没有丢失证据。先切断浸水回路，再接通泵回路。")
 		game.audio_system.sfx("door",-15)
 		show_page("保护跳闸","浸水线路未隔离。先切断浸水回路，再接独立泵。没有丢失证据，可以复位重试。",[["按图重新隔离回路",func(): power_action(1)],["收起图纸",close_page]])
 
@@ -524,21 +549,26 @@ func terminal() -> void:
 		return
 	show_page("申请续查 · 本夜交班","终端：建议抹平。\n权限：临时工无现场处置权。\n\n许砚填写：现场待核，申请续查。\n每夜工资800元，交班后撤离、回住处休息。",[["提交续查记录，等到04:00交班",end_shift]])
 
+func shift_summary() -> String:
+	if night_number()==1:
+		return "今晚已确认\n未取洗衣单与七号机对应；旧招牌为秀兰干洗，来客仍在等那件衣服。\n\n尚待核实\n住户身份、孩子姓名与七号机专用钥匙。\n\n下一班先做\n到4F402找修表师傅，按门边维修牌敲两短一长，出示洗衣单。"
+	return "今晚已确认\n证件与医院挂号件核实了周小满的姓名；老周已提供口述与管线图。孩子去向仍待查。\n\n尚待核实\n原衣、旁通管与地下水痕之间的关系。\n\n下一班先做\n带上403取得的检修盒钥匙，从5F502维修通道进入503，查看检修盒。"
+
 func end_shift() -> void:
 	var n := night_number()
 	if int(progress.paid) < n:
 		progress.paid = n
 		progress.earnings = int(progress.earnings)+800
 		progress.rent_due = maxi(0,2160-int(progress.earnings))
-		game.bag_add("wage_%d"%n,"第%d夜工资回执"%n,"已领取800元，转交房租。余欠%d元。"%int(progress.rent_due))
+		game.bag_add("wage_%d"%n,"第%d夜工资回执"%n,"已领取800元，转交房租。余欠%d元。\n\n"%int(progress.rent_due)+shift_summary())
 	progress.rest_pending = true
 	lc.t = 260.0*60.0
 	lc._dawn_light()
 	if lc.lady != null: lc.lady.visible = false
 	game.director.room_minutes = 1680.0
 	game.director.send_once("wage_%d"%n,"房东","800收到了。余欠%d元。你这工作……明天还去？" % int(progress.rent_due))
-	game.director.send_once("continue_%d"%n,"派遣科","续查已登记。现场保留。04:00后请撤离休息，再于下一晚返岗核对。")
-	show_page("第%d夜结束 · 工资800元"%n,"许砚：去。\n\n没有录名，没有永久权限卡。你已经答应明天把那件衣服找来。\n\n从一楼门厅回到街道，进入出租公寓，在床边选择休息至下一班。",[["收起回执，回出租屋",close_page]])
+	game.director.send_once("continue_%d"%n,"派遣科","续查已登记。先回出租公寓床边休息。下一班："+("去4F402找修表师傅，出示洗衣单。" if n==1 else "从5F502维修通道进入503，核对检修盒。"))
+	show_page("第%d夜结束 · 工资800元"%n,shift_summary()+"\n\n工资800元已转交房租，余欠%d元。\n从1F出口回街道 → 出租公寓 → 床边休息，开始下一班。"%int(progress.rent_due),[["收起回执，回出租屋",close_page]])
 
 func rest_page() -> void:
 	if not bool(progress.rest_pending):
@@ -580,20 +610,25 @@ func required_count() -> int:
 		if lc.has_clue(id): count += 1
 	return count
 
-func goal(id: String, text: String, why: String) -> Dictionary:
-	return {"id":id,"text":text,"why":why}
+func goal(id: String, text: String, why: String, mode := "act") -> Dictionary:
+	return {"id":id,"key":str(night_number())+"_"+text.sha256_text().left(12),"text":text,"why":why,"mode":mode}
 
 func current_goal() -> Dictionary:
-	if flag("recognized"):return goal("c1_terminal","认领完成：等候交班与录名。","用T到下一事件；听完当前对白后再拨时。")
+	if flag("recognized"):return goal("c1_terminal","原衣已经归还，等待交班与录名。","可按 T 到下一事件；听完对白后继续拨时。","wait")
 	if bool(progress.rest_pending):return goal("lb_exit","本夜结束：回出租公寓床边休息。","从1F出口回街道，地图目标已切换到出租公寓。")
 	if night_number()==1:
-		if not flag("signed"):return goal("lb_booth","第1夜夜班报到：先在1F传达室签交接簿。","签完交接簿，再沿楼梯去2F洗衣店。")
-		if not flag("rules_seen"):return goal("l_price","确认今晚的工作：查看2F工作须知。","先观察、记录异常，再按交接流程处理。")
-		if not lc.has_clue("slip"):return goal("l_m9","九号烘干机卡着纸，取出查看。","这张未取单可能解释店里还在等什么。")
-		if not flag("seven_seen"):return goal("l_m7","洗衣单写着七号机，检查对应机器。","先确认里面是什么，暂时不要强开机器。")
-		if not lc.fired.has("oldlady"):return goal("c1_broadcast","记录广播，留在店内等候来客。","可按T到下一事件；广播记录会留在记事本中。")
-		if not flag("met_lady") and lc.t<240*60:return goal("c1_lady","有客人来了，问问她在等什么。","走近长椅，按E交谈。")
-		if not flag("back_key"):return goal("c1_lady","她始终数不到第六件，继续观察并回应她。","用T推进到03:10清点、03:40回应；对白期间会暂停拨时。")
+		if not flag("signed"):return goal("lb_booth","夜班报到（1/4）：在1F传达室按 E 签交接簿。","签完交接簿，再沿楼梯去2F洗衣店。")
+		if not flag("rules_seen"):return goal("l_price","确认工作（2/4）：上2F，按 E 阅读工作须知。","先观察、记录异常，再按交接流程处理。")
+		if not lc.has_clue("slip"):return goal("l_m9","记录异常（3/4）：从九号烘干机取出纸张。","这张未取单可能解释店里还在等什么。")
+		if not flag("seven_seen"):return goal("l_m7","核对洗衣单（4/4）：检查七号机里的衣服。","先确认里面是什么，暂时不要强开机器。")
+		if not lc.fired.has("oldlady"):
+			var waiting="等待00:01第一遍广播。" if not lc.fired.has("bc1") else ("等待00:20第二遍广播。" if not lc.fired.has("bc2") else "留在店内，等待01:10的来客。")
+			return goal("c1_broadcast",waiting,"当前调查已完成；可按 T 到下一事件，广播会留在记事本。","wait")
+		if lc.night != null and lc.night.lady_state=="walk":return goal("c1_lady","来客正走向长椅，先观察她。","等她坐稳后再交谈，暂时不用拨动时钟。","arrival")
+		if not flag("met_lady") and lc.t<240*60:return goal("c1_lady","走近长椅，按 E 问问她在等什么。","先听她说完；对话结束后再继续调查。")
+		if not flag("back_key"):
+			if lc.t<240*60:return goal("c1_lady","继续观察，等她03:40开口询问。","记下她清点衣物时停在哪一件；可按 T 到下一事件。","wait")
+			return goal("c1_lady","她在问衣服洗好了没有，走近按 E 回应。","先说明还没找到那件原衣，听她把话说完。")
 		if not lc.back_open:return goal("l_backdoor","用她交给你的钥匙打开后房。","这把钥匙开后房外门，七号机仍需另一把专用钥匙。")
 		if not lc.has_clue("sign"):return goal("l_sign","核对后房旧招牌，查清她和店的关系。","看到的文字会保存到背包，F可重读。")
 		return goal("c1_terminal","今晚还没找到原衣：到柜台申请续查。","提交后领取工资，回出租屋休息，下一夜再找住户核实。")
@@ -608,14 +643,17 @@ func current_goal() -> Dictionary:
 			["testimony","l_locked_402","把出院小结给老周看，核实那晚的事。","听完口述，拿到管线图。"],
 			["tool_key","c1_tools","到403维修挂板取检修盒钥匙。","它开503的检修盒，不能直接开七号机。"],
 			["name_told","c1_lady","回2F告诉她：孩子叫周小满。","名字已经核实，接下来还要调查事故。"]]:
-			if not flag(row[0]) and not lc.has_clue(row[0]):return goal(row[1],row[2],row[3])
-		return goal("c1_terminal","本夜身份材料已核实，03:40后到柜台申请续查。","提交后回家休息，第三夜追查水和原衣。")
+			if not flag(row[0]) and not lc.has_clue(row[0]):
+				if row[1]=="c1_lady" and not lc.fired.has("oldlady"):return goal("c1_lady","身份材料已核实，等候周秀兰到店。","留在2F，可按 T 推进到来客事件。","wait")
+				return goal(row[1],row[2],row[3])
+		return goal("c1_terminal","本夜材料已齐，等待03:40后再交班。" if lc.t<240*60 else "到2F柜台申请续查，领取本夜工资。","可按 T 推进时间；交班后回出租公寓休息。","wait" if lc.t<240*60 else "act")
 	for row in [
 		["machine_key","c1_keybox","从502穿维修通道到503，打开检修盒。","房门从内反锁；先取七号机专用钥匙。"],
 		["roof_copy","c1_roof_copy","到屋顶核对重复出现的童装。","重复品能提供线索，不能代替原衣。"],
 		["roof_patch","c1_roof_patch","核对水箱旁的维修印与管线图。","查清水从哪里经过后房。"]]:
 		if not lc.has_clue(row[0]):return goal(row[1],row[2],row[3])
-	if int(progress.power)<2:return goal("c1_power","按管线图隔离浸水电路，再接独立排水泵。","先保证安全，才能下B1取证。")
+	if int(progress.power)==0:return goal("c1_power","到2F配电盘，先切断浸水回路。","先隔离漏电区域，再启动独立排水泵。")
+	if int(progress.power)==1:return goal("c1_power","浸水回路已隔离，接通独立排水泵。","控制盘的黄灯表示隔离完成；选择接通泵回路。")
 	if not flag("drained"):return goal("c1_valve","从1F检修梯下B1，开启排水阀。","电路已隔离，确认阀门方向后排水。")
 	for row in [["notice","c1_notice","核对B1未送达的停水通知。"],["waterline","c1_waterline","查看池壁旧水位线。"]]:
 		if not lc.has_clue(row[0]):return goal(row[1],row[2],"用日期、水痕和老周的口述相互核实。")
@@ -624,6 +662,7 @@ func current_goal() -> Dictionary:
 	if not lc.has_clue("back_water"):return goal("l_boiler","回2F后房核对旧水痕。","查清水与火怎样经过同一个房间。")
 	if not lc.has_clue("accident"):return goal("c1_accident","回B1安全步道整理事故证据。","确认周秀兰遭遇；孩子去向保留为未明。")
 	if not lc.has_clue("sweater"):return goal("l_m7","用专用钥匙取回七号机原衣。","真正未取的那件，才是她缺少的第六件。")
+	if not lc.fired.has("oldlady"):return goal("c1_lady","证据已齐，等待周秀兰到店。","留在2F，可按 T 推进到来客事件。","wait")
 	return goal("c1_lady","把第六件原衣交还周秀兰。","证据已齐；听她说完最后的话。")
 
 func objective() -> String:
@@ -631,12 +670,14 @@ func objective() -> String:
 
 func update_objective() -> void:
 	if game == null: return
+	if dialogue != null and dialogue.panel.visible:return
 	var text := objective()
 	if game.case_mode == "laundry" and game.case_objective != text: game.set_case_objective(text)
 	chapter.text = "10月%d日  ·  第%d夜  ·  现场证据 %d/%d" % [17+night_number(),night_number(),required_count(),REQUIRED.size()]
 	chapter.visible = game.case_mode == "laundry" and game.state not in ["menu","case_end","case_title"]
 
 func next_event() -> Array:
+	if lc.night != null and lc.night.lady_state=="walk":return [1420.0+lc.t/60.0,"等来客坐稳，再继续拨时"]
 	if game.audio_system.is_busy() or dialogue.panel.visible or not game.sub_queue.is_empty():return [1420.0+lc.t/60.0,"先听完当前对白，再继续拨时"]
 	if night_number()==1 and (not flag("signed") or not flag("rules_seen") or not lc.has_clue("slip") or not flag("seven_seen")):
 		return [1420.0+lc.t/60.0,"先完成当前目标："+objective()]
@@ -722,15 +763,17 @@ func restore(data: Dictionary) -> void:
 	if flag("503_open"): lc.buildings.f5.doors["503"].rotation.y = -1.35
 	if flag("drained"): lc.buildings.b1.water.position.y = lc.buildings.b1.water_base_y-.8
 	if bag_model != null: bag_model.visible = lc.fired.has("oldlady") and not lc.fired.has("dawn4")
+	sync_power_feedback()
 	game.spots = lc.spots()
 	update_objective()
 
 func _build_evidence() -> void:
 	var a = lc.art
-	var positions := {"marriage":Vector3(-.52,7.72,3.15),"photo":Vector3(-2.83,7.76,3.75),"cert":Vector3(2.70,7.60,4.05),"return_card":Vector3(-2.8,1.34,4.62),"discharge":Vector3(13.8,4.5,12),"tool_key":Vector3(.45,10.8,4.65),"machine_key":Vector3(2.8,13.48,4.6)}
+	var positions := {"slip":Vector3(2.33,4.24,4.1),"marriage":Vector3(-.52,7.72,3.15),"photo":Vector3(-2.83,7.76,3.75),"cert":Vector3(2.70,7.60,4.05),"return_card":Vector3(-2.8,1.34,4.62),"discharge":Vector3(13.8,4.5,12),"tool_key":Vector3(.45,10.8,4.65),"machine_key":Vector3(2.8,13.48,4.6)}
 	for id in positions:
 		var node: MeshInstance3D = a.box(positions[id],Vector3(.19,.009,.13),a.plain(Color("d7c9a5")),false)
 		physical[id] = node
+	physical["slip"].rotation.z=PI/2
 	# 新模型按实际尺度归一化，保持源文件不变。
 	var other_shoe := Props.place(lc.world,"shoe",Vector3(1.70,6.93,4.35),.19,0.3)
 	if other_shoe != null: other_shoe.scale.x = -1.0
@@ -755,9 +798,32 @@ func _build_evidence() -> void:
 	a.label("排水阀 →",Vector3(2.7,-1.3,.5),.06,Color("d8c487"),0)
 	a.label("502 ↔ 503 共用维修通道",Vector3(-.22,14.45,4.3),.04,Color("b4c5aa"),-PI/2)
 
+func _build_power_feedback() -> void:
+	var a=lc.art
+	power_lamp=a.box(Vector3(4.42,5.05,6.95),Vector3(.08,.14,.08),a.plain(Color.WHITE),false)
+	power_lever=a.box(Vector3(4.40,4.68,6.95),Vector3(.10,.26,.07),a.plain(Color("b6b29a")),false)
+	power_caption=Label3D.new();power_caption.font=game.font;power_caption.font_size=32;power_caption.pixel_size=.003
+	power_caption.billboard=BaseMaterial3D.BILLBOARD_ENABLED;power_caption.position=Vector3(4.3,5.35,6.95);lc.world.add_child(power_caption)
+	pump=AudioStreamPlayer3D.new();pump.stream=game.audio_system.stream("pump_motor",true);pump.bus="Ambience"
+	pump.position=Vector3(4.3,4.4,6.95);pump.max_distance=9;pump.unit_size=2;lc.world.add_child(pump)
+	sync_power_feedback()
+
+func sync_power_feedback() -> void:
+	if power_lamp==null:return
+	var step:int=int(progress.power)
+	var color:Color=[Color("c96a52"),Color("e0b756"),Color("77bc91"),Color("77bc91")][clampi(step,0,3)]
+	var material=StandardMaterial3D.new();material.albedo_color=color;material.emission_enabled=true;material.emission=color;material.emission_energy_multiplier=.7
+	power_lamp.material_override=material;power_lever.rotation.z=-.7 if step>=2 else .7
+	power_caption.text=["未隔离 · 先切断浸水回路","已隔离 · 可接独立排水泵","泵已通电 · 去B1开阀","排水完成 · 可放检修梯"][clampi(step,0,3)]
+	pump.volume_db=-25 if step==3 else -18
+	if step>=2:
+		if not pump.playing:pump.play()
+	else:pump.stop()
+
 func _process(delta: float) -> void:
 	if game == null: return
 	update_objective()
+	if pump != null:pump.stream_paused=game.state=="paused"
 	if bag_model != null and lc.lady != null and lc.night.lady_state=="walk":
 		bag_model.global_position=lc.lady.global_position+lc.lady.global_basis.x*.24+Vector3(0,.42,0)
 	elif bag_model != null:

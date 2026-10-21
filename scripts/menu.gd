@@ -11,6 +11,9 @@ signal delete_slot(index)
 signal resume_game
 signal to_menu
 signal quit_game
+signal recover_player
+signal auto_continue
+var auto_button: Button
 signal settings_changed
 
 var font: Font
@@ -421,6 +424,13 @@ func _build_main() -> void:
         r.focus_neighbor_top = r.get_path_to(menu_rows[(i + menu_rows.size() - 1) % menu_rows.size()])
         r.focus_neighbor_bottom = r.get_path_to(menu_rows[(i + 1) % menu_rows.size()])
     call_deferred("focus_main")
+
+    auto_button = _btn("继续自动保存（暂无）", 16)
+    auto_button.position = Vector2(88, 750)
+    auto_button.size = Vector2(392, 48)
+    auto_button.disabled = true
+    auto_button.pressed.connect(func(): auto_continue.emit())
+    center.add_child(auto_button)
 
     # 底部提示
     var hints := _label("↑ ↓  选择     ENTER  确认     ESC  返回", 9, Color(0.35, 0.42, 0.50))
@@ -1256,8 +1266,8 @@ func _build_pause() -> void:
     add_child(pause_dim)
     move_child(pause_dim, 1)
     pause_panel = PanelContainer.new()
-    pause_panel.position = Vector2(620, 280)
-    pause_panel.size = Vector2(360, 328)
+    pause_panel.position = Vector2(620, 230)
+    pause_panel.size = Vector2(360, 440)
     pause_panel.add_theme_stylebox_override("panel", _panel_style())
     add_child(pause_panel)
     var v := VBoxContainer.new()
@@ -1280,7 +1290,9 @@ func _build_pause() -> void:
     var b2 := _btn("存 档", 15)
     var b3 := _btn("设 置", 15)
     var b4 := _btn("回 主 菜 单", 15)
-    for b in [b1, b2, b3, b4]:
+    var recover := _btn("脱困修正  /  F8", 15)
+    var quit := _btn("保存并退出游戏", 15)
+    for b in [b1, b2, b3, recover, b4, quit]:
         b.custom_minimum_size = Vector2(292, 42)
         if b != b1:
             b.add_theme_stylebox_override("normal", _ghost_style(Color(0, 0, 0, 0), Color(1, 1, 1, 0.10), 0, 1))
@@ -1291,6 +1303,8 @@ func _build_pause() -> void:
     b2.pressed.connect(func(): _pause_wants_save.emit())
     b3.pressed.connect(func(): _show_settings(true))
     b4.pressed.connect(func(): hide_all(); to_menu.emit())
+    recover.pressed.connect(func(): recover_player.emit())
+    quit.pressed.connect(func(): quit_game.emit())
 
 signal _pause_wants_save
 

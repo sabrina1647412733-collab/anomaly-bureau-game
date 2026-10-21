@@ -139,6 +139,7 @@ var laundry = null                          # LaundryCase：得利洗衣店那�
 var phone_open := false                     # 手机 UI 是否打开（出租屋开局）
 var field_kit = null
 var audio_system = null
+var feedback = null
 var director = null
 var town_bridge = null
 var xuyan_avatar = null
@@ -204,6 +205,9 @@ var hotbar
 var bag_sel := 0
 var doors := []
 var safe_pos := Vector3(-15.05, 0.2, -12.90)
+var focus
+var safety
+var exit_save
 var safe_t := 0.0
 var sig_red: MeshInstance3D = null
 var sig_green: MeshInstance3D = null
@@ -295,6 +299,13 @@ func _ready() -> void:
 	director = preload("res://scripts/case_director.gd").new()
 	add_child(director)
 	director.setup(self)
+	feedback = preload("res://scripts/case_feedback.gd").new()
+	add_child(feedback)
+	feedback.setup(self)
+	focus=preload("res://scripts/interaction_focus.gd").new();add_child(focus);focus.setup(self)
+	safety=preload("res://scripts/play_safety.gd").new();add_child(safety);safety.setup(self)
+	exit_save=preload("res://scripts/exit_autosave.gd").new();add_child(exit_save);exit_save.setup(self)
+	menu.recover_player.connect(func():safety.recover())
 	_apply_settings()
 	train.lights_on(false)     # 预热：列车灯常驻但能量极低，先把着色器变体编译掉
 	round = -2
@@ -548,9 +559,6 @@ func _make_hud() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(root)
-	var dot := ColorRect.new(); dot.color = Color(0.88,0.64,0.29,0.85); dot.position = Vector2(799, 449); dot.size = Vector2(3,3)
-	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(dot)
 	hud_clock = _label(root, 0, Vector2(690, 14), Vector2(220, 56), 42, Color(0.88,0.64,0.29))
 	hud_objective = _label(root, 0, Vector2(18, 18), Vector2(560, 28), 16, Color(0.88, 0.64, 0.29))
 	hud_objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -3748,6 +3756,10 @@ func _got_count() -> int:
 
 # ------------------------------------------------------------------ 交互检测
 func _update_interaction() -> void:
+	if focus!=null and choice==null and (state=="prologue" or case_mode=="laundry"):
+		prompt=focus.select_target()
+		hud_prompt.text="[E]  "+String(prompt.text) if prompt!=null else ""
+		return
 	# ── 选项状态：**必须先判**，否则下面 state.begins_with("prologue") 会把它吃掉 ──
 	# （踩过的坑：信封弹出选项后 state 是 "prologue_choice"，结果提示文字被清空 →
 	#   玩家只看到"动不了了"，看不到任何选项。）
@@ -3916,6 +3928,9 @@ func _ring_floor_y(p: Vector3) -> float:
 
 func _update_prompt_ring(delta: float) -> void:
 	if prompt_ring == null:
+		return
+	if focus!=null and (case_mode=="laundry" or state.begins_with("prologue")):
+		prompt_ring.visible=false
 		return
 	ring_flash = maxf(0.0, ring_flash - delta)
 	var p := Vector3.ZERO
@@ -4114,7 +4129,9 @@ func bag_add(id: String, nm: String, desc := "", kind := "物") -> void:
 		if String(e["id"]) == id:
 			return
 	case_bag.append({"id": id, "name": nm, "desc": desc, "kind": kind})
-	_say_seq("旁白", "放进包里：" + nm, 1.4)
+	if feedback != null:
+		feedback.acquired(id,nm)
+	else:_say_seq("旁白", "放进包里：" + nm, 1.4)
 
 func bag_has(id: String) -> bool:
 	for e in case_bag:
@@ -4358,6 +4375,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if state == "cutscene" and (event.physical_keycode == KEY_SPACE or event.physical_keycode == KEY_ENTER or event.physical_keycode == KEY_E or event.physical_keycode == KEY_ESCAPE):
 			_skip_cutscene()
 		elif event.physical_keycode == KEY_E:
+			if choice==null and focus!=null and (state=="prologue" or (state=="play" and case_mode=="laundry")):
+				_update_interaction()
 			_interact()
 		elif event.physical_keycode == KEY_C and choice == "case_final":
 			laundry.choose_final("C")
@@ -4934,7 +4953,7 @@ func _make_menu() -> void:
 	)
 	menu.resume_game.connect(_on_resume)
 	menu.to_menu.connect(_on_to_menu)
-	menu.quit_game.connect(func(): get_tree().quit())
+	menu.quit_game.connect(func(): exit_save.request_quit())
 	menu.settings_changed.connect(_apply_settings)
 	_apply_settings()
 
@@ -5111,6 +5130,11 @@ func _on_resume() -> void:
 	player.can_move = state in ["play", "prologue"]
 
 func _on_to_menu() -> void:
+	if exit_save!=null:
+		if not exit_save.test_mode and state!="menu" and not exit_save.save_now():
+			menu.show_pause()
+			OS.alert("自动保存失败，请先在暂停菜单手动存档，再返回主菜单。","保存未完成")
+			return
 	state = "menu"
 	_show_menu()
 

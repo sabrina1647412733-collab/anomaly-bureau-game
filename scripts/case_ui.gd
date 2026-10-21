@@ -45,11 +45,12 @@ func setup(g) -> void:
 	_place(g.hud_sub, Vector2(28, 50), Vector2(984, 84), 21, TEXT)
 	g.hud_sub.add_theme_constant_override("line_spacing", 7)
 	_text(subtitle, "空格 / 点击  继续", Vector2(812, 18), Vector2(200, 22), 12, MUTED)
-	_place(g.hud_prompt, Vector2(340, 578), Vector2(920, 70), 18, TEXT)
+	_place(g.hud_prompt, Vector2(480, 482), Vector2(640, 62), 18, TEXT)
+	g.hud_prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	g.hud_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	g.hud_prompt.add_theme_color_override("font_shadow_color", Color.BLACK)
 	g.hud_prompt.add_theme_constant_override("shadow_offset_y", 2)
-	controls = _text(self, "E  交互    F  查看持物    B  收纳 / 背包    T  随身时钟    TAB  记事本    ESC  暂停", Vector2(40, 860), Vector2(1100, 24), 13, MUTED)
+	controls = _text(self, "E  交互    F  查看持物    B  收纳 / 背包    T  随身时钟    H  任务提示    F8  脱困    TAB  记事本    ESC  暂停", Vector2(40, 860), Vector2(1300, 24), 13, MUTED)
 	rate_label = _text(self,"24H  ·  时间×10",Vector2(1338,80),Vector2(220,24),12,MUTED)
 	_build_choice()
 	_build_result()
@@ -167,7 +168,7 @@ func _process(_delta: float) -> void:
 	var field_modal: bool = game.field_kit != null and game.field_kit.letter_ui.visible
 	subtitle.visible = game.sub != "" and game.state not in ["menu", "paused", "case_end"] and not game.phone_open and not game.bag_open and not field_modal
 	controls.visible = game.state in ["prologue", "play"] and not game.nb_open and not game.phone_open
-	game.hud_prompt.visible = not choosing and not ending
+	game.hud_prompt.visible = not choosing and not ending and game.state in ["prologue","play"] and not game.phone_open and not game.bag_open and not game.nb_open
 	game.hud_clock.visible = game.hud_clock.visible and not ending
 	rate_label.visible = game.hud_clock.visible and game.state not in ["menu","paused"] and (game.case_mode == "laundry" or game.state.begins_with("prologue"))
 	if choosing:
