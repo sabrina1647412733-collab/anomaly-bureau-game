@@ -8,6 +8,7 @@ func shot(name:String):
  await RenderingServer.frame_post_draw
  root.get_texture().get_image().save_png(OUT+name+".png")
 func view(eye:Vector3,target:Vector3):
+ game.player.lock_look=true
  game.player.global_position=eye-Vector3(0,1.66,0);game.player.cam.global_position=eye;game.player.cam.look_at(target);game.field_kit.rig.visible=false
 func clean():
  game.audio_system.stop_voice();game._clear_sub();game.feedback.reset();game.director.toast.visible=false
