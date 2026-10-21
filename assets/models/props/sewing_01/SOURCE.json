@@ -1,0 +1,11 @@
+{
+  "id": "sewing_01",
+  "name": "老式脚踏缝纫机（自制）",
+  "author": "本项目自建（blender_boiler_sewing.py）",
+  "license": "CC0",
+  "generator": "_setup/blender_boiler_sewing.py",
+  "blender": "4.5.14 LTS",
+  "tris": 3036,
+  "size_m": [0.94, 0.48, 1.05],
+  "note": "底面在原点，正面朝 -Y（Godot 里 -Z）。用于 4F 403 杂物间。"
+}

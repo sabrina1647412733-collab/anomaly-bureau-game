@@ -1,0 +1,11 @@
+{
+  "id": "boiler_01",
+  "name": "立式铸铁锅炉（自制）",
+  "author": "本项目自建（blender_boiler_sewing.py）",
+  "license": "CC0",
+  "generator": "_setup/blender_boiler_sewing.py",
+  "blender": "4.5.14 LTS",
+  "tris": 8208,
+  "size_m": [1.24, 1.24, 2.45],
+  "note": "底面在原点，正面朝 -Y（Godot 里 -Z）。用于 B1 两台锅炉与 3F 302 后房。"
+}

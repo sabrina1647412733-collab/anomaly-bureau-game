@@ -95,6 +95,10 @@ var prologue_travel_return_state := "prologue"
 
 var clock_min := T_START
 var state := "play"            # play / cutscene / ending
+## 本局模式："" = 岚桥站 0017（默认）；"laundry" = 得利洗衣店第一案。
+## 设成 "laundry" 后，玩家/HUD/交互/字幕/淡入 全部沿用本文件这套，
+## 只是场景换成洗衣店、时间轴换成第一夜、结局换成三选一。
+var case_mode := ""
 var round := -1                # -1 序章, 0 林岚, 1 周砚, 2 陈默, 3 收束
 var round_elapsed := 0.0       # 本轮现实流逝秒
 var power := false
@@ -130,6 +134,14 @@ var pc_overlay: Control
 var pc_layer: CanvasLayer
 var studio_onair_mat: StandardMaterial3D
 var prompt: Variant = null
+var laundry = null                          # LaundryCase：得利洗衣店那一局（scene case）
+var phone_open := false                     # 手机 UI 是否打开（出租屋开局）
+var field_kit = null
+var audio_system = null
+var director = null
+var town_bridge = null
+var xuyan_avatar = null
+var phone_ui = null                         # PhoneUI 实例
 var prompt_ring: MeshInstance3D = null      # 交互目标脚下的「呼吸环」
 var prompt_ring_mat: StandardMaterial3D = null
 var ring_flash := 0.0                      # 按下 E 之后 1 秒的高亮
@@ -231,6 +243,8 @@ func _ready() -> void:
 	_spawn_player()
 	_make_hud()
 	_make_prologue_ui()
+	_make_phone()
+	_make_notebook()
 	_make_items()
 	_make_doors()
 	_make_clue_board()
@@ -267,6 +281,20 @@ func _ready() -> void:
 	_make_menu()
 	_make_bag()
 	_make_pc_overlay()
+	audio_system = preload("res://scripts/field_audio.gd").new()
+	add_child(audio_system)
+	audio_system.setup(self)
+	field_kit = preload("res://scripts/field_items.gd").new()
+	add_child(field_kit)
+	field_kit.setup(self)
+	xuyan_avatar = preload("res://scripts/town/xuyan_character.gd").new()
+	xuyan_avatar.setup(player, field_kit.rig)
+	town_bridge = preload("res://scripts/town/town_bridge.gd").new()
+	town_bridge.setup(self, font)
+	director = preload("res://scripts/case_director.gd").new()
+	add_child(director)
+	director.setup(self)
+	_apply_settings()
 	train.lights_on(false)     # 预热：列车灯常驻但能量极低，先把着色器变体编译掉
 	round = -2
 	_start_round()
@@ -275,6 +303,139 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		print("[WEB] light_limits renderable=", ProjectSettings.get_setting("rendering/limits/opengl/max_renderable_lights", -1),
 			" per_object=", ProjectSettings.get_setting("rendering/limits/opengl/max_lights_per_object", -1))
+
+## ── 得利洗衣店：作为本框架的「一局」启动 ──
+## 调用后：玩家/HUD/交互/字幕/呼吸环/淡入 全部还是 0017 这套，
+## 只是世界换成洗衣店、spots 换成洗衣店的交互点、时间轴换成第一夜。
+func start_laundry_case() -> void:
+	if laundry != null:
+		case_mode = "laundry"
+		laundry.world.visible = true
+		laundry.t = maxf(laundry.t, (director.room_minutes - laundry.START_MIN) * 60.0)
+		laundry._place_player_at_entrance()
+		spots = laundry.spots()
+		state = "play"
+		_apply_laundry_environment(true)
+		if hud_objective != null:
+			hud_objective.visible = false
+		set_case_objective("继续值夜班。沿门厅走到尽头，上左侧楼梯到二楼。", "return_to_shift")
+		laundry._timeline()
+		return
+	if phone_open:
+		_close_phone()
+	if field_kit != null:
+		if field_kit.inventory.visible:
+			field_kit.open_inventory(false)
+		field_kit.letter_ui.visible = false
+	case_mode = "laundry"
+	# 兼容旧版洗衣店存档：随身时钟不能被留在无法返回的出租屋。
+	if field_kit != null and not bag_has("weird_clock"):
+		bag_add("weird_clock","诡异时钟","随身黄铜钟。T打开，拨到下一事件；现实1分钟=游戏10分钟。")
+		field_kit.sync_world()
+	# 把岚桥站那一局整个藏起来：站体 / 灯光 / 道具 / NPC / 物品 / 门 / 值班板 / 时钟 …
+	# 站台先放着不删（以后还要接回来），只是这一轮不进游戏。
+	_hide_station_world()
+	# 玩家挪到洗衣店
+	var LC := preload("res://scripts/laundry_case.gd")
+	laundry = LC.new(self)
+	laundry.enter()	# 交互点整体换成洗衣店的
+	spots = laundry.spots()
+	# 时钟从 23:40 起
+	clock_min = laundry.START_MIN
+	if director != null:
+		laundry.t = maxf(0.0,(director.room_minutes-laundry.START_MIN)*60.0)
+		director.on_arrival()
+	round = 0
+	state = "play"
+	_hide_menu()
+	if hud_clock != null:
+		hud_clock.visible = true
+	if hud_map != null:
+		hud_map.visible = false          # 站区图在洗衣店没意义
+		hud_map.modulate.a = 0.0         # Control 的 visible 可能被父级覆盖，再压一层透明
+	if round_card != null:
+		round_card.visible = false
+	_say("旁白", "23:40。临江里 17 号。二楼有一家洗衣店还亮着灯。")
+	# 洗衣店用自己的环境光（站台那套是夜景，暗 4 倍）
+	_apply_laundry_environment(true)
+	# 进门第一件事：给个明确目标（不然玩家不知道要干嘛）
+	case_obj_done.clear()
+	set_case_objective("看看这家店。（WASD 走 · E 交互 · Tab 记事本）", "look")
+	print("[LAUNDRY] 已作为 0017 框架的一局启动")
+
+## 洗衣店的环境光和站台不是一个量级：
+##   站台（0017 夜景）ambient 0.28 / exposure 0.72
+##   洗衣店（laundry_main 原设）ambient 1.35 / exposure 1.35
+## 不改的话进洗衣店会一片漆黑 —— 这轮实测就是这个问题。
+func _apply_laundry_environment(on: bool) -> void:
+	if env_node == null or env_node.environment == null:
+		return
+	var e := env_node.environment
+	if on:
+		e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		e.ambient_light_color = Color(0.26, 0.28, 0.34)
+		e.ambient_light_energy = 0.95
+		e.tonemap_exposure = 1.10
+		e.fog_density = 0.008
+		e.fog_light_color = Color(0.040, 0.048, 0.062)
+	else:
+		e.ambient_light_energy = 0.28
+		e.tonemap_exposure = 0.72
+
+## 把岚桥站那一局整棵树收起来（不删）。站台这一轮先不做进游戏。
+func _hide_station_world() -> void:	# 1) 站体网格 + 站体碰撞（StationBuilder 建的）
+	if builder != null:
+		if builder.mesh_inst != null:
+			builder.mesh_inst.visible = false
+		if builder.body != null:
+			builder.body.process_mode = Node.PROCESS_MODE_DISABLED
+			# 碰撞不能只是隐藏，要真的失效，否则玩家在洗衣店会被站台墙挡住
+			for cs in builder.body.get_children():
+				if cs is CollisionShape3D:
+					cs.set_deferred("disabled", true)
+	# 2) 站台上的道具 / NPC / 物品 / 门 / 值班板 / 电脑 / 录音棚 / 隧道灯
+	#    它们都直接挂在 game 根节点下，按名字与已知引用一起收
+	var hide_names := ["DutyComputer", "StudioProps", "ClueBoard", "DeskProps", "TunnelLamp"]
+	for c in get_children():
+		var nm := String(c.name)
+		if nm in hide_names:
+			_set_tree_visible(c, false)
+	# 物品 / 门 / NPC：用已建好的数组引用，逐个隐藏并关掉碰撞
+	for it in items:
+		if it.get("node") != null:
+			_set_tree_visible(it["node"], false)
+	for d in doors:
+		if d.get("node") != null:
+			_set_tree_visible(d["node"], false)
+	for np in npcs:
+		if np.get("node") != null:
+			_set_tree_visible(np["node"], false)
+	for b in buttons:
+		if b.get("node") != null:
+			_set_tree_visible(b["node"], false)
+	if board_root != null:
+		_set_tree_visible(board_root, false)
+	if clock_label != null:
+		clock_label.visible = false
+	# 3) 序章三个 stage（出租屋/街道/便利店）
+	for c in get_children():
+		if c is Node3D and String(c.name).begins_with("Prologue_"):
+			c.visible = false
+	# 4) 列车
+	if train != null:
+		train.lights_on(false)
+		if train.root != null:
+			_set_tree_visible(train.root, false)
+
+## 递归隐藏（含 StaticBody 碰撞失效，避免幽灵墙）
+func _set_tree_visible(n: Node, v: bool) -> void:
+	if n is Node3D:
+		(n as Node3D).visible = v
+	for c in n.get_children():
+		if c is CollisionShape3D:
+			(c as CollisionShape3D).set_deferred("disabled", not v)
+		else:
+			_set_tree_visible(c, v)
 
 func _apply_web_quality() -> void:
 	var vp := get_viewport()
@@ -452,6 +613,9 @@ func _make_hud() -> void:
 	hud_map.position = Vector2(1224, 16)
 	hud_map.size = Vector2(360, 436)
 	root.add_child(hud_map)
+	var case_ui := preload("res://scripts/case_ui.gd").new()
+	root.add_child(case_ui)
+	case_ui.setup(self)
 
 func _label(parent: Control, preset: int, pos: Vector2, size: Vector2, fs: int, col: Color) -> Label:
 	var l := Label.new()
@@ -566,26 +730,46 @@ func _make_prologue_ui() -> void:
 		var thint := _label(prologue_travel_card, 0, Vector2(540, 572), Vector2(520, 24), 13, Color(0.42, 0.47, 0.45))
 		thint.text = "数字键选择　Esc 返回"
 func _show_letter_ui() -> void:
-	if prologue_paper == null:
-		return
-	prologue_paper_text.text = "异常事件处置岗（临时）\n工作地点：岚桥站\n报酬：足够付清你欠下的三个月房租\n权限：D\n\n入职说明：\n岗位为临时编制，试用期一个月。\n报到时请携带本通知书与旧工牌。\n夜班期间请服从调度席指令。\n\n信封内附：\n旧钞一叠。\n一张泛黄的值班表，日期栏被水渍晕开。\n值班人：林远舟。"
-	prologue_paper.visible = true
-	state = "prologue_ui"
-	player.can_move = false
-	player.dragging = false
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	field_kit.show_letter(not field_kit.letter_accepted)
 
 func _close_letter() -> void:
-	if prologue_paper == null:
+	field_kit.close_letter()
+
+func _spawn_weird_clock_after_letter() -> void:
+	var run: int = field_kit.generation
+	await get_tree().create_timer(0.8).timeout
+	if run != field_kit.generation or state == "menu" or case_mode == "laundry":
 		return
-	prologue_paper.visible = false
-	state = "prologue"
-	player.can_move = true
-	player.allow_capture = true
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	prologue_letter_read = true
-	_say_seq("旁白", "你把通知书折好，放进口袋。")
-	_ring_phone()
+	_spawn_weird_clock()
+
+# ------------------------------------------------------------------ 信封：捡起来 → 读 → 两个选项
+## 剧本：第一次有「不去 / 去」；选「不去」→ 灯灭 2 秒 → 信封不见了、桌上多一张新的
+##       → 这次**没有选项**，只有「去」。
+var envelope_taken := false
+var envelope_refused := 0
+
+func _pick_envelope() -> void:
+	if envelope_taken:
+		return
+	envelope_taken = true
+	prologue_envelope.visible = false
+	field_kit.equip("envelope")
+	audio_system.sfx("paper")
+	_show_envelope_choice()
+
+## 第一次：两个选项；第二次（它自己回来之后）：只有一个「去」
+func _show_envelope_choice() -> void:
+	choice = "env_choice" if envelope_refused == 0 else "env_choice_forced"
+	choice_text = "[E] 同意入职    [R] 拒绝，扔进垃圾桶" if envelope_refused == 0 else "[E] 同意入职"
+	field_kit.show_letter(true)
+
+## 选「不去」：灯灭 2 秒 → 亮起 → 信封不见了，桌上多一张新的
+func _refuse_envelope() -> void:
+	field_kit.refuse_letter()
+
+## 选「去」：进洗衣店
+func _accept_envelope() -> void:
+	field_kit.accept_letter()
 
 func _setup_prologue_camera() -> void:
 	if player == null or player.cam == null:
@@ -745,6 +929,16 @@ func _build_pro_room(root: Node3D) -> void:
 	prologue_spots.append({"stage":"room", "id":"wallphone", "pos":Vector3(-1.45, 13.50, 319.75), "r":2.0})
 	prologue_spots.append({"stage":"room", "id":"photo", "pos":Vector3(-2.42, 13.75, 319.80), "r":2.1})
 	prologue_spots.append({"stage":"room", "id":"light_switch", "pos":Vector3(0.78, 13.18, 319.78), "r":1.9})
+	# 信封：躺在门内地面。**必须单独有交互点**，否则玩家点不到（这就是"捡不起来"的原因）。
+	# 坐标 = 房间根 (0,12,322.5) + 门内地面 (0, 0.05, 319.9 附近)
+	prologue_spots.append({"stage":"room", "id":"envelope",
+		"pos":Vector3(0.0, 12.10, 320.05), "r":2.0})
+	# 椅子 / 桌上那封信之后可能出现的位置（「不去」→ 灯灭再亮 → 信封换了地方）
+	prologue_spots.append({"stage":"room", "id":"envelope2",
+		"pos":Vector3(2.55, 12.55, 321.05), "r":2.0})
+	# 诡异时钟（同意工作后出现）：摆在床头柜上
+	prologue_spots.append({"stage":"room", "id":"wclock",
+		"pos":Vector3(1.50, 12.62, 321.05), "r":2.0})
 
 func _build_pro_room_legacy(root: Node3D) -> void:
 	_pro_box(root, Vector3(0, -0.05, 0), Vector3(6, 0.1, 5), Color(0.16, 0.12, 0.09))
@@ -1641,7 +1835,14 @@ func _merge_static_meshes(root: Node3D) -> void:
 	_pro_box(root, Vector3(18.0, 1.0, 327.0), Vector3(0.08, 2.0, 0.08), Color(0.18, 0.20, 0.22), false)
 	_pro_box(root, Vector3(18.0, 2.15, 327.0), Vector3(0.70, 0.40, 0.06), Color(0.30, 0.40, 0.46), false)
 
-func _start_prologue() -> void:
+func _start_prologue(with_intro := true) -> void:
+	if town_bridge != null and town_bridge.active:
+		town_bridge.leave()
+	if director != null:
+		director.room_minutes = director.ROOM_START
+		clock_min = director.room_minutes
+	if field_kit != null:
+		field_kit.sync_world()
 	prologue_seen.clear()
 	prologue_letter_ready = false
 	prologue_letter_read = false
@@ -1710,8 +1911,57 @@ func _start_prologue() -> void:
 	player.allow_capture = true
 	# 先清掉主场景启动时排队等候的车站字幕，否则会压在出租屋画面上
 	_clear_sub()
-	_say_seq("旁白", "10 月 18 日。凌晨。")
-	_say_seq("林屿", "……又是这个梦。")
+	if field_kit != null:
+		field_kit.sync_world()
+	if with_intro:
+		_play_room_intro()
+
+## 开场：黑屏 + 雨声 + 手机在震 → 手机屏幕亮 → 抬眼看到房间
+## （原来是一进场景就站着看房间，很枯燥；这一段是剧本写的「第一人称睁眼」）
+var _intro_was_dark := false
+
+func _play_room_intro() -> void:
+	state = "prologue_intro"
+	_intro_was_dark = true
+	player.can_move = false
+	player.lock_look = true
+	player.allow_capture = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if hud_objective != null:
+		hud_objective.visible = false
+	# 全黑
+	hud_fade.color = Color(0, 0, 0, 1)
+	hud_fade.modulate.a = 1.0
+	# 眼睛先闭上：镜头压低一点
+	if player.cam != null:
+		player.pitch = -0.55
+		player.cam.rotation.x = -0.55
+	# 手机在震
+	play_chime(0.55, -8.0)
+	await get_tree().create_timer(0.9).timeout
+	# 黑屏里先出两行字（像睡着时听见的）
+	_say_seq("旁白", "……手机在震。", 1.2)
+	await get_tree().create_timer(1.6).timeout
+	_clear_sub()
+	_say_seq("旁白", "10月18日，23:10。房东又打来了。雨还没停。", 1.4)
+	# 慢慢睁眼：黑 → 亮
+	var tw := create_tween()
+	tw.tween_property(hud_fade, "modulate:a", 0.0, 2.2)
+	# 同时镜头从「躺着看天花板」抬到「坐着看房间」
+	var tw2 := create_tween()
+	tw2.tween_property(player, "pitch", -0.02, 2.4).set_trans(Tween.TRANS_SINE)
+	tw2.parallel().tween_property(player.cam, "rotation:x", -0.02, 2.4).set_trans(Tween.TRANS_SINE)
+	await tw.finished
+	state = "prologue"
+	player.can_move = true
+	player.lock_look = false
+	player.allow_capture = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if hud_objective != null:
+		hud_objective.visible = true
+	# 手机还在响：提示去看手机
+	_prologue_set_objective("看看手机")
+	_ring_phone()
 
 func _show_prologue_stage(stage: String) -> void:
 	var room_root: Node3D = prologue_roots["room"]
@@ -1762,42 +2012,37 @@ func _prologue_set_objective(text: String) -> void:
 func _prologue_mark_seen(key: String) -> void:
 	if not prologue_seen.has(key):
 		prologue_seen[key] = true
-	if prologue_seen.size() >= 2 and not prologue_letter_ready:
+	if prologue_seen.size() >= 2 and prologue_call_done and not prologue_letter_ready:
 		_prologue_drop_letter()
 
 func _prologue_drop_letter() -> void:
+	if audio_system != null:
+		audio_system.sfx("knock", -10.0)
+		audio_system.sfx("paper", -15.0)
 	prologue_letter_ready = true
 	if prologue_envelope != null:
 		prologue_envelope.visible = true
+	field_kit.sync_world()
 	_prologue_set_objective("门缝里有一封信")
 	_say_seq("旁白", "门缝下传来很轻的摩擦声。")
 
 func _ring_phone() -> void:
 	if prologue_call_done:
 		return
-	_prologue_set_objective("接电话")
-	_say_seq("旁白", "手机响了。没有来电显示。")
-	play_chime(0.55, -10.0)
+	phone_ui.incoming = true
+	phone_ui.caller = "房东"
+	audio_system.start_ring()
+	_prologue_set_objective("手机响了。拿起手机，点击接听。")
+	_say_seq("旁白", "手机响了。屏幕上写着：房东。", 1.6, false)
 
 func _prologue_act(id: String) -> void:
 	match id:
 		"phone":
-			if not prologue_letter_read:
-				if not prologue_seen.has("phone"):
-					_prologue_mark_seen("phone")
-					_say_seq("手机", "房东：这个月再不交，你就搬走。")
-					_say_seq("手机", "停职通知：因 10 月 3 日夜班操作失职，暂停岗位。")
-					_say_seq("林屿", "10 月 3 日……那天晚上，我到底在干什么？")
-				else:
-					_say_seq("手机", "余额：83.60 元。")
-			elif not prologue_call_done:
-				prologue_call_done = true
-				_prologue_set_objective("去便利店")
-				_say_seq("接线员", "你的岗位已生效。请在 23:50 前到岚桥站调度席报到。处置权限 D。请活到交班。")
-				_say_seq("林屿", "……你是谁？")
-				_say_seq("旁白", "电话挂断了。窗外还是雨声。")
-			else:
-				_say_seq("手机", "没有信号。")
+			# 点手机 = 打开手机界面（锁屏 / 聊天 / 钱包 / 相册 / 通话）
+			field_kit.pickup_phone()
+			if not prologue_seen.has("phone"):
+				_prologue_mark_seen("phone")
+				_say_seq("旁白", "屏幕上全是通知。房东、银行、还有一个陌生号码。")
 		"box":
 			if not prologue_seen.has("box"):
 				_prologue_mark_seen("box")
@@ -1851,15 +2096,22 @@ func _prologue_act(id: String) -> void:
 				_say_seq("旁白", "雨还在下。")
 		"light_switch":
 			_toggle_prologue_room_lights()
+		"envelope", "envelope2":
+			_pick_envelope()
+		"wclock":
+			field_kit.pickup_clock()
 		"door":
 			if not prologue_letter_ready:
 				_say_seq("旁白", "门锁着。门外没有声音。")
 			elif not prologue_letter_read:
-				_show_letter_ui()
+				_say_seq("旁白","先捡起门下或桌上的信封，读完通知书。")
 			elif not prologue_call_done:
 				_say_seq("旁白", "电话还在响。先接电话。")
 			else:
-				_open_travel_menu()
+				# ── 本工程动线：出租屋 → 出门 → 得利洗衣店 ──
+				# （0017 原先是 _open_travel_menu() 去街道/便利店/车站，
+				#   那套留在下面 _open_travel_menu 里没删，以后要接回来随时能切）
+				_leave_room_to_town()
 		"counter":
 			if not prologue_store_done:
 				prologue_store_done = true
@@ -1912,6 +2164,195 @@ func _prologue_leave_room() -> void:
 	_fade_to(0.0, 0.5)
 	state = "prologue"
 	_say_seq("旁白", "临江里 17 号。雨还没停。街口的便利店还亮着。")
+
+## 出租屋 → 回潮镇街道 → 得利洗衣店（本工程的第一案动线）
+## ---------------------------------------------------------------------------
+## 注意：**不用 await create_timer**。
+## 原来写成 await 之后切状态，结果：
+##   ① 任何把主循环空转/暂停的场合（截图脚本、自动化测试）协程不再推进，
+##      状态永远卡在 prologue_transition —— 看起来就是"出门以后卡住不动"；
+##   ② 帧率骤降时转场时间会被拉长。
+## 改成「记一个时间戳，_process 里按真实 dt 推进」，状态机永远往前走。
+const LEAVE_FADE := 1.1
+
+var _exit_to_laundry := false
+var _exit_t := 0.0
+var _exit_to_town := false
+var _exit_town_t := 0.0
+var _exit_laundry_to_town := false
+var _exit_laundry_t := 0.0
+
+func _leave_room_to_town() -> void:
+	if _exit_to_town:
+		return
+	if not bag_has("weird_clock"):
+		clock_appeared = true
+		bag_add("weird_clock", "诡异时钟", "随身黄铜钟。T 可拨到下一事件。")
+		field_kit.sync_world()
+	audio_system.sfx("door", -6)
+	_exit_to_town = true
+	_exit_town_t = 0.0
+	state = "prologue_transition"
+	player.can_move = false
+	player.allow_capture = false
+	_fade_to(1.0, LEAVE_FADE)
+
+func _step_exit_to_town(delta: float) -> void:
+	if not _exit_to_town:
+		return
+	_exit_town_t += delta
+	if _exit_town_t >= LEAVE_FADE and prologue_stage != "town":
+		town_bridge.enter()
+		player.can_move = false
+		player.allow_capture = false
+		_fade_to(0.0, LEAVE_FADE)
+	if _exit_town_t >= LEAVE_FADE * 2.0:
+		_exit_to_town = false
+		state = "prologue"
+		player.can_move = true
+		player.allow_capture = true
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _leave_laundry_to_town() -> void:
+	if _exit_laundry_to_town or laundry == null or state != "play":
+		return
+	_exit_laundry_to_town = true
+	_exit_laundry_t = 0.0
+	state = "prologue_transition"
+	player.can_move = false
+	player.allow_capture = false
+	audio_system.sfx("door", -6)
+	_fade_to(1.0, LEAVE_FADE)
+
+func _step_laundry_to_town(delta: float) -> void:
+	if not _exit_laundry_to_town:
+		return
+	_exit_laundry_t += delta
+	if _exit_laundry_t >= LEAVE_FADE and case_mode == "laundry":
+		director.room_minutes = maxf(director.room_minutes, laundry.START_MIN + laundry.t / 60.0)
+		laundry.world.visible = false
+		case_mode = ""
+		_apply_laundry_environment(false)
+		town_bridge.enter(true)
+		player.can_move = false
+		player.allow_capture = false
+		_fade_to(0.0, LEAVE_FADE)
+	if _exit_laundry_t >= LEAVE_FADE * 2.0:
+		_exit_laundry_to_town = false
+		state = "prologue"
+		player.can_move = true
+		player.allow_capture = true
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _leave_room_to_laundry() -> void:
+	if not bag_has("weird_clock"):
+		clock_appeared = true
+		bag_add("weird_clock","诡异时钟","出门前一并收好的黄铜钟。T 随时打开，拨到下一事件。")
+		field_kit.sync_world()
+	audio_system.sfx("door", -6)
+	if _exit_to_laundry:
+		return
+	_exit_to_laundry = true
+	_exit_t = 0.0
+	_entered = false
+	state = "prologue_transition"
+	player.can_move = false
+	player.allow_capture = false
+	player.dragging = false
+	_fade_to(1.0, LEAVE_FADE)
+
+## 由 _process 每帧调用：转场推进
+func _step_exit_to_laundry(delta: float) -> void:
+	if not _exit_to_laundry:
+		return
+	_exit_t += delta
+	# 第一段：黑幕拉满 → 换场景
+	if not _entered and _exit_t >= LEAVE_FADE:
+		_entered = true
+		_enter_laundry_from_room()
+		_fade_to(0.0, LEAVE_FADE)
+	# 第二段：亮起来 → 交还控制
+	if _entered and _exit_t >= LEAVE_FADE * 2.0:
+		_exit_to_laundry = false
+		if state != "case_choice" and state != "case_end":
+			state = "play"
+			player.can_move = true
+			player.allow_capture = true
+		player.dragging = false
+		# start_laundry_case() 里可能还有把 can_move 设成 false 的分支，
+		# 这里收尾时再强制一次，保证「出门以后一定能走」。
+		player.set_physics_process(true)
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		print("[LAUNDRY] 转场完成 · 玩家在洗衣店 · can_move=", player.can_move)
+
+var _entered := false
+
+## 从回潮镇进入洗衣店：洗衣店接在 0017 框架上的「一局」
+func _enter_laundry_from_room() -> void:
+	if town_bridge != null:
+		town_bridge.leave()
+	# 出租屋 / 街道 / 便利店三个 stage 全收起来
+	for c in get_children():
+		if c is Node3D and String(c.name).begins_with("Prologue_"):
+			c.visible = false
+	# 序章 UI（信封 / 通知书 / 出行菜单）收起
+	if prologue_ui != null:
+		prologue_ui.visible = false
+	if hud_objective != null:
+		hud_objective.visible = false
+	# 进洗衣店
+	start_laundry_case()
+
+# ================================================================ 洗衣店：目标引导
+## 进门以后玩家不知道要干嘛 —— 这一套负责「下一步做什么」。
+## 和目标条（hud_objective）、字幕、呼吸环配合：
+##   每次目标变化 → 目标条更新 + 一句旁白 + 附近可交互物自动闪一下呼吸环
+var case_objective := ""
+var case_obj_done := {}
+var _case_obj_acc := 0.0
+
+func set_case_objective(text: String, key := "") -> void:
+	if key != "":
+		if case_obj_done.has(key):
+			return
+		case_obj_done[key] = true
+	case_objective = text
+	if hud_objective != null:
+		# ★ 必须显式设 true：_play_room_intro() 里为了开场的黑屏把它关掉过，
+		#   而 _prologue_set_objective() 只改文本、不恢复可见性 ——
+		#   所以进洗衣店以后目标条会一直是隐藏的（实测踩过）。
+		hud_objective.visible = true
+		hud_objective.text = "▸ " + text
+	# 目标条变一下色，提示"更新了"
+	if hud_objective != null:
+		hud_objective.modulate = Color(1.6, 1.5, 1.2, 1.0)
+		var tw := create_tween()
+		tw.tween_property(hud_objective, "modulate", Color.WHITE, 0.6)
+	print("[CASE] 目标：", text)
+
+## 洗衣店里的目标推进（由 _process 每帧或事件调用）
+func _update_case_objective() -> void:
+	if laundry == null: return
+	if laundry.selected_ending != "":
+		set_case_objective("03:55交班，03:56领800元。可按T拨到交班。", "handover")
+		return
+	if laundry.final_open:
+		set_case_objective("她问「是不是洗好了」。结合七号机的线索作出回应。", "choose")
+		return
+	var elapsed: float = laundry.t/60.0
+	if not case_obj_done.has("look"):
+		if player.global_position.y < 2.0:
+			set_case_objective("夜班报到：沿门厅走到底，上楼到2F得利洗衣店。", "look")
+		else:
+			set_case_objective("23:40夜班开始。E读价目表和须知；观察异常，04:00交班领800元。", "look")
+	elif elapsed < 21.0:
+		set_case_objective("先查看店内物件并记录。00:01会有广播；空闲时按T到下一事件。", "explore")
+	elif elapsed < 110.0:
+		set_case_objective("调查七号机、收银机和后房。01:30会有来客；T可拨时。", "explore")
+	elif elapsed < 210.0:
+		set_case_objective("观察长椅上的来客，找她遗失的衣物。03:10她会清点。", "watch")
+	else:
+		set_case_objective("她还差一件。先查七号机和后房，03:40回应她。", "count")
 
 func _open_travel_menu() -> void:
 	if prologue_travel_card == null:
@@ -2076,13 +2517,35 @@ func _update_prologue_interaction() -> void:
 	hud_prompt.text = ""
 	if state != "prologue":
 		return
+	if prologue_stage == "town":
+		prompt = town_bridge.interaction_hint()
+		if prompt.is_empty():
+			prompt = null
+		else:
+			hud_prompt.text = "[E]  " + String(prompt["text"])
+		return
 	var eye: Vector3 = player.eye()
 	var fwd: Vector3 = player.forward()
 	var best := -1.0
 	for sp in prologue_spots:
 		if String(sp["stage"]) != prologue_stage:
 			continue
+		# 信封只在「还没捡」且「已经掉下来」的时候才是可交互的
+		var sid := String(sp["id"])
+		if sid == "phone" and field_kit.phone_owned:
+			continue
+		if sid == "wclock" and (not clock_appeared or bag_has("weird_clock")):
+			continue
+		if sid.begins_with("envelope"):
+			if not prologue_letter_ready or envelope_taken:
+				continue
 		var p: Vector3 = sp["pos"]
+		if sid.begins_with("envelope"):
+			p = prologue_envelope.global_position + Vector3(0, .08, 0)
+		elif sid == "phone":
+			p = get_meta("phone_world_body").global_position + Vector3(0, .1, 0)
+		elif sid == "wclock" and wclock != null:
+			p = wclock.root.global_position + Vector3(0,.3,0)
 		var v := p - eye
 		var d := v.length()
 		if d > float(sp["r"]):
@@ -2116,6 +2579,10 @@ func _prologue_label(sp: Dictionary) -> String:
 			return "床头的相框"
 		"light_switch":
 			return "关灯" if prologue_room_lights_on else "开灯"
+		"envelope", "envelope2":
+			return "捡起信封"
+		"wclock":
+			return "拿起诡异时钟（T 随时拨时）"
 		"door":
 			if not prologue_letter_ready:
 				return "门"
@@ -2123,7 +2590,7 @@ func _prologue_label(sp: Dictionary) -> String:
 				return "捡起信封"
 			if not prologue_call_done:
 				return "先接电话"
-			return "开门 · 选择地点"
+			return "开门 · 去街道，再到洗衣店"
 		"counter":
 			return "便利店柜台"
 		"fridge":
@@ -2554,10 +3021,34 @@ func _start_round() -> void:
 
 func _process(delta: float) -> void:
 	_anim_npcs(delta)
+	_step_exit_to_town(delta)
+	_step_laundry_to_town(delta)
+	if town_bridge != null:
+		town_bridge.update_map()
+
+	# ── 出租屋 → 洗衣店的转场（按真实 dt 推进，不依赖 await）──
+	_step_exit_to_laundry(delta)
+
+	# ── 洗衣店那一局：时间轴 / 滚筒 / 她的动作，全部挂在现成的 _process 上 ──
+	if case_mode == "laundry" and laundry != null:
+		if laundry.night != null and state in ["play", "case_choice"]:
+			laundry.night._npc_step(delta)
+		var reading_l := dialog.size() > 0 or bag_open or phone_open or nb_open or choice != null or sub_pause
+		if state == "play" and not reading_l:
+			laundry.step(delta)
+		# 洗衣店不需要 train / 站台时钟那套，后面的通用逻辑照常（交互/呼吸环/HUD/字幕）
+		clock_min = laundry.START_MIN + laundry.t / 60.0
+		# 目标引导（每 0.3 s 刷一次就够）
+		_case_obj_acc += delta
+		if _case_obj_acc >= 0.3:
+			_case_obj_acc = 0.0
+			_update_case_objective()
+	if director != null:
+		director.step(delta)
 
 	t_now += delta
 	var reading := dialog.size() > 0 or bag_open or choice != null or sub_pause or (round_card != null and round_card.visible)
-	if state == "play" and not reading:
+	if state == "play" and not reading and case_mode != "laundry":
 		round_elapsed += delta
 		clock_min += delta / SEC_PER_MIN
 		_check_scripted()
@@ -2949,6 +3440,8 @@ func _show_end(kind: String) -> void:
 # ------------------------------------------------------------------ 对话 / 交互
 
 func _interact() -> void:
+	if phone_open or field_kit.inventory.visible:
+		return
 	if prompt != null:
 		ring_flash = 1.0      # 目标脚下那一圈闪一下，确认这一下按下去了
 	if state == "ending":
@@ -2959,6 +3452,26 @@ func _interact() -> void:
 				_show_end(chooser_b); choice = null
 		return
 	if choice != null:
+		# 第一案三选一：E 认领 / C 顶替 / R 抹平
+		if choice == "case_final":
+			if Input.is_physical_key_pressed(KEY_E):
+				laundry.choose_final("A")
+			elif Input.is_physical_key_pressed(KEY_C):
+				laundry.choose_final("C")
+			elif Input.is_physical_key_pressed(KEY_R):
+				laundry.choose_final("B")
+			return
+		# 信封：E=去 / R=留在屋里；第二次的 forced 只有 E=去
+		if choice == "env_choice":
+			if Input.is_physical_key_pressed(KEY_E):
+				choice = null; _accept_envelope()
+			elif Input.is_physical_key_pressed(KEY_R):
+				choice = null; _refuse_envelope()
+			return
+		if choice == "env_choice_forced":
+			if Input.is_physical_key_pressed(KEY_E):
+				choice = null; _accept_envelope()
+			return
 		if Input.is_physical_key_pressed(KEY_E):
 			choice = null; _resolve_choice(true)
 		elif Input.is_physical_key_pressed(KEY_R):
@@ -2969,7 +3482,7 @@ func _interact() -> void:
 		_advance_dialog()
 		return
 	if (sub != "" or not sub_queue.is_empty()) and prompt == null:
-		_skip_sub_line()
+		_sub_skip()
 		return
 	if prompt == null:
 		return
@@ -2987,6 +3500,8 @@ func _interact() -> void:
 		_toggle_door(prompt["door"])
 	elif prompt["kind"] == "prologue":
 		_prologue_act(String(prompt["id"]))
+	elif prompt["kind"] == "town":
+		town_bridge.interact(String(prompt["id"]))
 	else:
 		_act(prompt["id"])
 
@@ -3123,6 +3638,11 @@ func _press_button(idx: int) -> void:
 	tw.tween_property(b["mat"], "emission_energy_multiplier", 0.6, 0.6)
 
 func _act(id: String) -> void:
+	# ── 洗衣店那一局：交互全部走它自己的表 ──
+	# （HUD 提示、呼吸环、E 键判定、字幕队列都还是 0017 这套，没另写）
+	if case_mode == "laundry" and laundry != null:
+		laundry.interact(id)
+		return
 	match id:
 		"station_light_switch":
 			_toggle_station_lights()
@@ -3221,6 +3741,13 @@ func _got_count() -> int:
 
 # ------------------------------------------------------------------ 交互检测
 func _update_interaction() -> void:
+	# ── 选项状态：**必须先判**，否则下面 state.begins_with("prologue") 会把它吃掉 ──
+	# （踩过的坑：信封弹出选项后 state 是 "prologue_choice"，结果提示文字被清空 →
+	#   玩家只看到"动不了了"，看不到任何选项。）
+	if choice != null:
+		hud_prompt.text = choice_text
+		prompt = null
+		return
 	if state == "prologue":
 		_update_prologue_interaction()
 		return
@@ -3228,11 +3755,9 @@ func _update_interaction() -> void:
 		prompt = null
 		hud_prompt.text = ""
 		return
-	if choice != null and state == "play":
-		hud_prompt.text = choice_text
-		return
-	prompt = null
-	hud_prompt.text = ""
+	if state == "play":
+		prompt = null
+		hud_prompt.text = ""
 	if player.sitting:
 		prompt = {"kind": "stand", "text": "站起来"}
 		hud_prompt.text = "[E]  站起来"
@@ -3558,6 +4083,9 @@ func _void_guard(delta: float) -> void:
 		_say("旁白", "……你踩空了半秒。")
 
 func _toggle_bag(on: bool) -> void:
+	if case_mode == "laundry" or state.begins_with("prologue"):
+		field_kit.open_inventory(on)
+		return
 	bag_open = on
 	bag.visible = on
 	player.can_move = not on
@@ -3569,6 +4097,23 @@ func _toggle_bag(on: bool) -> void:
 	elif state == "play":
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		player.allow_capture = true
+
+# ------------------------------------------------------------------ 洗衣店那套背包（先简单，第 3 项再升级成四页记事本）
+## 和站台的 items 分开存：站台那批是线索，这批是「第一案随身物」。
+var case_bag: Array = []
+
+func bag_add(id: String, nm: String, desc := "", kind := "物") -> void:
+	for e in case_bag:
+		if String(e["id"]) == id:
+			return
+	case_bag.append({"id": id, "name": nm, "desc": desc, "kind": kind})
+	_say_seq("旁白", "放进包里：" + nm, 1.4)
+
+func bag_has(id: String) -> bool:
+	for e in case_bag:
+		if String(e["id"]) == id:
+			return true
+	return false
 func _animate_items(delta: float) -> void:
 	var i := 0
 	for it in items:
@@ -3580,8 +4125,9 @@ func _animate_items(delta: float) -> void:
 		i += 1
 
 func _update_hud() -> void:
-	if state.begins_with("prologue"):
-		hud_clock.visible = false
+	if state.begins_with("prologue") or (state == "clock_ui" and case_mode != "laundry"):
+		hud_clock.visible = state != "prologue_intro"
+		if director != null: hud_clock.text = director.hhmm(director.now(),true)
 		hud_cam.visible = false
 		hud_map.visible = false
 		# 通知书 / 过场 / 结束卡期间只留字幕与时钟
@@ -3591,9 +4137,15 @@ func _update_hud() -> void:
 			hud_objective.text = prologue_objective
 		return
 	if state != "menu":
-		hud_objective.visible = false
+		# 洗衣店那一局也要目标条（"下一步做什么"），站台则一直隐藏
+		if case_mode == "laundry" and state != "case_end" and state != "case_title":
+			hud_objective.visible = (case_objective != "")
+			if case_objective != "":
+				hud_objective.text = "▸ " + case_objective
+		else:
+			hud_objective.visible = false
 		hud_clock.visible = true
-		hud_map.visible = true
+		hud_map.visible = (case_mode != "laundry")   # 站区图在洗衣店没意义
 	var m := int(floor(clock_min))
 	var mm := ((m % 1440) + 1440) % 1440
 	var ss := int((clock_min - floor(clock_min)) * 60.0)
@@ -3606,6 +4158,7 @@ func _update_hud() -> void:
 	# 时钟：橙 → 红 随剩余时间推进；最后 30 秒里按秒跳一下（不再是一个静态颜色）
 	var tleft := T_LOCK - clock_min
 	var tcol := Color(0.88, 0.64, 0.29).lerp(Color(0.95, 0.22, 0.18), clampf(1.0 - tleft / 2.0, 0.0, 1.0))
+	if case_mode == "laundry": tcol = Color("d9bd81")
 	var beat := 1.0
 	if tleft <= 0.5 and tleft > 0.0:
 		beat = 0.55 + 0.45 * (1.0 - fposmod(clock_min * 60.0, 1.0))
@@ -3676,11 +4229,15 @@ func _clear_sub() -> void:
 	hud_sub_title.text = ""
 
 func _show_sub(who: String, text: String, hold: float, pause := false) -> void:
+	if audio_system != null:
+		audio_system.line(who, text)
 	hud_sub_title.text = who
 	sub = text
 	sub_time = 0.0
 	sub_hold = hold
 	sub_pause = pause
+	# 打完后的停留时间：按字数算，最少 0.35 s（原来 sub_hold 常常是 2-3 s，太拖）
+	_sub_hold_left = maxf(0.35, float(text.length()) * 0.018)
 	hud_sub.text = ""
 	print("[", who, "] ", text)
 
@@ -3689,11 +4246,14 @@ func _say(who: String, text: String, hold := 3.5) -> void:
 	sub_pause = false
 	_show_sub(who, text, hold, false)
 
-func _say_seq(who: String, text: String, hold := 2.2, pause := true) -> void:
-	if sub == "" and sub_queue.is_empty():
-		_show_sub(who, text, hold, pause)
-	else:
+## 说一句。**默认不排队**：直接顶掉正在显示的那句，玩家永远看到最新一句。
+## 需要按顺序播放的（少量关键对话）传 queue=true。
+func _say_seq(who: String, text: String, hold := 2.2, pause := true, queue := false) -> void:
+	if queue and not (sub == "" and sub_queue.is_empty()):
 		sub_queue.append({"who": who, "text": text, "hold": hold, "pause": pause})
+	else:
+		sub_queue.clear()
+		_show_sub(who, text, hold, pause)
 
 func _next_sub() -> void:
 	if sub_queue.is_empty():
@@ -3705,16 +4265,28 @@ func _next_sub() -> void:
 	var n: Dictionary = sub_queue.pop_front()
 	_show_sub(String(n["who"]), String(n["text"]), float(n.get("hold", 2.2)), bool(n.get("pause", true)))
 
-func _skip_sub_line() -> void:
+## 点一下 / 按一下：**立刻**推进字幕。
+## 行为分三段（和主流文字游戏一致）：
+##   ① 正在逐字打 → 先把这句直接打完
+##   ② 这句已经打完 → 进下一句（队列里有没有都直接进，不等 hold）
+##   ③ 队列空了 → 清屏
+## 「不排队等上一条」这件事在 _say_seq 里也改了：默认直接顶掉当前句。
+var _sub_hold_left := 0.0
+
+func _sub_skip() -> void:
 	if sub == "":
-		_next_sub()
+		if not sub_queue.is_empty():
+			_next_sub()
 		return
 	var shown := int(sub_time * sub_cps)
 	if shown < sub.length():
+		# ① 还没打完 → 一下打完
 		sub_time = sub.length() / sub_cps + 0.01
 		hud_sub.text = sub
-	else:
-		_next_sub()
+		_sub_hold_left = 0.6
+		return
+	# ② 打完了 → 立刻下一句；队列空就清屏
+	_next_sub()
 
 func _update_sub(delta: float) -> void:
 	if sub == "":
@@ -3725,14 +4297,32 @@ func _update_sub(delta: float) -> void:
 	var shown := int(sub_time * sub_cps)
 	shown = mini(shown, sub.length())
 	hud_sub.text = sub.substr(0, shown)
-	if shown >= sub.length() and sub_time > sub.length() / sub_cps + sub_hold:
-		_next_sub()
+	if shown >= sub.length():
+		# 打完后的停留：0.35 s（原来是一个字一个字等，读着很拖）
+		_sub_hold_left -= delta
+		if _sub_hold_left <= 0.0 and sub_pause and sub_queue.is_empty():
+			pass                       # pause=true 时停在最后一句，等玩家点
+		elif _sub_hold_left <= 0.0:
+			_next_sub()
 
 func _fade_to(a: float, dur: float) -> void:
 	var tw := create_tween()
 	tw.tween_property(hud_fade, "modulate:a", a, dur)
 
 func _unhandled_input(event: InputEvent) -> void:
+	# ── 字幕：点鼠标左键 / 按空格 / 回车，一下推进一句 ──
+	# 放在最前面，保证「点一下就放」在任何状态下都成立（除了手机/背包/暂停这些自己要吃点击的 UI）。
+	var ui_open := state == "paused" or state == "prologue_ui" or bag_open or phone_open or nb_open
+	if not ui_open:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			if sub != "" or not sub_queue.is_empty():
+				_sub_skip()
+				return
+		if event is InputEventKey and event.pressed and not event.echo:
+			if (event.physical_keycode == KEY_SPACE or event.physical_keycode == KEY_ENTER):
+				if sub != "" or not sub_queue.is_empty():
+					_sub_skip()
+					return
 	if state == "prologue_travel":
 		if event is InputEventKey and event.pressed and not event.echo:
 			match event.physical_keycode:
@@ -3753,6 +4343,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_skip_cutscene()
 		elif event.physical_keycode == KEY_E:
 			_interact()
+		elif event.physical_keycode == KEY_C and choice == "case_final":
+			laundry.choose_final("C")
 		elif event.physical_keycode == KEY_R:
 			if choice != null:
 				_interact()
@@ -3769,8 +4361,20 @@ func _unhandled_input(event: InputEvent) -> void:
 				_say("旁白", "监视器 %s（%s）" % [player.cctv_tag(), player.cctv_name()])
 				_cctv_tip()
 		elif event.physical_keycode == KEY_M:
-			if state == "play":
+			if state == "prologue" and prologue_stage == "town":
+				town_bridge.toggle_map()
+			elif state == "play":
 				_toggle_cctv_review()
+		elif event.physical_keycode == KEY_Q:
+			# Q = 把眼前这个东西记进「疑」页（剧本 9-E：玩家自己画问号的地方）
+			if (state == "prologue" or (state == "play" and case_mode == "laundry")) and prompt != null:
+				var t := String(prompt.get("text", "这里"))
+				note("疑", t, "你在" + t + "前面停了一下。\n说不清哪里不对，但你想记住它。")
+				_say("旁白", "记下来了。" + t, 1.4)
+		elif event.physical_keycode == KEY_TAB:
+			# Tab = 记事本（四页：物 / 人 / 话 / 疑）
+			if state == "prologue" or state == "play":
+				_toggle_notebook()
 		elif event.physical_keycode == KEY_B:
 			if state == "play":
 				_toggle_bag(not bag_open)
@@ -3778,28 +4382,213 @@ func _unhandled_input(event: InputEvent) -> void:
 			_set_sel(event.physical_keycode - KEY_1)
 			_refresh_items_ui()
 		elif event.physical_keycode == KEY_T:
-			if state == "play":
+			if state == "play" and case_mode != "laundry":
 				_cost(0)
 				clock_min = T_ARRIVE
 				_say("旁白", "你决定提前结束这班。")
 		elif event.physical_keycode == KEY_ESCAPE:
-			if state == "prologue_ui":
+			if state == "case_end" or state == "case_title":
+				_on_to_menu()
+			elif state == "case_choice":
+				_open_pause()
+			elif state == "prologue_ui":
 				_close_letter()
-			elif state == "prologue" or state == "prologue_transition":
-				pass
+			elif state == "prologue_choice":
+				pass                        # 信封二选一：必须先做选择
 			elif bag_open:
 				_toggle_bag(false)
-			elif state == "play":
-				state = "paused"
-				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-				player.allow_capture = false
-				player.dragging = false
-				menu.visible = true
-				menu.show_pause()
+			elif phone_open:
+				_close_phone()
 			elif state == "paused":
 				_on_resume()
+			elif state == "prologue" or state == "play":
+				# 出租屋 / 洗衣店 / 站台：ESC 一律出暂停菜单（继续 / 存档 / 设置 / 回主菜单）
+				_open_pause()
 			else:
 				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+# ------------------------------------------------------------------ 记事本（四页：人物话疑）
+var nb = null
+var nb_open := false
+
+func _make_notebook() -> void:
+	var NS := preload("res://scripts/notebook.gd")
+	nb = NS.new()
+	add_child(nb)
+	nb.setup(font)
+	nb.closed.connect(_on_notebook_closed)
+
+func _toggle_notebook() -> void:
+	if nb == null:
+		_make_notebook()
+	nb_open = not nb_open
+	if nb_open:
+		nb.open()
+		player.can_move = false
+		player.dragging = false
+		player.allow_capture = false
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	else:
+		nb.close()
+
+func _on_notebook_closed() -> void:
+	nb_open = false
+	if state == "prologue" or state == "play":
+		player.can_move = true
+		player.allow_capture = true
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+## 往记事本里记一条
+func note(cat: String, title: String, body := "") -> void:
+	if nb == null:
+		_make_notebook()
+	nb.add(cat, title, body)
+
+# ------------------------------------------------------------------ 诡异时钟
+## 剧本：主角签下这份工作后，事务局送了他一只钟 —— 它出现在房间里。
+## 拧它能拨时间；**只有到了剧本节点，事情才会发生**（在此之前只能先探索）。
+var wclock = null
+var clock_appeared := false
+
+func _make_weird_clock() -> void:
+	var CS := preload("res://scripts/weird_clock.gd")
+	wclock = CS.new()
+	add_child(wclock)
+	# 摆在床头柜上（房间根 (0,12,322.5)，床头柜约 (1.55, 0, 321.2)）
+	wclock.setup(font,field_kit.desk_clock_position)
+	wclock.visible = false
+	wclock.milestone.connect(_on_clock_milestone)
+
+## 同意工作（读完通知书 + 接完电话）→ 钟出现
+func _spawn_weird_clock() -> void:
+	if clock_appeared: return
+	clock_appeared = true
+	if wclock == null: _make_weird_clock()
+	field_kit.sync_world()
+	play_chime(.62,-6.0)
+	_say_seq("旁白","书桌上多了一只黄铜钟。E拿起，B收纳；到店后可以按T拨到下一事件。",2.0,false)
+	if case_mode != "laundry": _prologue_set_objective("拿上书桌的时钟，从房门去值夜班：23:40报到，04:00交班领800元。")
+
+func _on_clock_milestone(id: String) -> void:
+	match id:
+		"bc1":
+			play_chime(0.5, -12.0)
+			_say_seq("广播", "本店自助洗衣，二十四小时营业。夜间请勿使用七号机。", 1.6)
+			_say_seq("旁白", "……这声音不是从房间里的哪件东西发出来的。\n它像从墙里、地板下、水管里一起渗出来。", 1.8)
+		"bc2":
+			play_chime(0.5, -12.0)
+			_say_seq("广播", "本店自助洗衣，二十四小时营业。夜间勿使用七号机。", 1.6)
+			_say_seq("旁白", "它把「请」字去掉了。", 1.4)
+		"oldlady":
+			_say_seq("旁白", "楼下传来开门声。有人走进去了，脚上是湿的。", 1.8)
+		"mirror":
+			_say_seq("旁白", "镜子该就在这一刻多一个人。\n先记着。", 1.6)
+		"count":
+			_say_seq("旁白", "「一件……两件……三件……」\n声音是从楼板底下透上来的，很轻。", 1.8)
+		"ask":
+			_say_seq("旁白", "「是不是洗好了？」\n这一次，声音就在门外面。", 1.8)
+		"dawn":
+			_say_seq("旁白", "天开始亮了。灯一盏一盏回到正常。", 1.6)
+			_say_seq("旁白", "你该下楼了。", 1.4)
+
+## 拧钟（E）：拨快 10 分钟
+func _turn_clock() -> void:
+	if wclock == null:
+		return
+	wclock.turn_step(1.0)
+	_say_seq("旁白", "钟面上的针跳了一下。" + wclock.time_text(), 1.0)
+
+## 04:02 黑屏 → 标题卡（剧本第四幕结尾）
+func show_case_title(title: String, sub: String) -> void:
+	state = "case_title"
+	player.can_move = false
+	player.allow_capture = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_clear_sub()
+	# 黑幕拉满
+	var tw := create_tween()
+	tw.tween_property(hud_fade, "modulate:a", 1.0, 0.8)
+	await tw.finished
+	hud_prompt.text = ""
+	if hud_end_title != null:
+		hud_end_title.text = title
+		hud_end_title.modulate.a = 1.0
+	if hud_end != null:
+		hud_end.text = sub + "\n\n[ESC] 回主菜单"
+		hud_end.modulate.a = 1.0
+	print("[CASE] 标题卡：", title, " / ", sub)
+
+# ------------------------------------------------------------------ 第一案结局卡
+## 用现成的 hud_end / hud_end_title（0017 本来就有这套「结局文字」控件）
+func _show_case_end(title: String, body: String, dossier: String) -> void:
+	state = "case_end"
+	player.can_move = false
+	player.allow_capture = false
+	player.dragging = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_clear_sub()
+	hud_prompt.text = ""
+	if hud_end_title != null:
+		hud_end_title.text = title
+		hud_end_title.modulate.a = 1.0
+	if hud_end != null:
+		hud_end.text = body + "\n\n———————————————\n" + dossier + "\n\n[ESC] 回主菜单"
+		hud_end.modulate.a = 1.0
+	_fade_to(0.0, 0.2)
+	print("[CASE] 结局卡：", title)
+
+# ------------------------------------------------------------------ 手机 UI
+func _make_phone() -> void:
+	var PS := preload("res://scripts/phone_os.gd")
+	phone_ui = PS.new()
+	add_child(phone_ui)
+	phone_ui.setup(font)
+	phone_ui.closed.connect(_on_phone_closed)
+
+func _open_phone() -> void:
+	if field_kit != null and not field_kit.phone_owned:
+		field_kit.pickup_phone()
+		return
+	if phone_ui == null:
+		_make_phone()
+	phone_open = true
+	phone_ui.open()
+	player.can_move = false
+	player.dragging = false
+	player.allow_capture = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+func _close_phone() -> void:
+	phone_open = false
+	if phone_ui != null:
+		phone_ui.close()
+	if state == "prologue" or state == "play":
+		player.can_move = true
+		player.allow_capture = true
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _on_phone_closed() -> void:
+	phone_open = false
+	if state == "prologue" or state == "play":
+		player.can_move = true
+		player.allow_capture = true
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+# ------------------------------------------------------------------ 暂停菜单（ESC）## 记事本里的 _prev_state 用来 return 到暂停前的状态（出租屋 prologue / 洗衣店 play）
+var _pre_pause_state := ""
+
+func _open_pause() -> void:
+	if menu == null:
+		return
+	_pre_pause_state = state
+	state = "paused"
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if player != null:
+		player.can_move = false
+		player.allow_capture = false
+		player.dragging = false
+	menu.visible = true
+	menu.show_pause()
 
 # ------------------------------------------------------------------ 音频
 func _set_sel(v: int) -> void:
@@ -4114,6 +4903,7 @@ func _make_menu() -> void:
 	menu.resume_game.connect(_on_resume)
 	menu.to_menu.connect(_on_to_menu)
 	menu.quit_game.connect(func(): get_tree().quit())
+	menu.settings_changed.connect(_apply_settings)
 	_apply_settings()
 
 func _apply_settings() -> void:
@@ -4129,7 +4919,10 @@ func _apply_settings() -> void:
 			if m is ShaderMaterial:
 				m.set_shader_parameter("fog_end", end)
 	if env_node != null:
+		env_node.environment.adjustment_enabled = true
 		env_node.environment.adjustment_brightness = clampf(c["bright"], 0.4, 2.0)
+		if case_mode == "laundry":
+			env_node.environment.fog_density = 0.008 * clampf(c["fog"], 0.0, 1.5)
 
 func _hide_menu() -> void:
 	menu.visible = false
@@ -4167,11 +4960,26 @@ func _reset_case() -> void:
 	for b in buttons: b["done"] = false
 
 func _on_new_game() -> void:
+	_discard_laundry()
+	field_kit.reset()
+	case_bag.clear()
+	if nb != null:
+		nb.entries = {"物": [], "人": [], "话": [], "疑": []}
+	envelope_taken = false
+	envelope_refused = 0
+	clock_appeared = false
+	if wclock != null:
+		wclock.visible = false
+		wclock.total_min = 0.0
+		wclock.fired.clear()
 	_reset_case()
 	# 档案：新局 +1 次游玩，状态进入「进行中」
 	Archive.note_play("0017")
 	archive_tracking = true
 	archive_acc = 0.0
+	# ── 本工程动线：出租屋 → 回潮镇街道 → 得利洗衣店 ──
+	# 出租屋、手机/纸箱/窗/照片/信封/通知书/电话 全部沿用 0017 现成实现与 UI，
+	# 房门先进入独立街道，洗衣店门再切到独立室内（见 _leave_room_to_town）。
 	_start_prologue()
 	_hide_menu()
 
@@ -4187,6 +4995,8 @@ func _on_start() -> void:
 
 func _on_load_slot(i: int) -> void:
 	if game_load(i):
+		if case_mode == "laundry" or state.begins_with("prologue"):
+			return
 		archive_tracking = true
 		archive_acc = 0.0
 		Archive.note_progress("0017", round, clock_min)
@@ -4200,9 +5010,13 @@ func _on_save_slot(i: int) -> void:
 		_say("调度台", "已存入槽位 %d。" % (i + 1))
 		menu.set_slots(slots_info(), "load")
 		menu.hide_all()
-		state = "play"
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-		player.allow_capture = true
+		state = _pre_pause_state if _pre_pause_state != "" else state
+		_pre_pause_state = ""
+		player.can_move = state in ["play", "prologue"]
+		player.allow_capture = player.can_move
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if player.can_move else Input.MOUSE_MODE_VISIBLE
+	else:
+		menu.set_archive_note("暂时无法保存，请关闭当前对话或过场后重试。")
 
 func _on_delete_slot(i: int) -> void:
 	var ok := delete_slot(i)
@@ -4236,6 +5050,11 @@ func slots_info() -> Array:
 				if typeof(j) == TYPE_DICTIONARY:
 					var r := clampi(int(j.get("round", -1)) + 1, 0, 4)
 					d["round"] = str(ROUND_NAMES[r])
+					if j.get("case_id", "") == "00184":
+						d["round"] = "得利洗衣店 · 第一夜" if j.get("mode") == "laundry" else "得利洗衣店 · 出租屋"
+					else:
+						d["legacy"] = true
+						d["round"] = "旧版车站 · 已保留"
 					var cm := float(j.get("clock", T_START))
 					var mm := ((int(cm) % 1440) + 1440) % 1440
 					d["clock"] = "%02d:%02d" % [mm / 60, mm % 60]
@@ -4247,12 +5066,16 @@ func slots_info() -> Array:
 	return out
 
 func _on_resume() -> void:
-	state = "play"
+	# 恢复到暂停前的状态：出租屋是 prologue、洗衣店/站台是 play
+	state = _pre_pause_state if _pre_pause_state != "" else "play"
+	_pre_pause_state = ""
 	if hud != null: hud.visible = true
 	menu.hide_all()
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	player.allow_capture = true
+	player.can_move = state in ["play", "prologue"]
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if player.can_move else Input.MOUSE_MODE_VISIBLE
+	player.allow_capture = player.can_move
 	player.dragging = false
+	player.can_move = state in ["play", "prologue"]
 
 func _on_to_menu() -> void:
 	state = "menu"
@@ -4281,6 +5104,24 @@ func _archive_migrate_slots() -> void:
 	Archive.note_progress("0017", -1, T_START)
 
 func game_save(i: int) -> bool:
+	if i < 0 or i >= SLOT_PATHS.size():
+		return false
+	if case_mode == "laundry" or state.begins_with("prologue") or _pre_pause_state.begins_with("prologue"):
+		var snapshot := preload("res://scripts/case_save.gd").capture(self)
+		if snapshot.is_empty():
+			return false
+		# 临时文件完整写入后再原子替换，避免半个 JSON 覆盖有效存档。
+		var temp_path: String = SLOT_PATHS[i] + ".tmp"
+		var save_file := FileAccess.open(temp_path, FileAccess.WRITE)
+		if save_file == null:
+			return false
+		save_file.store_string(JSON.stringify(snapshot))
+		save_file.flush()
+		var write_error := save_file.get_error()
+		save_file.close()
+		if write_error != OK:
+			return false
+		return DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(SLOT_PATHS[i])) == OK
 	var f := FileAccess.open(SLOT_PATHS[i], FileAccess.WRITE)
 	if f == null:
 		return false
@@ -4299,14 +5140,20 @@ func game_save(i: int) -> bool:
 	return true
 
 func game_load(i: int) -> bool:
+	if i < 0 or i >= SLOT_PATHS.size():
+		return false
 	if not FileAccess.file_exists(SLOT_PATHS[i]):
 		return false
 	var f := FileAccess.open(SLOT_PATHS[i], FileAccess.READ)
+	if f == null:
+		return false
 	var txt := f.get_as_text()
 	f.close()
 	var d = JSON.parse_string(txt)
 	if typeof(d) != TYPE_DICTIONARY:
 		return false
+	if d.get("case_id", "") == "00184":
+		return preload("res://scripts/case_save.gd").restore(self, d)
 	round = int(d.get("round", -1))
 	clock_min = float(d.get("clock", T_START))
 	power = bool(d.get("power", false))
@@ -4324,6 +5171,25 @@ func game_load(i: int) -> bool:
 		buttons[k2]["done"] = bool(btns[k2])
 	_refresh_visibility()
 	return true
+
+func _discard_laundry() -> void:
+	if laundry != null and is_instance_valid(laundry.world):
+		_set_tree_visible(laundry.world, false)
+		laundry.world.queue_free()
+	laundry = null
+	case_mode = ""
+	choice = null
+	choice_text = ""
+	case_objective = ""
+	case_obj_done.clear()
+	_pre_pause_state = ""
+	bag_open = false
+	if nb != null:
+		nb.visible = false
+	nb_open = false
+	if phone_ui != null:
+		phone_ui.visible = false
+	phone_open = false
 func clampf(v: float, a: float, b: float) -> float:
 	return clamp(v, a, b)
 

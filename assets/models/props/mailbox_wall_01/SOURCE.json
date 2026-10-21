@@ -1,0 +1,12 @@
+{
+  "id": "mailbox_wall_01",
+  "name": "120 格信箱墙（自制）",
+  "author": "本项目自建（blender_mailbox.py）",
+  "license": "CC0",
+  "generator": "_setup/blender_mailbox.py",
+  "blender": "4.5.14 LTS",
+  "tris": 9920,
+  "size_m": [3.2, 0.18, 1.8],
+  "cells": 120,
+  "note": "10×12 格，正面朝 -Y（Godot 里 -Z）。锈 87 格、27 格插着信、503 单独新锁。"
+}

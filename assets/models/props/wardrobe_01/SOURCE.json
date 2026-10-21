@@ -1,0 +1,9 @@
+{
+  "id": "wardrobe_01",
+  "author": "本项目自建（blender_bedroom.py）",
+  "license": "CC0",
+  "generator": "_setup/blender_bedroom.py",
+  "blender": "4.5.14 LTS",
+  "tris": 692,
+  "note": "底面在原点，正面朝 -Y（Godot 里 -Z）。3F 卧室/孩子房家具。"
+}

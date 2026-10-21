@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/laundry/laundry_upper.gd" id="1_upper"]
+
+[node name="LaundryUpper" type="Node3D"]
+script = ExtResource("1_upper")

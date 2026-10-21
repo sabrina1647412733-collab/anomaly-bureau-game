@@ -1,0 +1,9 @@
+{
+  "id": "register_01",
+  "author": "本项目自建（blender_booth.py）",
+  "license": "CC0",
+  "generator": "_setup/blender_booth.py",
+  "blender": "4.5.14 LTS",
+  "tris": 1200,
+  "note": "底面在原点，正面朝 -Y（Godot 里 -Z）。"
+}

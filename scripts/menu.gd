@@ -11,6 +11,7 @@ signal delete_slot(index)
 signal resume_game
 signal to_menu
 signal quit_game
+signal settings_changed
 
 var font: Font
 var cfg := ConfigFile.new()
@@ -43,6 +44,7 @@ var bright_slider: HSlider
 var sub_slider: HSlider
 var fs_btn: Button
 var menu_rows: Array = []
+var pause_dim: ColorRect
 
 func setup(f: Font) -> void:
     font = f
@@ -52,6 +54,10 @@ func setup(f: Font) -> void:
     _build_slots()
     _build_settings()
     _build_pause()
+    for slider in [music_slider, sfx_slider, sens_slider, fog_slider, bright_slider, sub_slider]:
+        slider.value_changed.connect(func(_value):
+            _save_settings()
+            settings_changed.emit())
     slots_panel.visible = false
     sett.visible = false
     pause_panel.visible = false
@@ -95,6 +101,13 @@ func apply_audio() -> void:
     if sbus >= 0:
         AudioServer.set_bus_volume_db(sbus, linear_to_db(clampf(c["sfx"], 0.001, 1.0)))
         AudioServer.set_bus_mute(sbus, c["sfx"] < 0.01)
+    for bus_name in ["Voice", "Ambience"]:
+        var index := AudioServer.get_bus_index(bus_name)
+        var level: float = c["music"] if bus_name == "Ambience" else c["sfx"]
+        if index >= 0:
+            AudioServer.set_bus_volume_db(index, linear_to_db(maxf(level, 0.001)))
+            AudioServer.set_bus_mute(index, level < 0.01)
+
 
 # ------------------------------------------------------------------ 控件工厂
 func _fvar(embolden := 0.0, glyph_spacing := 0) -> FontVariation:
@@ -107,7 +120,7 @@ func _fvar(embolden := 0.0, glyph_spacing := 0) -> FontVariation:
 func _label(text: String, fs := 16, col := Color(0.88, 0.90, 0.94)) -> Label:
     var l := Label.new()
     l.add_theme_font_override("font", font)
-    l.add_theme_font_size_override("font_size", fs)
+    l.add_theme_font_size_override("font_size", maxi(fs, 12))
     l.add_theme_color_override("font_color", col)
     l.text = text
     l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -167,8 +180,8 @@ func _primary_btn(text: String, fs := 15) -> Button:
 
 func _panel_style() -> StyleBoxFlat:
     var sb := StyleBoxFlat.new()
-    sb.bg_color = Color(0.025, 0.040, 0.055, 0.94)
-    sb.border_color = Color(0.42, 0.62, 0.70, 0.24)
+    sb.bg_color = Color(0.042, 0.068, 0.071, 0.98)
+    sb.border_color = Color(0.52, 0.59, 0.52, 0.42)
     sb.border_width_left = 1
     sb.border_width_top = 1
     sb.border_width_right = 1
@@ -338,8 +351,8 @@ func _build_main() -> void:
         center.add_child(tick)
 
     # 系列标题
-    var title := _label("诡异事务局", 92, Color(0.91, 0.94, 0.97))
-    title.add_theme_font_override("font", _fvar(1.12, 1))
+    var title := _label("诡异事务局", 80, Color(0.94, 0.92, 0.86))
+    title.add_theme_font_override("font", _fvar(0.15, 2))
     title.position = Vector2(88, 138)
     title.size = Vector2(760, 124)
     title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -367,7 +380,7 @@ func _build_main() -> void:
 
 
     # 世界观句
-    var tag := _label("这个世界不是因为存在才被记录，\n而是因为被记录才存在。", 14, Color(0.55, 0.61, 0.68))
+    var tag := _label("这个世界不是因为存在才被记录，\n而是因为被记录才存在。", 17, Color(0.65, 0.70, 0.69))
     tag.position = Vector2(88, 330)
     tag.size = Vector2(540, 74)
     tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -421,6 +434,27 @@ func _build_main() -> void:
     foot.size = Vector2(300, 20)
     foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
     center.add_child(foot)
+    var case_card := Panel.new()
+    case_card.position = Vector2(1040, 700)
+    case_card.size = Vector2(472, 110)
+    case_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    case_card.add_theme_stylebox_override("panel", _flat_style(Color(0.04, 0.065, 0.067, 0.93), Color(0.50, 0.57, 0.49, 0.38)))
+    center.add_child(case_card)
+    var dossier := _label("当前值班  /  案卷 00184", 12, Color(0.68, 0.70, 0.60))
+    dossier.position = Vector2(22, 14)
+    dossier.size = Vector2(426, 22)
+    dossier.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+    case_card.add_child(dossier)
+    var case_name := _label("得利洗衣店", 26, Color(0.94, 0.90, 0.80))
+    case_name.position = Vector2(22, 45)
+    case_name.size = Vector2(260, 40)
+    case_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+    case_card.add_child(case_name)
+    var shift := _label("第一夜\n23:40 — 04:02", 12, Color(0.63, 0.72, 0.68))
+    shift.position = Vector2(294, 49)
+    shift.size = Vector2(154, 42)
+    shift.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+    case_card.add_child(shift)
 
 func focus_main() -> void:
     if menu_rows.size() > 0 and center.visible:
@@ -448,7 +482,7 @@ func _menu_row(idx: String, lb_text: String, en_text: String, primary: bool, cb:
     i.mouse_filter = Control.MOUSE_FILTER_IGNORE
     b.add_child(i)
 
-    var l := _label(lb_text, 18, Color(1.0, 0.85, 0.64) if primary else Color(0.76, 0.81, 0.87))
+    var l := _label(lb_text, 21, Color(1.0, 0.85, 0.64) if primary else Color(0.81, 0.84, 0.80))
     if primary:
         l.add_theme_font_override("font", _fvar(0.35, 0))
     l.position = Vector2(54, 0)
@@ -494,6 +528,9 @@ func _row_style(primary: bool, hover: bool) -> StyleBoxFlat:
 
 # ------------------------------------------------------------------ 案卷目录 / 存档槽位
 func _build_slots() -> void:
+    preload("res://scripts/case_slots_ui.gd").build(self)
+
+func _build_legacy_slots() -> void:
     slots_panel = PanelContainer.new()
     slots_panel.position = Vector2(300, 60)
     slots_panel.size = Vector2(1000, 780)
@@ -797,6 +834,9 @@ func _reset_pending_delete() -> void:
     pending_delete_t = 0.0
 
 func _process(delta: float) -> void:
+    if pause_dim != null:
+        pause_dim.visible = pause_open
+        poster.visible = not pause_open
     if pending_delete >= 0:
         pending_delete_t -= delta
         if pending_delete_t <= 0.0:
@@ -825,7 +865,7 @@ func _refresh_slot_texts() -> void:
             else:
                 b.add_theme_color_override("font_color", Color(0.56, 0.62, 0.69))
         _style_slot_btn(b, exists)
-        b.disabled = (slot_mode == "load" and not exists)
+        b.disabled = (slot_mode == "load" and (not exists or bool(d.get("legacy", false))))
         if i < slot_delete_btns.size():
             slot_delete_btns[i].disabled = not exists
 
@@ -842,11 +882,16 @@ func show_slots(mode: String) -> void:
     slot_mode = mode
     _reset_pending_delete()
     center.visible = false
+    pause_panel.visible = false
     sett.visible = false
     slots_panel.visible = true
     refresh_archive()
     _refresh_mode_hint()
     _refresh_slot_texts()
+    for button in slot_btns:
+        if not button.disabled:
+            button.grab_focus()
+            break
 
 func _refresh_mode_hint() -> void:
     if mode_hint == null:
@@ -876,6 +921,11 @@ func _set_status_chip(chip: Dictionary, text: String, tone: String) -> void:
             _set_chip(chip, Color(0, 0, 0, 0), Color(1, 1, 1, 0.07), Color(0.36, 0.42, 0.48))
 
 func refresh_archive() -> void:
+    if case_rows.is_empty():
+        var progress := preload("res://scripts/case_save.gd").read_progress()
+        var count: int = progress.get("endings", []).size()
+        archive_summary.text = "已见处置结局 %d / 3   ·   %s" % [count, "已归档" if count > 0 else "调查中"]
+        return
     var d := Archive.load_data()
     if archive_summary != null:
         archive_summary.text = Archive.summary_text(d)
@@ -1134,9 +1184,15 @@ func _build_settings() -> void:
     music_slider = _slider(v, "音乐音量", float(cfg.get_value("audio", "music", 0.8)))
     sfx_slider = _slider(v, "音效音量", float(cfg.get_value("audio", "sfx", 1.0)))
     sens_slider = _slider(v, "鼠标灵敏度", float(cfg.get_value("input", "sens", 1.0)))
+    sens_slider.min_value = 20
+    sens_slider.max_value = 200
     fog_slider = _slider(v, "雾气浓度", float(cfg.get_value("render", "fog", 1.0)))
     bright_slider = _slider(v, "画面亮度", float(cfg.get_value("render", "bright", 1.0)))
+    bright_slider.min_value = 40
+    bright_slider.max_value = 150
     sub_slider = _slider(v, "字幕速度", float(cfg.get_value("text", "speed", 1.0)))
+    sub_slider.min_value = 30
+    sub_slider.max_value = 200
 
     v.add_child(_line(548, Color(1, 1, 1, 0.08)))
     fs_btn = _ghost_btn("显示模式：窗口", func():
@@ -1170,6 +1226,7 @@ func _show_settings(on: bool) -> void:
     if on:
         center.visible = false
         pause_panel.visible = false
+        music_slider.grab_focus()
     else:
         if pause_open:
             pause_panel.visible = true
@@ -1183,9 +1240,21 @@ func show_pause() -> void:
     sett.visible = false
     slots_panel.visible = false
     pause_panel.visible = true
+    var stack := pause_panel.get_child(0)
+    for child in stack.get_children():
+        if child is Button:
+            child.grab_focus()
+            break
 
 # ------------------------------------------------------------------ 暂停
 func _build_pause() -> void:
+    pause_dim = ColorRect.new()
+    pause_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    pause_dim.color = Color(0.01, 0.02, 0.025, 0.78)
+    pause_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    pause_dim.visible = false
+    add_child(pause_dim)
+    move_child(pause_dim, 1)
     pause_panel = PanelContainer.new()
     pause_panel.position = Vector2(620, 280)
     pause_panel.size = Vector2(360, 328)
@@ -1240,6 +1309,15 @@ func _unhandled_input(event: InputEvent) -> void:
             _save_settings()
             apply_audio()
             _show_settings(false)
+            get_viewport().set_input_as_handled()
+        elif slots_panel.visible:
+            slots_panel.visible = false
+            if pause_open:
+                show_pause()
+            else:
+                center.visible = true
+                focus_main()
+            get_viewport().set_input_as_handled()
 
 
 

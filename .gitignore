@@ -11,3 +11,15 @@ _tools/
 # 临时文件
 *.bak
 _test_save.json
+
+# 凭据、本地设置及导出产物
+.env
+.env.*
+!.env.example
+export_credentials.cfg
+*.keystore
+*.p12
+*.pfx
+build/
+builds/
+exports/

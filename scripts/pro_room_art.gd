@@ -519,11 +519,13 @@ func _nightstand() -> void:
 
 func _desk() -> void:
 	# 右前区域：书桌 + 椅子 + 台灯，和厨房分开。
-	_model("wooden_table_02/wooden_table_02_1k.gltf", Vector3(2.55, 0, 1.75), 0.0, 0.0, Color(0.92, 0.90, 0.85))
+	var desk := _model("wooden_table_02/wooden_table_02_1k.gltf", Vector3(2.55, 0, 1.75), 0.0, 0.0, Color(0.92, 0.90, 0.85))
+	host.set_meta("room_desk",desk)
 	_model("painted_wooden_chair_01/painted_wooden_chair_01_1k.gltf", Vector3(2.55, 0, 1.03), PI, 0.0, Color(0.72,0.66,0.56))
 	_model("desk_lamp_arm_01/desk_lamp_arm_01_1k.gltf", Vector3(2.97, 0.80, 1.98), -2.4, 0.46, Color(0.86,0.82,0.74))
 	var phone := _bev(Vector3(2.51, 0.815, 1.58), Vector3(0.078, 0.010, 0.155), _plain(Color(0.045,0.05,0.055), 0.32), 0.006)
 	phone.rotation.y = 0.22
+	host.set_meta("phone_world_body", phone)
 	var screen := _box(Vector3(2.51, 0.821, 1.58), Vector3(0.066, 0.002, 0.138), _emit(Color(0.55, 0.75, 0.78), 0.55), false)
 	screen.rotation.y = 0.22
 	host.set_meta("phone_screen", screen)

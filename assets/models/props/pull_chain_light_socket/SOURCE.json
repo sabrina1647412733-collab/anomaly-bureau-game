@@ -1,0 +1,10 @@
+{
+  "id": "pull_chain_light_socket",
+  "name": "Pull Chain Light Socket",
+  "authors": {
+    "Josh Dean": "All"
+  },
+  "license": "CC0",
+  "source": "https://polyhaven.com/a/pull_chain_light_socket",
+  "resolution": "1k"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "washer_01",
+  "name": "得利洗衣店 · 老式波轮洗衣机（自制）",
+  "author": "本项目自建（blender_washer.py）",
+  "license": "CC0",
+  "generator": "_setup/blender_washer.py",
+  "blender": "4.5.14 LTS",
+  "size_m": [0.66, 0.72, 0.92],
+  "tris": {"washer_01": 3260, "washer_01_drum": 440},
+  "note": "正面朝 -Y（glTF Y-up 导出后对应 Godot 的 -Z）；底面在原点。滚筒单独导出供旋转。"
+}

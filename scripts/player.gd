@@ -362,12 +362,9 @@ func _build_viewarm() -> void:
 
 func toggle_cam() -> void:
 	var prev := cam_mode
-	cam_mode = (cam_mode + 1) % 4
-	if cam_mode == 3:
-		_fov_before_cctv = cam.fov
-		_pick_cctv()
-		cam.fov = CCTV_FOV
-	elif prev == 3:
+	# V：第一人称 → 正面第二人称 → 第三人称。监视器由站区交互单独进入。
+	cam_mode = 2 if prev == 0 else (1 if prev == 2 else 0)
+	if prev == 3:
 		cam.fov = _fov_before_cctv
 	body.visible = (cam_mode != 0)
 	if view_arm != null:
@@ -463,6 +460,9 @@ func look(delta_rot: Vector2) -> void:
 			view_arm.position = Vector3(0.26 + sin(head_bob) * 0.014 * bob_amp, -0.26 + cos(head_bob * 2.0) * 0.012 * bob_amp - dip * 0.6, -0.42)
 
 func _input(event: InputEvent) -> void:
+	if not allow_capture and (event is InputEventMouseMotion or event is InputEventMouseButton):
+		dragging = false
+		return
 	if event is InputEventMouseMotion:
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or dragging:
 			look(event.relative)
@@ -472,7 +472,7 @@ func _input(event: InputEvent) -> void:
 			if event.pressed and allow_capture and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event is InputEventKey and event.pressed and not event.echo:
-		if event.physical_keycode == KEY_F:
+		if event.physical_keycode == KEY_F and can_move and allow_capture:
 			flash.visible = not flash.visible
 		elif event.physical_keycode == KEY_ESCAPE:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

@@ -1,0 +1,40 @@
+得利洗衣店 · 第一案 · 验收输出
+生成时间: 2026-10-20 19:51:28
+Godot: 4.7.2 stable
+========================================
+
+### case1_night_test
+通过 36 / 失败 0
+
+### case1_flow_test
+通过 28 / 失败 0
+
+### envelope_choice_test
+通过 18 / 失败 0
+
+### prologue_qol_test
+通过 43 / 失败 0
+
+### room_to_laundry_test
+通过 24 / 失败 0
+
+### laundry_case_test
+通过 27 / 失败 0
+
+### handover_api_test
+通过 19 / 失败 0
+
+### laundry_connect_check_formal
+通过 10 / 失败 0
+
+### first_night_full
+通过 37 / 失败 0
+
+### basement_water_test
+通过 6 / 失败 0
+
+### char_test
+=== 结果: 通过 44 / 失败 0 ===
+
+### 场景加载（headless --quit-after 90）
+SCRIPT ERROR / Parse Error 数量: 0

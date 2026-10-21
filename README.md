@@ -1,3 +1,30 @@
+# 诡异事务局 · 第一案「得利洗衣店」
+
+这是持续维护的 Godot 主工程。以后都在本工程更新。旧地铁原型说明保留在本文后半部分，仅作历史参考。
+
+## 打开与游玩
+1. 使用 **Godot 4.7.2 stable**，在项目管理器点击「导入」，选择本目录 `project.godot`。
+2. 等待资源导入完成，按 **F5** 运行项目；主场景为 `scenes/main.tscn`。
+3. 以后打开同一个项目即可游玩。必须保留整个工程，不能只复制入口文件。
+
+当前可玩流程为出租屋→回潮镇→洗衣店第一夜→旧 A/B/C 结案卡。唯一结局剧本已确定，但完整三夜尚未实装。
+
+操作：WASD 移动，鼠标转向，E 交互，B 收纳/背包，T 时钟，Tab 记事本，V 切换视角，M 地图，Esc 退出界面/暂停。详见 `20261021_反馈修复与操作说明.md`。
+
+## 开发与 AI 接手
+- 先读 `AGENTS.md` 和 `开发进度.md`。
+- 剧情基准：`剧本/诡异事务局_回潮_前三案详细剧情稿_v2_唯一结局版.md`（附同名 Word）。
+- 仓库包含运行资产、源场景、脚本和资源导入设置；`.godot/` 缓存自动生成，不提交。
+- 克隆仓库后直接导入项目；提交后推送到同一仓库，以 Git 提交记录保存各版本。
+- `启动游戏.bat` 的引擎路径针对原作者电脑，其他机器可直接用编辑器运行。
+- `20261021_验收结果.md` 是已有版本验收记录；本次同步没有重新执行其中全部测试。
+
+---
+
+## 以下为历史原型说明（不能作为当前剧情与操作基准）
+
+> **2026-10-21 反馈修复版**：先读《20261021_反馈修复与操作说明.md》。房东催租来电、夜班招聘消息、10倍时间与便携时钟、6×4方格背包及上层通行已更新。导入 project.godot 后 F5，建议新游戏体验。
+
 # 岚桥站 0017 · Godot 3D 版
 
 《最后一班地铁：0017》的**表现层**（三层原型架构里最外层）。这不是界面原型，是可运行的 3D 实机版本；
@@ -1518,3 +1545,145 @@ Web 低画质档（只在 `OS.has_feature("web")` 生效）：
 - 重新导出：`deploy/game/index.pck` 75.18 MB、`index.wasm` 37.68 MB；线上日志确认
   `[WEB] light_limits renderable=128 per_object=8`，公开链接不变。
 
+
+---
+
+## 附：得利洗衣店 4F / 5F / 屋顶 / B1（2026-10-20 夜间完成）
+
+第一案从「一间店 + 一个老太太」扩成全楼探索。这一节记录新增的模块、素材来源与验收方式。
+
+### 新增模块
+
+| 文件 | 内容 | 关键点 |
+|---|---|---|
+| `scripts/laundry/laundry_kit.gd` | 场景工具箱（**新增**，不改 `laundry_art.gd`） | 模型加载 / 护墙板 / 门套 / 画框 / 管线 / 栏杆 / 灯 / 布料 / 水渍 / 水面 shader / 星空穹顶 |
+| `scripts/laundry/floor4_flats.gd` | 4F：402 老周家 / 403 杂物间 / 401 / 走廊 | 一墙水表、工具台、收音机（红灯）、全楼管线图（B1 标「勿动」）、五道锁；缝纫机 + 烧过的纸箱；走廊好灯 + 疏散图（B1 那格红笔划掉） |
+| `scripts/laundry/floor5_flats.gd` | 5F：502 空屋 / 503 / 走廊 | 地板中央 2×2 人形水渍（**两层遮罩**：泡过的地板 + 人形）+ 正上方天窗；503 门缝黄光、7 台玩具洗衣机围成圈、湿床人形凹陷 |
+| `scripts/laundry/roof_deck.gd` | 屋顶 | 水箱 2.5×2.5×3.0（**里面是满的**，水面离口沿 20 cm）、8 条晾衣绳挂 **7 件同款童装**（第 8 条空着）、天窗、三处新补沥青、程序化星空穹顶 |
+| `scripts/laundry/basement.gd` | B1：锅炉房 / 蓄水池 / 竖井底 | 两台锅炉（一台还在烧，2000 K）、7 个「勿动」阀门、10 cm 温水膜；蓄水池挖开池口 + 铁梯 + **2004 水位线（比池口还高 0.3 m，水是漫出来的）**；竖井底五根水管 + 停水通知「未送达」+ 一只凉鞋 |
+| `scripts/laundry/stairs_upper.gd` | 3F→4F→5F→屋顶 折返梯 + 1F→B1 直梯 | 竖井 x 0.30…2.80 / z 10.10…14.20；B1 入口在 1F 门厅东北角铁盖 |
+| `scripts/laundry/laundry_upper.gd` + `scenes/laundry_upper.tscn` | 上层**独立验收场景**（不含 1F–3F） | 单独出图 / 单独调试用 |
+
+`laundry_main.gd` 只加了 5 行装配（3F build 之后、`merge_static()` 之前），并把各楼层实例暴露到
+`buildings` 字典（`f4` / `f5` / `roof` / `b1` / `stairs_up`）供剧情层取用。
+
+### 素材来源与授权
+
+全部 **CC0**，来源记录在各自的 `SOURCE.json`：
+
+- **Poly Haven 模型 17 件**（`assets/models/props/`）：vintage_radio_transceiver、wall_clock、
+  modular_industrial_pipes_01、steel_frame_shelves_01、metal_tool_chest、utility_box_01、
+  industrial_wall_lamp、pull_chain_light_socket、vintage_wooden_drawer_01、wooden_crate_01、
+  plastic_monobloc_chair_01、modular_pipes、mounted_fluorescent_lights、caged_hanging_light、
+  metal_stool_01、vintage_cabinet_01、hanging_industrial_lamp
+- **Poly Haven 1K PBR 贴图 9 套**：decrepit_wallpaper、peeling_painted_wall、worn_corrugated_iron、
+concrete_floor、rough_concrete、metal_grate_rusty、brick_wall_04、painted_concrete、wood_planks_dirt
+- **自建 Blender 模型**（Blender 4.5.14 LTS，脚本可复现）：
+  - `_setup/blender_washer.py` → `washer_01`（3420 面，含可单独旋转的 `washer_01_drum` 440 面）
+  - `_setup/blender_furniture.py` → `counter_01`（1392）、`bench_01`（1864）、`bin_01`（792）
+  - `_setup/blender_boiler_sewing.py` → `boiler_01`（8208）、`sewing_01`（3036）
+  - `_setup/blender_mailbox.py` → `mailbox_wall_01`（9920，120 格信箱墙）
+
+### 层高链与几何约定
+
+```
+1F 0.0 → 2F 3.5 → 3F 6.9 → 4F 9.8 → 5F 12.7 → 屋顶 15.6 → 女儿墙顶 16.45
+B1 -3.0（净高 2.7，顶棚 = 1F 楼板底面 -0.30）
+```
+
+- 4F / 5F 走廊：`x −3.2…3.2，z 5.4…10.1`，净高 2.6，楼板厚 0.30
+- 上层楼梯井：`x 0.30…2.80，z 10.10…14.20`，每层 16 级折返
+- 4F 房间：402 `x −3.2…−0.8`、403 `x −0.8…0.8`、401 `x 0.8…3.2`，均在 `z 2.2…5.4`
+- 5F 房间：502 `x −3.2…−0.2`、503 `x 0.2…3.2`，均在 `z 1.6…5.4`；天窗在 502 正上方 `x −2.30…−1.10 / z 2.90…4.10`
+
+### 光照规则（对齐大地图 v2 第 9-F 节）
+
+| 层 | 主色温 | 「错的光」 |
+|---|---|---|
+| 4F | 3200 K（全楼唯一舒服的地方，三盏灯全亮） | 收音机的红色指示灯 |
+| 5F 空屋 | 无灯，只有天窗月光 6500 K | 503 门缝的黄光（第二夜会灭） |
+| 屋顶 | 无人工光 | 水箱铝反光 + 晾衣绳上 7 件衣服的反光 |
+| B1 | 2000 K（锅炉的火） | 蓄水池水面反射的绿 |
+
+### 合批与性能
+
+`merge_static()` 按材质并网格，`set_meta("dynamic", true)` 的对象（GLB 模型、滚筒、水面、星空）不参与。
+
+| 阶段 | meshes | tris | lights |
+|---|---|---|---|
+| 1F–3F（改前基线） | 591 | 23820 | 15 |
+| 装上 4F/5F/屋顶/B1（盒子版洗衣机） | 869 | 60558 | 65 |
+| 洗衣机 Blender 化后 | 490 | 50004 | 67 |
+| 家具 Blender 化后 | 485 | 49216 | 67 |
+
+> Web 版受 `max_renderable_lights=128` 限制，当前 67 盏仍在安全线内。
+
+### 验收怎么跑
+
+```bash
+G="C:/Users/Sabrina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.2-stable_win64_console.exe"
+
+# 1) 结构自检（合批/报错/面数）
+& $G --path . --headless --quit-after 150 res://scenes/laundry.tscn
+
+# 2) 连通性射线自检（1F→B1、3F→4F、4F→5F、5F→屋顶、各房门）—— 必须 10/10
+& $G --path . --headless -s res://scripts/tests/laundry_connect_check_formal.gd
+
+# 3) 第一夜全流程 —— 必须 37/37、exit 0
+& $G --path . --headless -s res://scripts/tests/first_night_full.gd
+
+# 4) 蓄水池涨水 —— 必须 6/6、exit 0
+& $G --path . --headless -s res://scripts/tests/basement_water_test.gd
+
+# 5) 截图（不能加 --headless）
+& $G --path . --script res://scripts/tests/laundry_shot.gd          # 01–17 全楼
+& $G --path . --script res://scripts/tests/laundry_upper_shot.gd    # 30–51 上层/地下
+& $G --path . --script res://scripts/tests/laundry_302_shot.gd      # 54–56 3F 302
+& $G --path . --script res://scripts/tests/laundry_washer_shot.gd   # 57–59 洗衣机
+& $G --path . --script res://scripts/tests/laundry_furniture_shot.gd # 60–63 家具
+```
+
+截图统一输出到 `_预览/洗衣店/场景/`。
+
+### 这一夜挖出来的三个结构性问题（重要）
+
+1. **「画了洞口」≠「洞口能过」**。3F/4F/5F 的走廊南墙都在另一个函数里被整块重画过一次，
+   洞口等于白挖；`basement.gd` 的井壁又因为高度参数多 0.30 m 横切在洞口上。
+   **唯一可靠的验收方式是物理射线自检**，截图完全看不出来。
+2. **2F→3F 的第二段楼梯横穿 2F 店堂**（从第一版就存在）。梯段从 z=11 走到 z=6、侧墙跨 y 3.65…7.05，
+   正好压在店堂中间（店堂 z 1.9…10.1、y 3.5…6.6）。玩家一进门正中间就是两堵混凝土墙。
+   已把这段收进竖井（z 11.0…16.0）。
+3. **Blender 导出的法线/尺寸约定**：boolean 之后法线会内翻（导出后整个外壳被背面剔除，
+   只剩门圈悬着）；`bmesh.ops.create_cube(size=1.0)` 生成的是边长 1，按半尺寸用就会差一半。
+   两个坑都写进了 `blender_washer.py` 的注释里。
+
+### 模型路径约定
+
+`LaundryKit.model(id, ...)` **自动回退**查找，两种命名都支持：
+
+1. `<id>.glb` —— 本项目 Blender 自建（洗衣机 / 家具 / 锅炉 / 缝纫机）
+2. `<id>_1k.gltf` —— Poly Haven 下载的
+
+（曾经硬编码成 `_1k.gltf`，导致自建模型一律加载失败、锅炉在场景里整个消失。已修。）
+
+### 尺寸约定（踩过坑，写死在这里）
+
+`laundry_art.gd` 里两个建盒子函数**都是全尺寸**语义：
+
+| 函数 | size 含义 | 说明 |
+|---|---|---|
+| `a.box(pos, size, ...)` | 全尺寸 | `BoxMesh.size` |
+| `a.bev(pos, size, ...)` | 全尺寸 | 内部 `CharBody.bev_box(size, b)` |
+| `a.col(pos, size, ...)` | 全尺寸 | 碰撞盒 |
+
+而 **Blender 脚本里 `bevel_box(size=...)` 的 size 是半边长**（`create_cube(size=2.0)` 再乘）。
+两边混用会直接导致「机身只有一半大、门圈和面板相对过大，整台机器像躺在地上」。
+今晚在 5F 503 的玩具洗衣机上踩了两次，记在这里。
+
+### 还没做的
+
+- 廊桥 + 老邮局（大地图 v2 区域 2-d）
+- 后巷 + 消防梯（区域 1-b；屋顶目前由 5F 楼梯井上去，消防梯还没建）
+- 配电房（区域 2-c，第三夜送电的引子）
+- 蓄水池涨水动画已留接口 `basement.rise_water(dt)`，但还没接到时间轴
+- 4F/5F 的交互点还没写进 `first_night.gd`（那是角色/剧情侧的活）
