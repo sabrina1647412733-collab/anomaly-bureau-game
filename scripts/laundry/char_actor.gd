@@ -83,12 +83,39 @@ static func make(parent: Node3D, id: String, pos: Vector3, yaw := 0.0,
 	if absf(bb.position.y) > 0.01:
 		inst.position.y -= bb.position.y
 	n.seat_base_y = inst.position.y       # 座偏移只在这个基准之上加减
+	n.refine_clips()
+	n.refine_materials()
 
 	for clip_name in ["Idle","Walk","SitIdle"]:
 		var clip = n.ap.get_animation(clip_name) if n.ap != null and n.ap.has_animation(clip_name) else null
 		if clip != null:clip.loop_mode=Animation.LOOP_LINEAR
 	n.play("Idle", 0.0)
 	return n
+
+func refine_clips() -> void:
+	if ap==null or who not in ["zhou","laozhou","aqi"]:return
+	var sk:Skeleton3D=model.find_child("Skeleton3D",true,false)
+	var file="res://assets/models/chars/finish/"+who+"_clips.res"
+	if sk==null or not ResourceLoader.exists(file):return
+	var source:AnimationLibrary=load(file)
+	var path=String(ap.get_node(ap.root_node).get_path_to(sk))
+	var library=ap.get_animation_library("").duplicate()
+	ap.remove_animation_library("");ap.add_animation_library("",library)
+	for name in source.get_animation_list():
+		var clip:Animation=source.get_animation(name).duplicate(true)
+		for i in clip.get_track_count():
+			var bone=String(clip.track_get_path(i)).get_slice(":",1)
+			clip.track_set_path(i,NodePath(path+":"+bone))
+		if library.has_animation(name):library.remove_animation(name)
+		library.add_animation(name,clip)
+
+func refine_materials() -> void:
+	for visual in model.find_children("*","MeshInstance3D",true,false):
+		for i in visual.mesh.get_surface_count():
+			var m=visual.get_active_material(i)
+			if m is StandardMaterial3D:
+				var copy=m.duplicate();copy.roughness=maxf(copy.roughness,.74);copy.metallic=0.
+				visual.set_surface_override_material(i,copy)
 
 static func file_of(id: String) -> String:
 	match id:

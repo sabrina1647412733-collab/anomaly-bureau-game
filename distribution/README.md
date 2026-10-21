@@ -15,3 +15,5 @@
 引擎版权与字体许可证随包提供。`ChineseSimplified.isl` 来自 [Inno Setup 官方源仓库](https://github.com/jrsoftware/issrc/blob/main/Files/Languages/ChineseSimplified.isl)，用于编译中文向导；保留文件内译者说明。Godot LICENSE / COPYRIGHT 来自 4.7.2-stable 官方源代码，字体许可证沿用工程内 Noto Sans SC 的原文件。
 
 发行前先导入，跑三夜主线、引导和交互/脱困/自动存档测试，再验证导出的程序启动、安装和卸载。跨电脑的显卡、驱动与性能仍需真实设备验证。
+
+当前脚本构建v0.3.2。声音署名与CC许可证同时复制到免安装包和安装目录；游戏内从主菜单「声音与素材鸣谢」读取相同内容。新增声音资源的作者、下载与修改说明在assets/audio/finish/SOURCES.md。

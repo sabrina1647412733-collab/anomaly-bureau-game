@@ -34,3 +34,13 @@
 - 另有 `case1_hand_test.gd`、`case1_investigation_walk_test.gd`、`director_flow_test.gd` 和 `field_system_test.gd`。启动测试加 `-- --verify`，不得写入玩家存档或结案记录。
 - 先导入资源，再做相关测试与主场景启动检查。报告实际运行结果，不把自动测试替代人工试玩。
 - 提交前检查 `git status`，不要提交凭据、玩家存档、临时截图或导出安装包。不要强推或覆盖远端历史。
+
+## 2026-10-22 美术与声音精修接手补充
+- 当前发行 v0.3.2，本轮9组341项通过；最新验收见`20261022_美术与声音精修验收.md`。
+- 新视觉资源在`assets/models/laundry_finish/`，原`laundry_rebuild`碰撞保留。程序细节在`laundry_finish.gd`。床垫与抽屉柜有新增匹配碰撞。
+- 三位演员的修正动画库在`assets/models/chars/finish/*_clips.res`，不可跨角色套用。生成流程与骨轴转换规则见该目录README。
+- 长椅椅面顶高0.44m；周秀兰、阿七均对齐当前椅子，不能恢复旧的0.49m座高和阿七旧X位置。
+- 声音控制在`field_audio.gd`，许可与来源在`assets/audio/finish/`；不得删除Kevin MacLeod署名。配乐、音效、对白、环境四总线独立。
+- `finish_audio_test.gd`检查分区、事件、循环、暂停、避让和姿态。画面对照用`art_audio_review.gd`，不是玩家流程入口。
+- 近景手部使用独立SubViewport；viewmodel_view.gd中的补光已降低，避免手部过曝。不要直接套用主场景光照来解释近景问题。
+- 角色仍为合成配音与基础动作，没有完整面部口型；第二、第三案仍仅有剧本。

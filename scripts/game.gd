@@ -390,8 +390,8 @@ func _apply_laundry_environment(on: bool) -> void:
 	if on:
 		e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 		e.ambient_light_color = Color(0.26, 0.28, 0.34)
-		e.ambient_light_energy = 0.95
-		e.tonemap_exposure = 1.10
+		e.ambient_light_energy = 0.72
+		e.tonemap_exposure = 1.02
 		e.fog_density = 0.008
 		e.fog_light_color = Color(0.040, 0.048, 0.062)
 	else:
@@ -549,6 +549,7 @@ func _spawn_player() -> void:
 	player.footstep.connect(_on_footstep)
 
 func _on_land(hard: bool) -> void:
+	if audio_system != null and (prologue_stage != "" or case_mode == "laundry"):audio_system.sfx("land",-12 if hard else -21)
 	if hard:
 		player.dip = 0.18
 
@@ -4924,7 +4925,9 @@ func stop_train() -> void:
 		train_player.stop()
 
 func _on_footstep(running: bool) -> void:
-	play_step(running)
+	if audio_system != null and (prologue_stage != "" or case_mode == "laundry"):
+		audio_system.footstep(running)
+	else:play_step(running)
 
 func play_click() -> void:
 	if sfx_player != null:

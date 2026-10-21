@@ -213,8 +213,8 @@ func spots() -> Array:
 	]
 	if night_number() >= 2:
 		points.append_array([
-			_point("drawer",Vector3(-.52,7.75,3.15),"打开303最下层抽屉"),
-			_point("photo",Vector3(-2.85,8.0,3.75),"查看303照片背面"),
+			_point("drawer",Vector3(-.83,7.08,3.53),"打开303最下层抽屉"),
+			_point("photo",Vector3(-3.045,7.76,3.75),"查看303照片背面"),
 			_point("cert",Vector3(2.70,7.65,4.05),"查看接种证"),
 			_point("homework",Vector3(2.70,7.7,4.40),"翻儿童作业本"),
 			_point("stones",Vector3(3.05,8.12,3.8),"核对窗台石头日期"),
@@ -289,6 +289,7 @@ func interact(id: String) -> bool:
 			if not lc.has_clue("machine_key"):
 				show_page("七号机","里面一件藏青色童装毛衣，袖口两道白条。\n筒在转，它却悬在正中间。\n\n锁需要专用钥匙，后房外门钥匙不能开启。")
 			else:
+				if not lc.has_clue("sweater"):game.audio_system.spatial_sfx("washer_latch",Vector3(0,4.1,2.7),-11)
 				doc("sweater")
 				lc.f2.sweater.visible = false
 		"l_locked_402": knock()
@@ -366,6 +367,9 @@ func interact(id: String) -> bool:
 
 func speak(lines: Array, callback: Callable=Callable(), actor=null) -> void:
 	if modal.visible:close_page()
+	if is_instance_valid(actor) and actor!=lc.lady:
+		actor.face_point(game.player.global_position)
+		actor.play("Idle",.35)
 	var at: Vector3=actor.global_position+Vector3(0,1.15,0) if is_instance_valid(actor) else Vector3.INF
 	dialogue.play(lines,callback,at)
 
@@ -515,7 +519,10 @@ func start_epilogue() -> void:
 	if lc.lady == null: return
 	lc.night.lady_state = "leave"
 	lc.lady.stand()
-	if bag_model != null: bag_model.reparent(lc.lady,true)
+	if bag_model != null:
+		bag_model.reparent(lc.lady,true)
+		bag_model.position=Vector3(.24,.42,.08)
+		bag_model.rotation=Vector3.ZERO
 	var tween: Tween = game.create_tween()
 	tween.tween_interval(1.8)
 	tween.tween_callback(func():
@@ -769,11 +776,13 @@ func restore(data: Dictionary) -> void:
 
 func _build_evidence() -> void:
 	var a = lc.art
-	var positions := {"slip":Vector3(2.33,4.24,4.1),"marriage":Vector3(-.52,7.72,3.15),"photo":Vector3(-2.83,7.76,3.75),"cert":Vector3(2.70,7.60,4.05),"return_card":Vector3(-2.8,1.34,4.62),"discharge":Vector3(13.8,4.5,12),"tool_key":Vector3(.45,10.8,4.65),"machine_key":Vector3(2.8,13.48,4.6)}
+	var positions := {"slip":Vector3(2.33,4.24,4.1),"marriage":Vector3(-.83,7.08,3.15),"photo":Vector3(-3.045,7.76,3.75),"cert":Vector3(2.70,7.60,4.05),"return_card":Vector3(-2.8,1.34,4.62),"discharge":Vector3(13.8,4.5,12),"tool_key":Vector3(.45,10.8,4.65),"machine_key":Vector3(2.8,13.48,4.6)}
 	for id in positions:
 		var node: MeshInstance3D = a.box(positions[id],Vector3(.19,.009,.13),a.plain(Color("d7c9a5")),false)
 		physical[id] = node
 	physical["slip"].rotation.z=PI/2
+	physical["photo"].rotation.z=PI/2
+	a.bev(Vector3(-3.065,7.76,3.75),Vector3(.025,.24,.18),a.plain(Color("695c43")),.005)
 	# 新模型按实际尺度归一化，保持源文件不变。
 	var other_shoe := Props.place(lc.world,"shoe",Vector3(1.70,6.93,4.35),.19,0.3)
 	if other_shoe != null: other_shoe.scale.x = -1.0
@@ -826,7 +835,7 @@ func _process(delta: float) -> void:
 	if pump != null:pump.stream_paused=game.state=="paused"
 	if bag_model != null and lc.lady != null and lc.night.lady_state=="walk":
 		bag_model.global_position=lc.lady.global_position+lc.lady.global_basis.x*.24+Vector3(0,.42,0)
-	elif bag_model != null:
+	elif bag_model != null and bag_model.get_parent()==lc.world:
 		bag_model.position=Vector3(1.42,4.03,6.25)
 	# 危险区域有预警且只退回安全节点，已读证据不清除。
 	if game.case_mode != "laundry" or game.state != "play" or game.sub_pause: return

@@ -161,8 +161,8 @@ func _shell() -> void:
 ## Blender 版洗衣机（assets/models/props/washer_01/washer_01.glb，3260 面）。
 ## 正面朝 −Z（模型导出时正面朝 −Y，glTF Y-up 转过来就是 −Z），
 ## 所以 yaw=0 时机门朝 −Z；要用 yaw 把门转到房里。
-const WASHER_GLB := "res://assets/models/props/washer_01/washer_01.glb"
-const DRUM_GLB := "res://assets/models/props/washer_01/washer_01_drum.glb"
+const WASHER_GLB := "res://assets/models/laundry_finish/washer_finish.glb"
+const DRUM_GLB := "res://assets/models/laundry_finish/drum_finish.glb"
 var _washer_scene = null
 var _drum_scene = null
 
@@ -196,7 +196,7 @@ func _machine_glb(p: Vector3, yaw: float, old := false, open_door := false) -> N
 	var g := Node3D.new()
 	g.name = "Drum"
 	g.set_meta("dynamic", true)
-	g.position = p + Vector3(0, 0.02, 0.01)
+	g.position = p + Vector3(0, -.022, 0) + Basis(Vector3.UP,yaw)*Vector3(0,0,.382)
 	g.rotation.y = yaw
 	a.root.add_child(g)
 	var drum: Node3D = _drum_scene.instantiate() if _drum_scene != null else null
@@ -204,8 +204,8 @@ func _machine_glb(p: Vector3, yaw: float, old := false, open_door := false) -> N
 		drum.set_meta("dynamic", true)
 		g.add_child(drum)
 		# 滚筒轴向：模型是 Y 轴（导出后 Godot 里是 Y），要转成 Z 轴（与 box 版一致）
-		drum.rotation.x = PI * 0.5
-		drum.position = Vector3(0, 0, -0.18)
+		drum.rotation.x = 0
+		drum.position = Vector3.ZERO
 	return g
 
 func _tint_glb(n: Node, tint: Color) -> void:

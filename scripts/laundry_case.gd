@@ -315,8 +315,8 @@ func _dawn_light() -> void:
 	var e: Environment = game.env_node.environment
 	# 环境从夜色抬到晨光
 	e.ambient_light_color = Color(0.52, 0.50, 0.46)
-	e.ambient_light_energy = 1.9
-	e.tonemap_exposure = 1.45
+	e.ambient_light_energy = 1.12
+	e.tonemap_exposure = 1.08
 	e.fog_light_color = Color(0.30, 0.28, 0.24)
 	e.fog_density = 0.004
 	# 加一盏假晨光（从窗的方向）
@@ -324,7 +324,7 @@ func _dawn_light() -> void:
 		var dawn: DirectionalLight3D = DirectionalLight3D.new()
 		dawn.add_to_group("case1_dawn")
 		dawn.light_color = Color(1.0, 0.86, 0.62)
-		dawn.light_energy = 1.2
+		dawn.light_energy = .65
 		dawn.rotation = Vector3(deg_to_rad(-28), deg_to_rad(35), 0)
 		art.root.add_child(dawn)
 
@@ -333,10 +333,10 @@ func _show_aqi_on_bench() -> void:
 	if cast == null or cast.aqi == null:
 		return
 	var aqi = cast.aqi
-	aqi.global_position = Vector3(1.35, 3.5, 6.75)
+	aqi.global_position = Vector3(1.8, 3.5, 6.75)
 	aqi.face_yaw(-PI * 0.5, 0.0)     # 面朝 −X（朝向玩家）
 	if aqi.has_anim("SitIdle"):
-		aqi.sit(0.49)
+		aqi.sit(0.44)
 	else:
 		aqi.play("Idle", 0.0)
 	aqi.visible = true

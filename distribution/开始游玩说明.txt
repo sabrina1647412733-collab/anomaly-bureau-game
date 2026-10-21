@@ -1,8 +1,8 @@
 诡异事务局 · 第一案「得利洗衣店」
-Windows 游玩版 v0.3.1 / 2026-10-22
+Windows 游玩版 v0.3.2 / 2026-10-22
 
 一、怎么打开
-安装版：运行 AnomalyBureau-Setup-0.3.1.exe，按向导安装到当前用户目录。
+安装版：运行 AnomalyBureau-Setup-0.3.2.exe，按向导安装到当前用户目录。
 安装后从桌面或开始菜单打开「诡异事务局 · 得利洗衣店」。不需要安装 Godot。
 
 免安装版：把 ZIP 完整解压到一个普通文件夹，再双击 AnomalyBureau.exe。
@@ -64,3 +64,9 @@ autosave.json 为自动档；save_1.json 至 save_3.json 为手动档。
 可玩版本：https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases
 其他 AI 修改项目应克隆仓库，先读 AGENTS.md 与最新验收文档。
 想在 Godot 中继续编辑，请导入源码工程中的 project.godot；安装包用于直接游玩。
+
+八、声音设置与鸣谢
+设置里可分别调整音乐、音效、对白、环境四个音量。人物说话时配乐自动降低。
+主菜单「声音与素材鸣谢」可查看作者与许可，安装目录附 credits.txt 和许可证。
+本版精修了洗衣机、长椅、门、各层表面和家具细节，修正角色手臂与坐姿。
+原有角色外观、街道建筑语义、三夜调查和唯一结局继续沿用。

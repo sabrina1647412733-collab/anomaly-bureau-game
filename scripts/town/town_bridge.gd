@@ -39,6 +39,7 @@ func _build_once() -> void:
 	if imported:
 		return
 	imported = true
+	var finish=preload("res://scripts/town/town_finish.gd").new()
 	for resource_path in MODULES:
 		var packed: PackedScene = load(resource_path)
 		if packed == null:
@@ -46,6 +47,7 @@ func _build_once() -> void:
 			continue
 		var part: Node3D = packed.instantiate()
 		add_child(part)
+		finish.apply(part)
 	floor_body = StaticBody3D.new()
 	floor_body.name = "TownCollision"
 	add_child(floor_body)
@@ -82,6 +84,7 @@ func _build_once() -> void:
 	lamp.light_energy = 2.1
 	lamp.omni_range = 13.0
 	add_child(lamp)
+	finish.lights(self)
 	print("[TOWN] 模块导入完成；地点 ", layout.get("landmarks", []).size(), "，建筑 ", layout.get("buildings", []).size())
 
 func _box(at: Vector3, extent: Vector3, yaw: float) -> void:

@@ -41,6 +41,9 @@ var pause_panel: Control
 var poster: TextureRect
 var music_slider: HSlider
 var sfx_slider: HSlider
+var voice_slider: HSlider
+var ambience_slider: HSlider
+var credits_panel: Control
 var sens_slider: HSlider
 var fog_slider: HSlider
 var bright_slider: HSlider
@@ -57,7 +60,8 @@ func setup(f: Font) -> void:
     _build_slots()
     _build_settings()
     _build_pause()
-    for slider in [music_slider, sfx_slider, sens_slider, fog_slider, bright_slider, sub_slider]:
+    _build_credits()
+    for slider in [music_slider, sfx_slider, voice_slider, ambience_slider, sens_slider, fog_slider, bright_slider, sub_slider]:
         slider.value_changed.connect(func(_value):
             _save_settings()
             settings_changed.emit())
@@ -78,6 +82,8 @@ func _load_settings() -> void:
 func _save_settings() -> void:
     cfg.set_value("audio", "music", music_slider.value / 100.0)
     cfg.set_value("audio", "sfx", sfx_slider.value / 100.0)
+    cfg.set_value("audio", "voice", voice_slider.value / 100.0)
+    cfg.set_value("audio", "ambience", ambience_slider.value / 100.0)
     cfg.set_value("input", "sens", sens_slider.value / 100.0)
     cfg.set_value("render", "fog", fog_slider.value / 100.0)
     cfg.set_value("render", "bright", bright_slider.value / 100.0)
@@ -88,6 +94,8 @@ func get_cfg() -> Dictionary:
     return {
         "music": float(cfg.get_value("audio", "music", 0.8)),
         "sfx": float(cfg.get_value("audio", "sfx", 1.0)),
+        "voice": float(cfg.get_value("audio", "voice", .9)),
+        "ambience": float(cfg.get_value("audio", "ambience", .7)),
         "sens": float(cfg.get_value("input", "sens", 1.0)),
         "fog": float(cfg.get_value("render", "fog", 1.0)),
         "bright": float(cfg.get_value("render", "bright", 1.0)),
@@ -106,7 +114,7 @@ func apply_audio() -> void:
         AudioServer.set_bus_mute(sbus, c["sfx"] < 0.01)
     for bus_name in ["Voice", "Ambience"]:
         var index := AudioServer.get_bus_index(bus_name)
-        var level: float = c["music"] if bus_name == "Ambience" else c["sfx"]
+        var level: float = c["ambience"] if bus_name == "Ambience" else c["voice"]
         if index >= 0:
             AudioServer.set_bus_volume_db(index, linear_to_db(maxf(level, 0.001)))
             AudioServer.set_bus_mute(index, level < 0.01)
@@ -402,7 +410,7 @@ func _build_main() -> void:
     sbar.custom_minimum_size = Vector2(22, 1)
     sbar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     subline.add_child(sbar)
-    var stext := _label("六个案子 · 一份值班表 · 每个结局都要付账", 10, Color(0.42, 0.50, 0.58))
+    var stext := _label("第一案 · 三个夜班 · 每一份证据都有来历", 10, Color(0.42, 0.50, 0.58))
     stext.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
     subline.add_child(stext)
 
@@ -431,6 +439,10 @@ func _build_main() -> void:
     auto_button.disabled = true
     auto_button.pressed.connect(func(): auto_continue.emit())
     center.add_child(auto_button)
+    var credit_button = _ghost_btn("声音与素材鸣谢",func():
+        center.visible=false;credits_panel.visible=true)
+    credit_button.position=Vector2(88,804);credit_button.custom_minimum_size=Vector2(392,32)
+    center.add_child(credit_button)
 
     # 底部提示
     var hints := _label("↑ ↓  选择     ENTER  确认     ESC  返回", 9, Color(0.35, 0.42, 0.50))
@@ -1168,8 +1180,8 @@ func _apply_import_text(text: String) -> void:
 # ------------------------------------------------------------------ 设置
 func _build_settings() -> void:
     sett = PanelContainer.new()
-    sett.position = Vector2(500, 200)
-    sett.size = Vector2(600, 500)
+    sett.position = Vector2(500, 120)
+    sett.size = Vector2(600, 650)
     sett.add_theme_stylebox_override("panel", _panel_style())
     add_child(sett)
     var v := VBoxContainer.new()
@@ -1193,6 +1205,8 @@ func _build_settings() -> void:
 
     music_slider = _slider(v, "音乐音量", float(cfg.get_value("audio", "music", 0.8)))
     sfx_slider = _slider(v, "音效音量", float(cfg.get_value("audio", "sfx", 1.0)))
+    voice_slider = _slider(v, "对白音量", float(cfg.get_value("audio", "voice", .9)))
+    ambience_slider = _slider(v, "环境音量", float(cfg.get_value("audio", "ambience", .7)))
     sens_slider = _slider(v, "鼠标灵敏度", float(cfg.get_value("input", "sens", 1.0)))
     sens_slider.min_value = 20
     sens_slider.max_value = 200
@@ -1315,11 +1329,15 @@ func hide_all() -> void:
     sett.visible = false
     slots_panel.visible = false
     settings_open = false
+    credits_panel.visible = false
     visible = false
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
-        if settings_open:
+        if credits_panel.visible:
+            credits_panel.visible=false;center.visible=true;focus_main()
+            get_viewport().set_input_as_handled()
+        elif settings_open:
             _save_settings()
             apply_audio()
             _show_settings(false)
@@ -1337,3 +1355,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 
+
+func _build_credits() -> void:
+    credits_panel=PanelContainer.new();credits_panel.position=Vector2(350,70);credits_panel.size=Vector2(900,760)
+    credits_panel.add_theme_stylebox_override("panel",_panel_style());add_child(credits_panel)
+    var v=VBoxContainer.new();v.add_theme_constant_override("separation",18);credits_panel.add_child(v)
+    v.add_child(_label("声音与素材鸣谢",26,Color("ddc491")))
+    var text=RichTextLabel.new();text.custom_minimum_size=Vector2(840,620)
+    text.add_theme_font_override("normal_font",font);text.add_theme_font_size_override("normal_font_size",18)
+    text.text=FileAccess.get_file_as_string("res://assets/audio/finish/credits.txt");v.add_child(text)
+    var back=_btn("返回",16);back.pressed.connect(func():credits_panel.visible=false;center.visible=true;focus_main());v.add_child(back)
+    credits_panel.visible=false

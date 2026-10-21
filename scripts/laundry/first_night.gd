@@ -338,7 +338,7 @@ const Actor := preload("res://scripts/laundry/char_actor.gd")
 ##   脚踝 3.650、ToeBase 3.592 → 鞋底约 3.56，比地面高 6 cm
 ## 所以**不要动整体偏移**（会把她压进椅面）；6 cm 悬空在坐姿里读不出来
 ## （长椅前有踏脚钢板 + 大衣下摆盖住膝盖以下）。extra_y 保持 0。
-const SEAT_H := 0.490
+const SEAT_H := 0.440
 const SIT_EXTRA_Y := 0.0
 const SIT_POS := Vector3(1.80, 3.5, 6.25)
 ## 模型正面 +Z；要面朝 −X → yaw = −PI/2

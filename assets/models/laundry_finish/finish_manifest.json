@@ -1,0 +1,30 @@
+{
+  "B1": 104,
+  "F1": 120,
+  "F2": 86,
+  "F3": 90,
+  "F4": 85,
+  "F5": 87,
+  "ROOF": 97,
+  "BRIDGE": 92,
+  "washer_finish": {
+    "source_parts": 28,
+    "draw_groups": 6
+  },
+  "drum_finish": {
+    "source_parts": 89,
+    "draw_groups": 3
+  },
+  "bench_finish": {
+    "source_parts": 21,
+    "draw_groups": 3
+  },
+  "door_finish": {
+    "source_parts": 20,
+    "draw_groups": 4
+  },
+  "workbench_finish": {
+    "source_parts": 7,
+    "draw_groups": 3
+  }
+}

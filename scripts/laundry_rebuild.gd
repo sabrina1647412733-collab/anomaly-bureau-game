@@ -23,7 +23,7 @@ func _init(case_world) -> void:
 	case_ref=weakref(case_world); a=case_world.art
 func build() -> void:
 	for floor in ["B1","F1","F2","F3","F4","F5","ROOF","BRIDGE"]:
-		var model: Node3D=load(BASE+floor+"_body.glb").instantiate()
+		var model: Node3D=load("res://assets/models/laundry_finish/"+floor+"_finish.glb").instantiate()
 		model.name="Building_"+floor; lc.world.add_child(model); roots[floor]=model
 		var collision: Node3D=load(BASE+floor+"_collision.glb").instantiate()
 		collision.name="Collision_"+floor;lc.world.add_child(collision)
@@ -57,7 +57,6 @@ func build() -> void:
 	var handover=a.label("夜班交接簿",Vector3(-.7,1.65,9),.045,Color("e4d6b7"),0)
 	handover.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	a.label("交班终端",Vector3(-2.1,4.8,8.35),.055,Color("d8ceae"),0)
-	a.label("7  专用 · 请勿使用",Vector3(0,4.85,2.66),.06,Color("d4be8f"),0)
 	a.label("9",Vector3(2.32,4.52,4.1),.05,Color("dfd2b6"),-PI/2)
 	a.label("配电房 →",Vector3(2.0,5.4,8.03),.06,Color("e4d6b7"),0)
 	a.label("秀 兰 干 洗",Vector3(-2.1,4.1,-.2),.09,Color("bcb99c"),0)
@@ -72,23 +71,39 @@ func build() -> void:
 		for z in [4.4,8.6,13.7]:
 			var light=a.omni(Vector3(.0 if z<10 else 1.55,y+2.25,z),Color("e8d8b1") if floor in [1,4] else Color("b9d2d0"),.75,5.5,z==8.6)
 			light.shadow_bias=.08;light.shadow_normal_bias=1.2
+	preload("res://scripts/laundry_finish.gd").new(lc).build()
 	for pos in [Vector3(2.6,-.7,-6),Vector3(2.6,-.7,-1),Vector3(16,6,9)]:a.omni(pos,Color("b3c8c4"),.85,7,false)
 func finish(node: Node, floor: String) -> void:
 	if node is MeshInstance3D:
 		var text=String(node.name)
+		if floor=="B1" and text.contains("检修台"):
+			node.visible=false;return
 		if text in ["F2后房门","F2配电门","F4_402门","F5_503门","F3_302门","F3_303门","F3_304门","F4_403门","F4_401门","F5_502门"] or (floor=="F2" and (text.contains("洗衣机") or text.contains("烘干机") or text.contains("七号机"))):
 			node.visible=false
 		else:
 			var mat: Material
-			if text.contains("地面") or text.contains("踏步"):
-				mat=a.tile_mat(.3,Color("8a938b"),Color("343f3e")) if floor=="F2" else a.pbr("concrete_floor",.6,Color("a3aaa0"))
+			if text.contains("地面") or text.contains("地板") or text.contains("踏步") or text.contains("平台") or text.contains("通道"):
+				var surface=a.tile_mat(.3,Color("949b8d"),Color("667268"),2) if floor=="F2" else a.pbr("concrete_floor",.6,Color("a3aaa0"))
+				var fm=ShaderMaterial.new();fm.shader=preload("res://shaders/building_floor.gdshader")
+				fm.set_shader_parameter("floor_tex",surface.albedo_texture)
+				fm.set_shader_parameter("scale_uv",1./.3 if floor=="F2" else .6)
+				fm.set_shader_parameter("tint",Color.WHITE if floor=="F2" else Color("a3aaa0"))
+				mat=fm
 			elif text.contains("玻璃"):
 				mat=a.glass(Color(.25,.35,.36,.35))
-			elif text.contains("天花"):
-				mat=a.pbr("damaged_plaster",.4,Color("c0c3b7"),1,0,.25)
+			elif text.contains("天花") or text.contains("顶板") or text.contains("顶棚"):
+				mat=a.pbr("grey_plaster_02",.55,Color("bebcac"),1,0,.18)
 			elif text.contains("墙") or text.contains("隔"):
-				mat=a.pbr("damaged_plaster",.65,Color("9ba38d"),1,0,.3)
+				mat=preload("res://scripts/laundry_finish.gd").new(lc).wall(floor)
 			elif text.contains("长椅"):mat=a.plain(Color("516d69"),.72)
+			elif text.contains("CRT"):mat=a.plain(Color("363e35"),.7)
+			elif text.contains("电视"):mat=a.plain(Color("434d43"),.75)
+			elif text.contains("水箱"):mat=a.pbr("metal_plate",.6,Color("8a9286"),.85,.35,.18)
+			elif text.contains("纸箱") or text.contains("退信"):mat=a.pbr("rough_linen",2,Color("a5956c"),1,0,.08)
+			elif text.contains("信箱") or text.contains("邮筒") or text.contains("玩具机"):mat=a.plain(Color("52685d"),.7,.15)
+			elif text.contains("绳"):mat=a.plain(Color("7c7457"))
+			elif text.contains("童装") or text.contains("水痕"):mat=a.pbr("rough_linen",3,Color("455e60"),1,0,.2)
+			elif text.contains("水面") or text.contains("积水"):mat=a.glass(Color(.16,.22,.21,.7))
 			elif text.contains("床") or text.contains("柜") or text.contains("桌"):mat=a.pbr("oak_wood_planks",.8,Color("817868"))
 			elif text.contains("管") or text.contains("铁") or text.contains("梯"):mat=a.pbr("rusty_metal",.8,Color("938b79"),1,1)
 			else:mat=a.plain(Color("89958a"),.9)
@@ -106,8 +121,9 @@ func convex_ramps(node: Node) -> void:
 	for child in node.get_children():convex_ramps(child)
 func door(id: String, at: Vector3, width: float, height: float, yaw: float) -> Node3D:
 	var hinge=Node3D.new();hinge.name="Door_"+id;lc.world.add_child(hinge);hinge.position=at;hinge.rotation.y=yaw
-	var mesh=MeshInstance3D.new();var box=BoxMesh.new();box.size=Vector3(width,height,.045);mesh.mesh=box
-	mesh.position=Vector3(width/2,height/2,0);mesh.material_override=a.plain(Color("455e56"),.8);hinge.add_child(mesh)
-	var body=StaticBody3D.new();var col=CollisionShape3D.new();var shape=BoxShape3D.new();shape.size=box.size
-	col.shape=shape;col.position=mesh.position;body.add_child(col);hinge.add_child(body)
+	var model=load("res://assets/models/laundry_finish/door_finish.glb").instantiate()
+	hinge.add_child(model);model.scale=Vector3(width/.9,height/2.05,1)
+	preload("res://scripts/laundry_finish.gd").new(lc).dress(model)
+	var body=StaticBody3D.new();var col=CollisionShape3D.new();var shape=BoxShape3D.new();shape.size=Vector3(width,height,.045)
+	col.shape=shape;col.position=Vector3(width/2,height/2,0);body.add_child(col);hinge.add_child(body)
 	return hinge

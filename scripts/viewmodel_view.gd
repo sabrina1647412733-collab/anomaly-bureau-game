@@ -15,6 +15,13 @@ func setup(p, font: Font) -> void:
 	viewport.size = Vector2i(1600,900)
 	viewport.msaa_3d = Viewport.MSAA_2X
 	add_child(viewport)
+	var environment=WorldEnvironment.new()
+	environment.environment=Environment.new()
+	environment.environment.background_mode=Environment.BG_CLEAR_COLOR
+	environment.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
+	environment.environment.ambient_light_color=Color(.72,.75,.76)
+	environment.environment.ambient_light_energy=.32
+	viewport.add_child(environment)
 	camera = Camera3D.new()
 	camera.near = .01
 	camera.current = true
@@ -22,8 +29,8 @@ func setup(p, font: Font) -> void:
 	var hand_light := OmniLight3D.new()
 	hand_light.name = "HeldCharacterLight"
 	hand_light.position = Vector3(0.15, 0.15, 0.25)
-	hand_light.light_color = Color(0.84, 0.88, 0.96)
-	hand_light.light_energy = 2.2
+	hand_light.light_color = Color(.95,.91,.84)
+	hand_light.light_energy = .45
 	hand_light.omni_range = 3.0
 	hand_light.shadow_enabled = false
 	camera.add_child(hand_light)

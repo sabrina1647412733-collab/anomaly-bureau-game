@@ -1,0 +1,24 @@
+声音与素材鸣谢
+
+配乐 “Lightless Dawn”
+Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0 License
+https://creativecommons.org/licenses/by/4.0/
+https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN1100655
+游戏中调整了音量，使用循环与淡入淡出。作者不为本游戏背书。
+
+实录声音 / Freesound · CC0 1.0
+Soft rain.WAV — barkenov
+https://freesound.org/people/barkenov/sounds/640655/
+Washing machine [wash cycle] — ANARKYA
+https://freesound.org/people/ANARKYA/sounds/423210/
+washmachine close2.WAV — samplecat
+https://freesound.org/people/samplecat/sounds/11574/
+Knock on the door — HunteR4708
+https://freesound.org/people/HunteR4708/sounds/256513/
+https://creativecommons.org/publicdomain/zero/1.0/
+使用HQ试听源并经过裁剪、滤波、归一化及循环处理。
+
+其余新增器乐与拟音为本项目程序生成。对白为本地合成配音。
+现有贴图：Poly Haven、ambientCG，CC0；详情见随包素材许可。
+原始角色、街道和Meshy道具沿用本项目已有资产及其对应权利。

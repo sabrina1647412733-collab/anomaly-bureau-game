@@ -7,7 +7,8 @@ var nail: StandardMaterial3D
 
 func build(id: String) -> void:
 	name = "XuYanGripHands"
-	skin = mat(Color("be9981"),.62)
+	skin = mat(Color("b6a08d"),.72)
+	skin.albedo_texture=skin_detail()
 	cloth = mat(Color("303b48"),.96)
 	cuff = mat(Color("222f3a"),.9)
 	nail = mat(Color("c6a99a"),.48)
@@ -67,6 +68,19 @@ func build(id: String) -> void:
 	for i in thumb_curve.size(): thumb_radii.append(lerpf(.016,.011,float(i)/float(thumb_curve.size()-1)))
 	sweep(thumb_curve,thumb_radii,skin,Vector2(1,.85),18)
 	ellipsoid(thumb_curve[-1]+Vector3(.006,0,.007),Vector3(.016,.009,.0012),nail)
+	# Thenar pad softens the palm/thumb junction without exposed spherical knuckles.
+	ellipsoid(wrist+Vector3(.005,.045,.005),Vector3(.043,.055,.026),skin)
+
+func skin_detail() -> Texture2D:
+	var img=Image.create(128,128,false,Image.FORMAT_RGB8)
+	for y in range(128):
+		for x in range(128):
+			var pore=sin(float(x)*18.17+float(y)*13.71)*sin(float(x)*5.13-float(y)*9.4)
+			var warmth=sin(float(y)*.035)*.014
+			var value=.965+pore*.018
+			img.set_pixel(x,y,Color(value+warmth,value,value-warmth*.5))
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
 
 func mat(color: Color, roughness: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()

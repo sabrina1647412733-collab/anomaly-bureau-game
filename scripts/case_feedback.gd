@@ -21,8 +21,8 @@ func setup(g) -> void:
  game=g
  var layer=CanvasLayer.new();layer.layer=20;add_child(layer)
  panel=PanelContainer.new();panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
- panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
- panel.offset_left=-490;panel.offset_top=-236;panel.offset_right=-38;panel.offset_bottom=-112
+ panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+ panel.offset_left=38;panel.offset_top=-236;panel.offset_right=490;panel.offset_bottom=-112
  panel.add_theme_stylebox_override("panel",game.phone_ui.style(Color(.06,.12,.13,.96),10,Color("738a70")))
  layer.add_child(panel)
  var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE

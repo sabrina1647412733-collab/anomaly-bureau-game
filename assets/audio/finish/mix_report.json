@@ -1,0 +1,164 @@
+{
+  "rain_outside": {
+    "seconds": 60.597,
+    "peak": 0.68,
+    "rms": 0.0929,
+    "channels": 2
+  },
+  "rain_inside": {
+    "seconds": 60.597,
+    "peak": 0.6,
+    "rms": 0.0573,
+    "channels": 2
+  },
+  "washer_loop": {
+    "seconds": 9.717,
+    "peak": 0.65,
+    "rms": 0.149,
+    "channels": 2
+  },
+  "washer_latch": {
+    "seconds": 1.125,
+    "peak": 0.7,
+    "rms": 0.0967,
+    "channels": 1
+  },
+  "knock": {
+    "seconds": 0.435,
+    "peak": 0.78,
+    "rms": 0.17,
+    "channels": 1
+  },
+  "step_tile0": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.0843,
+    "channels": 1
+  },
+  "step_tile1": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.0816,
+    "channels": 1
+  },
+  "step_tile2": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.0973,
+    "channels": 1
+  },
+  "step_tile3": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.073,
+    "channels": 1
+  },
+  "step_wood0": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.0919,
+    "channels": 1
+  },
+  "step_wood1": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.0921,
+    "channels": 1
+  },
+  "step_wood2": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.1004,
+    "channels": 1
+  },
+  "step_wood3": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.0847,
+    "channels": 1
+  },
+  "step_metal0": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.0915,
+    "channels": 1
+  },
+  "step_metal1": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.0826,
+    "channels": 1
+  },
+  "step_metal2": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.0822,
+    "channels": 1
+  },
+  "step_metal3": {
+    "seconds": 0.22,
+    "peak": 0.62,
+    "rms": 0.0779,
+    "channels": 1
+  },
+  "land": {
+    "seconds": 0.32,
+    "peak": 0.7,
+    "rms": 0.0893,
+    "channels": 1
+  },
+  "cloth": {
+    "seconds": 0.42,
+    "peak": 0.45,
+    "rms": 0.0543,
+    "channels": 1
+  },
+  "paper": {
+    "seconds": 0.6,
+    "peak": 0.5,
+    "rms": 0.0551,
+    "channels": 1
+  },
+  "door": {
+    "seconds": 0.72,
+    "peak": 0.7,
+    "rms": 0.0571,
+    "channels": 1
+  },
+  "key": {
+    "seconds": 0.38,
+    "peak": 0.55,
+    "rms": 0.0594,
+    "channels": 1
+  },
+  "breaker": {
+    "seconds": 0.14,
+    "peak": 0.65,
+    "rms": 0.1013,
+    "channels": 1
+  },
+  "room_theme": {
+    "seconds": 63.5,
+    "peak": 0.62,
+    "rms": 0.142,
+    "channels": 2
+  },
+  "memory_theme": {
+    "seconds": 63.5,
+    "peak": 0.62,
+    "rms": 0.1457,
+    "channels": 2
+  },
+  "depth_theme": {
+    "seconds": 63.5,
+    "peak": 0.62,
+    "rms": 0.1583,
+    "channels": 2
+  },
+  "suspense_theme": {
+    "seconds": 63.5,
+    "peak": 0.62,
+    "rms": 0.1474,
+    "channels": 2
+  }
+}
