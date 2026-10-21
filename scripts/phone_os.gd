@@ -3,6 +3,7 @@ signal closed
 signal opened_wallet
 signal opened_album
 signal answer_requested
+signal hangup_requested
 signal stow_requested
 signal tap
 const WHITE := Color("edf4ef")
@@ -15,6 +16,7 @@ var screen: Control
 var page := "lock"
 var pages := {}
 var incoming := false
+var call_active := false
 var caller := "房东"
 var call_text := "许砚，你总得给我个准话。两个月房租，一共2160元。今天先交一部分。我明天还得来。"
 var messages: Dictionary = {}
@@ -46,6 +48,7 @@ func setup(f: Font) -> void:
 	screen = Control.new()
 	screen.position = Vector2(15, 51)
 	screen.size = Vector2(398, 664)
+	screen.clip_contents = true
 	panel.add_child(screen)
 	lab(panel, "23:40", Vector2(26, 18), Vector2(90, 22), 15)
 	lab(panel, "▥  Wi-Fi  87%", Vector2(274, 18), Vector2(133, 22), 12, DIM)
@@ -84,6 +87,8 @@ func lab(parent: Control, value: String, pos: Vector2, extent: Vector2, fs := 18
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(l)
+	# 文本/字体先设置时Label会按未换行全文扩宽，最后恢复指定边界。
+	l.size = extent
 	if value == "23:40":
 		clock_labels.append(l)
 	return l
@@ -235,7 +240,7 @@ func _goto(name: String) -> void:
 			header("通话中")
 			lab(screen, caller + "\n\n本地联系人", Vector2(38, 125), Vector2(322, 180), 29)
 			lab(screen, call_text, Vector2(38, 325), Vector2(322, 170), 18, DIM)
-			btn(screen, "结束通话", Vector2(72, 510), Vector2(254, 58), func(): _goto("home"), Color("763f40"))
+			btn(screen, "结束通话", Vector2(72, 510), Vector2(254, 58), func(): end_call(); _goto("home"), Color("763f40"))
 		"notes":
 			header("备忘录")
 			lab(screen, "待办\n\n□ 找一份工作\n□ 房租 2,160 元\n□ 修好厨房的灯\n\n最后修改：昨天 02:13", Vector2(24, 85), Vector2(350, 460), 21)
@@ -260,8 +265,15 @@ func open() -> void:
 	_goto("incoming" if incoming else "lock")
 
 func close() -> void:
+	end_call()
 	visible = false
 	closed.emit()
+
+func end_call() -> void:
+	if not call_active: return
+	call_active = false
+	hangup_requested.emit()
+	if visible and page=="in_call":_goto("calls")
 
 func _unhandled_input(event: InputEvent) -> void:
 	if visible and event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:

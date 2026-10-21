@@ -20,13 +20,20 @@ func _process(_delta: float) -> bool:
 		quit(1)
 	return false
 
+func drain_dialogue() -> void:
+	while story!=null and story.dialogue!=null and story.dialogue.panel.visible:
+		story.dialogue.advance()
+
 func close() -> void:
+	drain_dialogue()
+	game.audio_system.stop_voice()
 	if story.modal.visible: story.close_page()
 	game._clear_sub()
 
 func act(id: String) -> void:
 	close()
 	lc.interact(id)
+	drain_dialogue()
 
 func clock_to(minutes: float) -> void:
 	close()
@@ -44,6 +51,7 @@ func rest_to_next() -> void:
 	game._prologue_act("case_rest")
 	check(story.modal.visible and story.heading.text.contains("出租屋"),"床边可打开休息页")
 	story.invoke(0)
+	drain_dialogue()
 	check(not bool(story.progress.rest_pending),"休息后进入下一夜，不连续驻守")
 	game._prologue_act("door")
 	game._step_exit_to_town(game.LEAVE_FADE*2.0+.1)
@@ -80,6 +88,8 @@ func run() -> void:
 	lc.choose_final("C")
 	check(lc.selected_ending=="","旧顶替入口失效")
 	act("lb_booth")
+	act("l_price")
+	act("l_m7")
 	check(story.flag("signed"),"签入交接簿")
 	act("l_m9")
 	check(lc.has_clue("slip") and game.bag_has("slip"),"未取洗衣单入包可重读")
@@ -93,6 +103,7 @@ func run() -> void:
 	act("l_sign")
 	act("c1_terminal")
 	story.invoke(0)
+	drain_dialogue()
 	check(bool(story.progress.rest_pending),"第一夜登记续查")
 	check(int(story.progress.earnings)==800 and int(story.progress.rent_due)==1360,"首夜800工资与1360余租")
 	check(not game.bag_has("permcard") and lc.selected_ending=="","首夜不升权、不结案")
@@ -103,6 +114,7 @@ func run() -> void:
 	check(lc.has_clue("slip"),"跨夜保留洗衣单")
 	act("l_locked_402")
 	story.invoke(0)
+	drain_dialogue()
 	check(story.flag("zhou_open") and game.bag_has("mail_key"),"两短一长和洗衣单打开老周对话")
 	act("c1_drawer")
 	act("c1_photo")
@@ -129,6 +141,7 @@ func run() -> void:
 	check(story.flag("name_told"),"向周秀兰说出小满姓名")
 	act("c1_terminal")
 	story.invoke(0)
+	drain_dialogue()
 	check(int(story.progress.earnings)==1600 and int(story.progress.rent_due)==560,"第二夜工资独立结算")
 	close()
 	game.player.cam_mode=2
@@ -162,9 +175,11 @@ func run() -> void:
 	check(not lc.ended and lc.t<=260*60,"超过时限保留调查，不进坏结局")
 	act("c1_lady")
 	story.invoke(0)
+	drain_dialogue()
 	check(lc.selected_ending=="A" and story.flag("recognized"),"交还第六件自动完成唯一认领")
 	check(not game.bag_has("sweater") and game.bag_has("sweater_record"),"原衣交还后不重复持有，保留证据记录")
 	story.invoke(0)
+	drain_dialogue()
 	for minute in [255,256,258,260,261,262]: clock_to(minute)
 	check(game.state=="case_end" and lc.ended,"三夜到第一案正式结束")
 	check(lc.fired.has("aqi_line") and lc.cast.aqi.visible,"录名之后阿七正面出现")

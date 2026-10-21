@@ -378,7 +378,7 @@ func _npc_step(dt: float) -> void:
 			# 从门口走到长椅（6 秒），动作 Walk
 			_lady_walk_t += dt
 			var p0 := Vector3(0.0, 3.5, 9.90)
-			var p1 := SIT_POS + Vector3(0.0, 0.0, 0.62)
+			var p1 := SIT_POS + Vector3(-.65, 0.0, 0.0)
 			var k := clampf(_lady_walk_t / 6.0, 0.0, 1.0)
 			var e := k * k * (3.0 - 2.0 * k)
 			npc.global_position = p0.lerp(p1, e)
@@ -400,23 +400,24 @@ func _npc_step(dt: float) -> void:
 			pass
 
 func _do_sit() -> void:
-	lady.global_position = SIT_POS
+	if lady.global_position.distance_to(SIT_POS)>1.1:lady.global_position = SIT_POS
+	else:create_tween().tween_property(lady,"global_position",SIT_POS,.65).set_trans(Tween.TRANS_SINE)
 	lady.face_yaw(SIT_YAW, 0.0)
 	# 这动作的坐姿脚会离地 8 cm，往下沉一点让鞋底贴地（骨盆仍在座面上方）
 	lady.extra_y = SIT_EXTRA_Y
-	# sit() 内部会把 SitDown 加速播完再自动切 SitIdle（GLB 里 SitDown 有 5.97 s）
+	# 骨骼混合到校准SitIdle，不使用末帧仍站立的来源SitDown。
 	lady.sit(SEAT_H)
 
 ## 剧情钩子（first_night._timeline 调用）
 func lady_count() -> void:
 	lady_state = "count"
 	if lady != null:
-		lady.play("LookDown", 0.35)     # 数衣服 = 低头看
+		lady.sit_idle() # 保持已校准坐姿，不能切换站立的低头动作。
 
 func lady_ask() -> void:
 	lady_state = "ask"
 	if lady != null:
-		lady.play("SitIdle2" if lady.has_anim("SitIdle2") else "SitIdle", 0.5)
+		lady.sit_idle()
 
 func lady_stand_leave() -> void:
 	if lady != null:

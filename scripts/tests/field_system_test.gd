@@ -84,7 +84,7 @@ func _run() -> void:
 	var query := PhysicsRayQueryParameters3D.create(Vector3(2.43,.1,-8.15), Vector3(2.43,-2.7,-8.15))
 	query.exclude = [game.player.get_rid()]
 	check(space.intersect_ray(query).is_empty(), "服务梯顶棚开口与 1F 洞口对齐")
-	query = PhysicsRayQueryParameters3D.create(Vector3(0,4.4,9.8), Vector3(0,4.4,10.6))
+	query = PhysicsRayQueryParameters3D.create(Vector3(1.55,4.4,9.8), Vector3(1.55,4.4,10.6))
 	query.exclude = [game.player.get_rid()]
 	var hit: Dictionary = space.intersect_ray(query)
 	if not hit.is_empty():

@@ -84,6 +84,9 @@ static func make(parent: Node3D, id: String, pos: Vector3, yaw := 0.0,
 		inst.position.y -= bb.position.y
 	n.seat_base_y = inst.position.y       # 座偏移只在这个基准之上加减
 
+	for clip_name in ["Idle","Walk","SitIdle"]:
+		var clip = n.ap.get_animation(clip_name) if n.ap != null and n.ap.has_animation(clip_name) else null
+		if clip != null:clip.loop_mode=Animation.LOOP_LINEAR
 	n.play("Idle", 0.0)
 	return n
 
@@ -138,9 +141,8 @@ func play(anim: String, blend := 0.22) -> bool:
 
 ## AnimationPlayer 自带的 blend 在 NLA/单动画导出里不一定生效，
 ## 这里退一步：直接 play + 用 speed_scale 归一，不报错就行。
-func _crossfade(from: String, to: String, t: float) -> void:
-	ap.play(to)
-	ap.playback_default_blend_time = t
+func _crossfade(_from: String, to: String, t: float) -> void:
+	ap.play(to,t)
 
 func anim_length(anim: String) -> float:
 	var n := resolve(anim)
@@ -207,18 +209,11 @@ var _sit_tween: Tween = null
 func sit(seat_height := -1.0) -> void:
 	if seat_height > 0.0:
 		seat_h = seat_height
-	play("SitDown", 0.15)
-	if ap != null:
-		ap.speed_scale = SPEED_SIT
+	# 来源SitDown末帧仍是站姿，用引擎骨骼混合到真实坐姿。
+	if _sit_tween != null and _sit_tween.is_valid():_sit_tween.kill()
+	if ap != null:ap.speed_scale = SPEED_IDLE
+	play("SitIdle", .65)
 	_apply_seat_offset()
-	# SitDown 播完（加速后 5.97/3.2 ≈ 1.87 s）自动转 SitIdle
-	if _sit_tween != null and _sit_tween.is_valid():
-		_sit_tween.kill()
-	_sit_tween = create_tween()
-	_sit_tween.tween_interval(anim_length("SitDown") / SPEED_SIT + 0.05)
-	_sit_tween.tween_callback(func():
-		if is_inside_tree() and current == "SitDown":
-			sit_idle())
 
 func sit_idle() -> void:
 	play("SitIdle", 0.30)

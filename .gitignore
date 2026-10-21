@@ -23,3 +23,8 @@ export_credentials.cfg
 build/
 builds/
 exports/
+
+# DCC / Python生成缓存
+__pycache__/
+*.pyc
+*.blend1

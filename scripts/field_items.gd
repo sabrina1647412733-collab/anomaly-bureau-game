@@ -62,6 +62,9 @@ func setup(g) -> void:
 	decorate_envelope()
 	ui.stow_requested.connect(stow)
 	ui.answer_requested.connect(answer_phone)
+	ui.hangup_requested.connect(end_phone_call)
+	game.audio_system.voice.finished.connect(func():
+		if ui.call_active: ui.end_call())
 	ui.tap.connect(func(): game.audio_system.sfx("ui_tap", -18))
 
 func measure_desk() -> void:
@@ -328,9 +331,15 @@ func answer_phone() -> void:
 	game.phone_ui.incoming = false
 	game.audio_system.ring.stop()
 	game.audio_system.speak("phone_voice")
+	game.audio_system.voice_context = "phone"
+	game.phone_ui.call_active = true
 	game.note("话","房东催租",game.phone_ui.call_text)
-	game._say_seq("房东",game.phone_ui.call_text,6.0,false)
-	game._prologue_set_objective("房租欠了两个月，余额只剩31.40元。看看刚来的招聘消息。")
+	game._clear_sub()
+	game._prologue_set_objective("接听房东电话；挂断后留意房门外的声音。")
+
+func end_phone_call() -> void:
+	if game.audio_system.voice_context == "phone": game.audio_system.stop_voice()
+	game._clear_sub()
 	game.director.after_rent_call()
 
 func pickup_clock() -> void:
@@ -350,9 +359,10 @@ func reset() -> void:
 	inventory.visible = false
 	rig.set_item("")
 	game.audio_system.ring.stop()
-	game.audio_system.voice.stop()
+	game.audio_system.stop_voice()
 	game.audio_system.played.clear()
 	game.phone_ui.incoming = false
+	game.phone_ui.call_active = false
 	if game.director != null: game.director.reset()
 	if is_instance_valid(discarded):
 		discarded.visible = false

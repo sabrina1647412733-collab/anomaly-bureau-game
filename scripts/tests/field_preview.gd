@@ -39,6 +39,9 @@ func _run() -> void:
 	game.phone_ui.incoming = true
 	game.phone_ui._goto("incoming")
 	await shot("03_来电")
+	game.field_kit.answer_phone()
+	game.phone_ui._goto("in_call")
+	await shot("03b_通话字幕")
 	game._close_phone()
 	await shot("04_手持手机")
 	game.field_kit.stow()

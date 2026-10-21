@@ -6,6 +6,13 @@ const CLIP_PATHS := {
 	"walk": "res://assets/town/xuyan/walk.glb",
 	"run": "res://assets/town/xuyan/run.glb",
 	"inspect": "res://assets/town/xuyan/inspect.glb",
+	"jump_start":"res://assets/town/xuyan/motion/JumpStart.glb",
+	"jump_loop":"res://assets/town/xuyan/motion/JumpLoop.glb",
+	"jump_land":"res://assets/town/xuyan/motion/JumpLand.glb",
+	"crouch_down":"res://assets/town/xuyan/motion/CrouchDown.glb",
+	"crouch_idle":"res://assets/town/xuyan/motion/CrouchIdle.glb",
+	"crouch_walk":"res://assets/town/xuyan/motion/CrouchWalk.glb",
+	"crouch_up":"res://assets/town/xuyan/motion/CrouchUp.glb",
 }
 
 var player: CharacterBody3D
@@ -15,6 +22,9 @@ var mesh_node: MeshInstance3D
 var animator: AnimationPlayer
 var current_clip := ""
 var model_scale := 1.0
+var was_airborne := false
+var was_crouching := false
+var transition_left := 0.0
 
 func setup(p: CharacterBody3D, held_rig: Node3D) -> void:
 	player = p
@@ -85,7 +95,7 @@ func _load_extra_clips() -> void:
 					converted.remove_track(i)
 				else:
 					converted.track_set_path(i, NodePath("target_character/Skeleton3D:" + bone))
-			converted.loop_mode = Animation.LOOP_LINEAR
+			converted.loop_mode = Animation.LOOP_NONE if name in ["jump_start","jump_land","crouch_down","crouch_up"] else Animation.LOOP_LINEAR
 			lib.add_animation(name, converted)
 		clip_root.free()
 	if animator.has_animation("Idle_11"):
@@ -104,7 +114,24 @@ func _physics_process(_delta: float) -> void:
 	if player == null or animator == null:
 		return
 	var speed := Vector2(player.velocity.x, player.velocity.z).length()
-	_play("run" if speed > 4.0 else ("walk" if speed > 0.25 else "idle"))
+	transition_left=maxf(0,transition_left-_delta)
+	var airborne: bool=not player.is_on_floor() and player.air_time>.04
+	if airborne:
+		var rising: bool=player.velocity.y>0 and player.air_time<.13
+		_play("jump_start" if rising else "jump_loop")
+		animator.speed_scale=3.2 if rising else 1.0
+	elif was_airborne:
+		_play("jump_land"); animator.speed_scale=2.0;transition_left=.24
+	elif player.crouching!=was_crouching:
+		_play("crouch_down" if player.crouching else "crouch_up")
+		animator.speed_scale=2.5;transition_left=.27
+	elif transition_left<=0:
+		if player.crouching:
+			_play("crouch_walk" if speed>.1 else "crouch_idle")
+			animator.speed_scale=clampf(speed/.29,.6,2.4) if speed>.1 else 1.0
+		else:
+			_play("run" if speed>4 else ("walk" if speed>.25 else "idle"));animator.speed_scale=1.0
+	was_airborne=airborne;was_crouching=player.crouching
 
 func _attach_model_arms(held_rig: Node3D) -> void:
 	# 全身模型继续用于第三人称；第一人称采用同服装风格的近景持物网格。

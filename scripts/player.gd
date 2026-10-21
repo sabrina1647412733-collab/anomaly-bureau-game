@@ -4,14 +4,14 @@ extends CharacterBody3D
 const CharBody := preload("res://scripts/charbody.gd")
 const SPEED_WALK := 3.2
 const SPEED_RUN := 6.0
-const SPEED_CROUCH := 1.5
+const SPEED_CROUCH := 0.58
 const ACCEL := 12.0
 const AIR_ACCEL := 3.0
 const JUMP_SPEED := 5.6
 const GRAV := 22.0
 const KEY_TURN := 1.9
 const EYE := 1.66
-const EYE_CROUCH := 1.02
+const EYE_CROUCH := 1.20
 const EYE_SIT := 1.30
 const COYOTE := 0.12
 const PITCH_MAX := 1.45
@@ -479,6 +479,15 @@ func _input(event: InputEvent) -> void:
 
 var dragging := false
 
+func can_stand() -> bool:
+	var standing := CapsuleShape3D.new()
+	standing.radius=cap.radius; standing.height=1.72
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape=standing
+	query.transform=Transform3D(global_basis,global_position+Vector3(0,.88,0))
+	query.exclude=[get_rid()]; query.collision_mask=collision_mask; query.margin=.001
+	return get_world_3d().direct_space_state.intersect_shape(query,1).is_empty()
+
 func _physics_process(delta: float) -> void:
 	# 键盘转头
 	var turn := 0.0
@@ -504,9 +513,9 @@ func _physics_process(delta: float) -> void:
 	var want_crouch := false
 	if can_move and not sitting:
 		want_crouch = Input.is_physical_key_pressed(KEY_CTRL) or Input.is_physical_key_pressed(KEY_C)
-	crouching = want_crouch
+	crouching = want_crouch or (crouching and not can_stand())
 	crouch_k = lerpf(crouch_k, 1.0 if crouching else 0.0, clampf(delta * 9.0, 0.0, 1.0))
-	cap.height = lerpf(1.72, 1.10, crouch_k)
+	cap.height = lerpf(1.72, 1.44, crouch_k)
 	cap_node.position.y = cap.height * 0.5
 
 	if sitting and (Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_D)):

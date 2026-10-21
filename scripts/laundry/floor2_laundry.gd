@@ -179,6 +179,7 @@ func _machine_glb(p: Vector3, yaw: float, old := false, open_door := false) -> N
 	var body: Node3D = _washer_scene.instantiate()
 	body.set_meta("dynamic", true)      # 不参与静态合批
 	body.name = "Washer"
+	body.position.y = -.46 # GLB原点在机底；传入点是滚筒中心。
 	a.root.add_child(body)
 	# 旧机（7 号）换一套偏黄的搪瓷色
 	if old:

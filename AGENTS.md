@@ -21,6 +21,8 @@
 - 近景手部使用 `first_person_hands.gd` 专用平滑网格及分类握姿，第三人称仍使用许砚原角色。
 - 用户提供的Meshy道具优化版在 `assets/models/case1_props/`，原始模型未覆盖。
 - 时间倍率固定：现实 1 分钟＝游戏 10 分钟；随身时钟可跳时。
+- 洗衣楼运行模块在`assets/models/laundry_rebuild/`，修复的可编辑源文件在`source_art/`（.gdignore避免要求Godot配置Blender）；生成脚本在`scripts/tools/`。七段动作在`assets/town/xuyan/motion/`。
+- 最新验收见`20261021_重建接入验收.md`，本轮6组208项；`rebuild_walk_test.gd`使用真实move_and_slide检查上下楼。不要把上一版本285项作为本轮结果。
 - 当前路线、操作和验证见 `第一案三夜_操作与验收.md`；旧验收文件仅代表历史版本。
 
 ## 修改与验证

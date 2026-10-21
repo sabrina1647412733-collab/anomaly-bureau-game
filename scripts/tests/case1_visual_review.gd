@@ -1,12 +1,12 @@
 extends SceneTree
 var game
 var lc
-var folder := "res://_预览/第一案三夜/"
+var folder := "res://_预览/新版洗衣楼/"
 
 func _initialize() -> void: call_deferred("run")
 
 func frame(name: String) -> void:
-	for i in range(8): await process_frame
+	for i in range(12): await process_frame
 	await RenderingServer.frame_post_draw
 	root.get_texture().get_image().save_png(folder+name+".png")
 
@@ -39,6 +39,10 @@ func run() -> void:
 	var story = lc.campaign
 	view(Vector3(0,5.15,9.1),Vector3(0,4.25,3.2))
 	await frame("01_洗衣店")
+	view(Vector3(.85,5.8,12.1),Vector3(2.2,6.5,13.6))
+	await frame("01b_二楼至三楼楼梯")
+	view(Vector3(0,8.56,9.2),Vector3(0,8.2,6.6))
+	await frame("01c_三楼走廊")
 	story.show_page("303 · 结婚证与家庭照片",story.DOCS.marriage[1]+"\n\n"+story.DOCS.photo[1])
 	await frame("02_调查阅读")
 	story.close_page()
@@ -54,14 +58,24 @@ func run() -> void:
 	await frame("05_廊桥")
 	view(Vector3(0,17.2,7.8),Vector3(-1.0,17.5,3.5))
 	await frame("06_屋顶童装")
-	view(Vector3(.5,-1.3,-3.5),Vector3(3.2,-1.9,-6))
+	view(Vector3(2.55,-1.3,-3.5),Vector3(3.2,-1.9,-6))
 	await frame("07_地下竖井")
 	view(Vector3(.15,5.05,7.9),Vector3(1.7,4.25,6.7))
 	lc._spawn_lady(false)
 	lc.night._do_sit()
 	lc.night.lady_state = "sit"
 	story.bag_model.visible = true
+	await create_timer(1.0).timeout
 	await frame("08_周秀兰和衣袋")
+	view(Vector3(.55,4.65,6.25),Vector3(1.8,4.15,6.25))
+	await frame("08b_周秀兰坐姿近景")
+	story.speak([["周秀兰","洗过了。得等他穿。","lady_wait"]],Callable(),lc.lady)
+	await frame("08c_现场配音对话")
+	story.dialogue.finish(false)
+	story.bag_model.visible=false
+	view(Vector3(1.8,4.75,8.1),Vector3(1.8,4.18,6.25))
+	await frame("08d_坐姿侧面")
+	story.bag_model.visible=true
 	game.field_kit.equip("sweater")
 	await frame("09_手持毛衣")
 	game.field_kit.equip("sandal")

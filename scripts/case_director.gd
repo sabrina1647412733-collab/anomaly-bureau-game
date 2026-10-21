@@ -2,7 +2,7 @@ extends Node
 ## 本案共用时间、任务短信和便携时钟。时间以游戏分钟保存。
 const RATE := 10.0
 const ROOM_START := 23.0 * 60.0 + 10.0
-const JOB := "临江里17号（老街27号院）二楼，得利自助洗衣店。今晚23:40报到，04:00交班，夜班报酬800元。工作：观察店内异常、记录线索，交班前留在店里。门下的通知书请本人确认。"
+const JOB := "临江里17号（老街27号院）二楼，得利自助洗衣店。今晚23:40报到，04:00交班，夜班报酬800元。工作：观察店内异常、记录线索，交班前留在店里。通知书已由本人确认。"
 const EVENTS := [[1420.0,"23:40 到洗衣店报到"],[1441.0,"00:01 店内广播"],[1460.0,"00:20 再听一次广播"],[1530.0,"01:30 来客"],[1590.0,"02:30 停电"],[1630.0,"03:10 数衣服"],[1660.0,"03:40 回应她"],[1675.0,"03:55 交班"],[1676.0,"03:56 领取报酬"],[1678.0,"03:58 广播"],[1680.0,"04:00 天亮"],[1681.0,"04:01 长椅"],[1682.0,"04:02 归档"]]
 var game
 var room_minutes := ROOM_START
@@ -66,6 +66,7 @@ func hhmm(value: float, seconds := false) -> String:
 	return "%02d:%02d:%02d" % [t / 3600,(t / 60) % 60,t % 60] if seconds else "%02d:%02d" % [t / 3600,(t / 60) % 60]
 
 func send_once(id: String, who: String, text: String) -> void:
+	if who == "派遣科" and not game.field_kit.letter_accepted: return
 	if sent.has(id): return
 	sent[id] = true
 	game.phone_ui.receive(who,text)
@@ -90,16 +91,18 @@ func after_rent_call() -> void:
 	var run: int = game.field_kit.generation
 	await get_tree().create_timer(1.0).timeout
 	if run != game.field_kit.generation or game.case_mode == "laundry" or game.state == "menu": return
-	send_once("job","派遣科",JOB)
-	game.note("话","夜班招聘 · 800元",JOB)
-	game._prologue_set_objective("房租还差很多。得利洗衣店招夜班，800元。先取门下的通知书。")
+	game._prologue_set_objective("门外传来敲门声。去房门下查看那只信封。")
+	game.audio_system.sfx("knock",-8)
 	if not game.prologue_letter_ready: game._prologue_drop_letter()
 
 func accepted() -> void:
-	send_once("accepted","派遣科","已确认入职。今晚去洗衣店值夜班，不是去洗衣服。带上通知书和桌上的黄铜时钟，从房门出发；23:40报到，04:00交班领800元。")
+	send_once("accepted","派遣科","恭喜入职，许砚。临时派遣编号待核定。")
+	send_once("job","派遣科",JOB)
+	send_once("rules","派遣科","注意事项：先到一楼签交接簿，再上二楼查看工作须知。观察并记录异常；未查明前不要擅自使用七号机。手机保留任务记录，时钟可拨到下一事件。")
+	game.note("话","首次派遣 · 得利洗衣店",JOB)
 
 func on_arrival() -> void:
-	send_once("arrive","派遣科","你已到一楼门厅。沿门厅向里走到尽头，上左侧楼梯到二楼，进入得利洗衣店。先读价目表和广播须知，再记录异常。空闲时可按T拨动随身时钟。")
+	send_once("arrive","派遣科","你已到一楼门厅。先在传达室签交接簿，再沿门厅向里走到尽头，上左侧楼梯到二楼，进入得利洗衣店。先读价目表和广播须知，再记录异常。空闲时可按T拨动随身时钟。")
 
 func step(delta: float) -> void:
 	if game.state == "menu":
@@ -118,7 +121,7 @@ func step(delta: float) -> void:
 		game.wclock._update_hands()
 	if free:
 		idle += delta
-		if idle > 45.0:
+		if idle > 45.0 and game.field_kit.letter_accepted:
 			idle = 0.0
 			var objective: String = game.case_objective if game.case_mode == "laundry" else game.prologue_objective
 			send_once("hint_"+objective,"派遣科" if game.prologue_call_done else "房东",objective)

@@ -50,6 +50,7 @@ var night = null         # 第一夜（复用 first_night.gd 的交互点/时间
 var entered := false
 var routes
 var campaign
+var rebuilt
 
 ## 时间轴状态
 var t := 0.0             # 从 23:40 起算的游戏秒
@@ -81,25 +82,8 @@ func enter() -> void:
 	game.add_child(world)
 
 	art = Art.new(world)
-	var lobby = Lobby.new(art); lobby.build()
-	var stairs = Stairs.new(art); stairs.build()
-	f2 = Floor2.new(art); f2.build()
-	b2 = Back2.new(art); b2.build()
-	var f3 = Floor3.new(art); f3.build()
-	var su = StairsUp.new(art); su.build()
-	var f4 = Floor4.new(art); f4.build()
-	var f5 = Floor5.new(art); f5.build()
-	var roof = RoofDeck.new(art); roof.build()
-	var b1 = Basement.new(art); b1.build()
-	var alley = BackAlley.new(art); alley.build()
-	var mo = MailOffice.new(art); mo.build()
-	var pr = PowerRoom.new(art); pr.build()
-	preload("res://scripts/building_shell.gd").build(art)
-	buildings = {"f4": f4, "f5": f5, "roof": roof, "b1": b1, "stairs_up": su,
-		"alley": alley, "mail_office": mo, "power_room": pr}
-
-	# 静态合批（和 laundry_main 同一套）
-	art.merge_static()
+	rebuilt = preload("res://scripts/laundry_rebuild.gd").new(self)
+	rebuilt.build()
 
 	# 三个剧情角色
 	cast = Cast.new(art)
@@ -169,6 +153,9 @@ func spots() -> Array:
 		sd.append_array(routes.spots())
 	if campaign != null:
 		sd.append_array(campaign.spots())
+	if rebuilt != null:
+		for point in sd:
+			if rebuilt.POINTS.has(point.id): point.pos = rebuilt.POINTS[point.id]
 	return sd
 
 # ================================================================ 交互
@@ -291,6 +278,9 @@ func pick_ending() -> String:
 # ================================================================ 时间轴
 func step(delta: float) -> void:
 	if ended:
+		return
+	if game.audio_system.is_busy() or not game.sub_queue.is_empty():
+		_spin(delta)
 		return
 	t += delta * RATE
 	_timeline()
@@ -490,4 +480,4 @@ func _once(k: String) -> bool:
 	return true
 
 func _tell(who: String, text: String) -> void:
-	game._say_seq(who, text, 3.0, true, true)
+	game._say_seq(who, text, 3.0, false, true)

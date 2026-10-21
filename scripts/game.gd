@@ -4314,6 +4314,7 @@ func _update_sub(delta: float) -> void:
 	hud_sub.text = sub.substr(0, shown)
 	if shown >= sub.length():
 		# 打完后的停留：0.35 s（原来是一个字一个字等，读着很拖）
+		if audio_system != null and audio_system.is_busy():return
 		_sub_hold_left -= delta
 		if _sub_hold_left <= 0.0 and sub_pause and sub_queue.is_empty():
 			pass                       # pause=true 时停在最后一句，等玩家点
@@ -5205,6 +5206,7 @@ func game_load(i: int) -> bool:
 	return true
 
 func _discard_laundry() -> void:
+	if audio_system != null:audio_system.stop_voice()
 	if case_end_backdrop != null: case_end_backdrop.visible = false
 	hud_end_title.position = Vector2(340,320)
 	hud_end_title.size = Vector2(920,80)

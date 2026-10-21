@@ -15,7 +15,7 @@ static func record_ending(kind: String) -> void:
 		return
 	# 从测试/截图入口启动时也不写入玩家的结局解锁记录。
 	for argument in OS.get_cmdline_args():
-		if argument.begins_with("res://scripts/tests/"):
+		if argument.replace("\\","/").contains("scripts/tests/"):
 			return
 	var data := read_progress()
 	if not data["endings"].has(kind):
@@ -41,7 +41,7 @@ static func capture(g) -> Dictionary:
 	for key in ROOM_FIELDS:
 		room[key] = g.get(key)
 	var p: Vector3 = g.player.global_position
-	var d := {"schema_version": VERSION, "case_id": "00184", "mode": g.case_mode,
+	var d := {"schema_version": VERSION, "building_version": 2, "case_id": "00184", "mode": g.case_mode,
 		"state": resume, "stage": g.prologue_stage, "room": room, "bag": g.case_bag.duplicate(true),
 		"position": [p.x, p.y, p.z], "yaw": g.player.rotation.y, "pitch": g.player.pitch,
 		"camera_mode":g.player.cam_mode,
@@ -109,9 +109,12 @@ static func restore(g, d: Dictionary) -> bool:
 	g.director.restore(d.get("director",{}))
 	if not d.has("director"):
 		g.director.room_minutes = float(d.get("clock",g.director.ROOM_START))
-		if g.prologue_call_done:
+		if g.field_kit.letter_accepted:
 			g.phone_ui.messages["派遣科"] = [g.director.JOB]
 			g.director.sent["job"] = true
+	if not g.field_kit.letter_accepted:
+		g.phone_ui.messages.erase("派遣科")
+		g.director.sent.clear()
 	g.phone_ui.incoming = d.get("mode") != "laundry" and not g.prologue_call_done
 	if g.nb != null:
 		g.nb.entries = d.get("notes", {"物": [], "人": [], "话": [], "疑": []}).duplicate(true)
@@ -148,6 +151,8 @@ static func restore(g, d: Dictionary) -> bool:
 	g.clock_min = float(d.get("clock", 1420.0))
 	var p: Array = d["position"]
 	g.player.global_position = Vector3(float(p[0]), float(p[1]), float(p[2]))
+	if d.get("mode") == "laundry" and int(d.get("building_version",0)) < 2:
+		g.player.global_position = Vector3(-.55,.08,-8.8)
 	g.safe_pos = g.player.global_position
 	g.player.rotation.y = float(d.get("yaw", 0.0))
 	g.player.pitch = float(d.get("pitch", 0.0))
