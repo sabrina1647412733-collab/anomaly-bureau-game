@@ -42,6 +42,7 @@ var a: LaundryArt
 var k: LaundryKit
 var lights: Dictionary = {}
 var water: MeshInstance3D = null
+var sandal_model: Node3D
 var water_base_y := 0.0
 ## 蓄水池是否在自动上涨（剧本第三夜：每 30 秒 1 cm）
 var water_rising := false
@@ -428,6 +429,7 @@ func _shaft_bottom() -> void:
 	var sole := k.plain(Color(0.22, 0.20, 0.18), 0.9)
 	var sp := Vector3(cx - 0.30, Y + 0.035, cz + 0.42)
 	var g := a.push_group(sp, 0.7, true)
+	sandal_model = g
 	a.bev(Vector3(0, 0.012, 0), Vector3(0.085, 0.024, 0.185), sole, 0.008)
 	a.box(Vector3(0, 0.032, -0.03), Vector3(0.070, 0.020, 0.115), sandal)
 	for sz in [-0.020, 0.055]:

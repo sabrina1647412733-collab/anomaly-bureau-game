@@ -82,6 +82,11 @@ func _run() -> void:
 	_check(game.bag_has("envelope"), "同意后通知书收入背包")
 	game.field_kit.answer_phone()
 	game._prologue_act("door")
+	# 正式路线经过回潮镇，不能再把出出租屋等同于直接进洗衣店。
+	game._step_exit_to_town(game.LEAVE_FADE*2.0+.1)
+	_check(game.prologue_stage == "town", "房门先进入回潮镇")
+	game.town_bridge.interact("01")
+	game._step_exit_to_laundry(game.LEAVE_FADE*2.0+.1)
 	# 转场现在是两段（黑下去 LEAVE_FADE + 亮起来 LEAVE_FADE，共 2.2 s）。
 	# headless 下一帧只有几 ms，所以要给足帧数（实测约 850 帧）。
 	for i in range(2000):

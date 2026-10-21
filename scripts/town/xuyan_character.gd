@@ -107,27 +107,7 @@ func _physics_process(_delta: float) -> void:
 	_play("run" if speed > 4.0 else ("walk" if speed > 0.25 else "idle"))
 
 func _attach_model_arms(held_rig: Node3D) -> void:
-	var packed: PackedScene = load(CHAR_PATH)
-	var arms: Node3D = packed.instantiate()
-	var arms_skeleton: Skeleton3D = _find_type(arms, "Skeleton3D") as Skeleton3D
-	var arms_mesh: MeshInstance3D = _find_type(arms, "MeshInstance3D") as MeshInstance3D
-	var arms_anim: AnimationPlayer = _find_type(arms, "AnimationPlayer") as AnimationPlayer
-	if arms_skeleton == null or arms_mesh == null:
-		arms.free()
-		return
-	var only_arms := _extract_arms_mesh(arms_mesh.mesh, arms_skeleton)
-	if only_arms == null:
-		arms.free()
-		return
-	arms_mesh.mesh = only_arms
-	arms.name = "XuYanActualArms"
-	held_rig.add_child(arms)
-	arms.scale = Vector3.ONE * model_scale
-	arms.position = Vector3(0.08, 0.65, -0.78)
-	arms.rotation = Vector3(PI, PI, 0.0)
-	if arms_anim != null and arms_anim.has_animation("Idle_11"):
-		arms_anim.get_animation("Idle_11").loop_mode = Animation.LOOP_LINEAR
-		arms_anim.play("Idle_11")
+	# 全身模型继续用于第三人称；第一人称采用同服装风格的近景持物网格。
 	held_rig.set("use_xuyan_arms", true)
 	held_rig.call("set_item", held_rig.get("item_id"))
 
@@ -154,16 +134,17 @@ func _extract_arms_mesh(mesh: Mesh, skel: Skeleton3D) -> ArrayMesh:
 					var bi: int = bones[v * stride + j]
 					if bi >= 0 and bi < skel.get_bone_count():
 						var bn := skel.get_bone_name(bi)
-						if bn.contains("RightShoulder") or bn.contains("RightArm") or bn.contains("RightHand"):
+						if bn.contains("RightForeArm") or bn.contains("RightHand"):
 							arm_weight += weights[v * stride + j]
 				if arm_weight > 0.40:
 					hits += 1
-			if hits >= 2:
+			if hits == 3:
 				kept.append_array(PackedInt32Array([indices[t], indices[t + 1], indices[t + 2]]))
 		if kept.is_empty():
 			continue
 		print("[CHAR ARM] faces ", kept.size() / 3, "/", indices.size() / 3)
 		arrays[Mesh.ARRAY_INDEX] = kept
-		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var flags := Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS if stride == 8 else 0
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays,[],{},flags)
 		out.surface_set_material(out.get_surface_count() - 1, mesh.surface_get_material(surface))
 	return out if out.get_surface_count() > 0 else null

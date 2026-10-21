@@ -16,7 +16,7 @@ var page := "lock"
 var pages := {}
 var incoming := false
 var caller := "房东"
-var call_text := "这个月房租2160，已经欠两个月了。今晚先想办法交一部分，明天再没消息，就搬出去。"
+var call_text := "许砚，你总得给我个准话。两个月房租，一共2160元。今天先交一部分。我明天还得来。"
 var messages: Dictionary = {}
 var unread: Dictionary = {}
 var active_chat := "房东"
@@ -110,11 +110,11 @@ func header(title: String) -> void:
 	lab(screen, title, Vector2(60, 7), Vector2(330, 40), 23)
 
 func reset_messages() -> void:
-	messages = {"房东":["这个月房租2160，已经欠两个月了。","今晚先交一部分，明天再没消息就搬。"]}
+	messages = {"房东":["两个月房租合计2160元。","今天先交一部分，明天我还得来。"]}
 	unread = {}
 	caller = "房东"
 	active_chat = "房东"
-	call_text = "这个月房租2160，已经欠两个月了。今晚先想办法交一部分，明天再没消息，就搬出去。"
+	call_text = "许砚，你总得给我个准话。两个月房租，一共2160元。今天先交一部分。我明天还得来。"
 
 func receive(who: String, value: String) -> void:
 	if not messages.has(who): messages[who] = []
@@ -203,17 +203,24 @@ func _goto(name: String) -> void:
 			lab(screen,"任务消息会保留在这里，可随时回看。",Vector2(16,609),Vector2(364,40),14,DIM)
 		"wallet":
 			header("钱包")
+			var owner_game = get_parent()
+			var wages := 0
+			var due := 2160
+			if owner_game.laundry != null and owner_game.laundry.campaign != null:
+				wages = int(owner_game.laundry.campaign.progress.earnings)
+				due = int(owner_game.laundry.campaign.progress.rent_due)
+			var left := 31.40 + float(maxi(0,wages-2160))
 			box(screen, Vector2(18, 80), Vector2(362, 170), Color("235346"), 18)
 			lab(screen, "零钱余额", Vector2(40, 102), Vector2(300, 30), 17, DIM)
-			lab(screen, "¥ 31.40", Vector2(40, 151), Vector2(320, 70), 43)
-			lab(screen, "最近账单\n\n本月房租          − ¥2,160\n\n上月房租          − ¥2,160\n\n便利店夜班         + ¥180\n\n退瓶押金             + ¥12", Vector2(25, 290), Vector2(350, 355), 19)
+			lab(screen, "¥ %.2f"%left, Vector2(40, 151), Vector2(320, 70), 43)
+			lab(screen, "夜班工资累计       ¥%d\n\n已交房租            ¥%d\n\n剩余欠租            ¥%d\n\n原有零钱            ¥31.40" % [wages,2160-due,due], Vector2(25, 290), Vector2(350, 355), 19)
 			opened_wallet.emit()
 		"album":
 			header("相册 · 3 张")
 			for i in range(3):
 				var pos := Vector2(20, 75 + i * 180)
 				box(screen, pos, Vector2(358, 125), [Color("4e6358"), Color("5e5144"), Color("111e23")][i], 8)
-				lab(screen, ["旧院子里的树影", "父亲的调度席", "这张照片没有保存下来。"][i], pos + Vector2(18, 42), Vector2(322, 55), 19)
+				lab(screen, ["旧院子里的树影", "福利院合影：中间空了一个位置", "这张照片没有保存下来。"][i], pos + Vector2(18, 42), Vector2(322, 55), 19)
 				lab(screen, ["福利院 · 2010", "那时，灯还是亮的。", "文件损坏 · 无法查看"][i], pos + Vector2(0, 134), Vector2(350, 30), 15, DIM)
 			opened_album.emit()
 		"calls", "incoming":

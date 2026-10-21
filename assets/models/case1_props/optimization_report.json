@@ -1,0 +1,20 @@
+[
+	{
+		"error": 0,
+		"output": "sweater.glb",
+		"source": "藏青色儿童毛衣.glb",
+		"triangles": 20708
+	},
+	{
+		"error": 0,
+		"output": "shoe.glb",
+		"source": "蓝色儿童布鞋.glb",
+		"triangles": 13620
+	},
+	{
+		"error": 0,
+		"output": "bag.glb",
+		"source": "周秀兰的旧帆布衣袋.glb",
+		"triangles": 28442
+	}
+]

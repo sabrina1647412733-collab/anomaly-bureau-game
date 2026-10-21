@@ -40,6 +40,7 @@ var hud_sub: Label
 var hud_sub_title: Label
 var hud_end: Label
 var hud_end_title: Label
+var case_end_backdrop: ColorRect
 var hud_fade: ColorRect
 var hud_map
 var hud_cam: Label
@@ -320,6 +321,8 @@ func start_laundry_case() -> void:
 			hud_objective.visible = false
 		set_case_objective("继续值夜班。沿门厅走到尽头，上左侧楼梯到二楼。", "return_to_shift")
 		laundry._timeline()
+		if laundry.campaign != null:
+			laundry.campaign.update_objective()
 		return
 	if phone_open:
 		_close_phone()
@@ -361,6 +364,8 @@ func start_laundry_case() -> void:
 	# 进门第一件事：给个明确目标（不然玩家不知道要干嘛）
 	case_obj_done.clear()
 	set_case_objective("看看这家店。（WASD 走 · E 交互 · Tab 记事本）", "look")
+	if laundry.campaign != null:
+		laundry.campaign.update_objective()
 	print("[LAUNDRY] 已作为 0017 框架的一局启动")
 
 ## 洗衣店的环境光和站台不是一个量级：
@@ -2036,6 +2041,9 @@ func _ring_phone() -> void:
 	_say_seq("旁白", "手机响了。屏幕上写着：房东。", 1.6, false)
 
 func _prologue_act(id: String) -> void:
+	if id == "case_rest" and laundry != null and laundry.campaign != null:
+		laundry.campaign.rest_page()
+		return
 	match id:
 		"phone":
 			# 点手机 = 打开手机界面（锁屏 / 聊天 / 钱包 / 相册 / 通话）
@@ -2046,9 +2054,9 @@ func _prologue_act(id: String) -> void:
 		"box":
 			if not prologue_seen.has("box"):
 				_prologue_mark_seen("box")
-				_say_seq("旁白", "纸箱里是父亲的旧物。")
-				_say_seq("旁白", "保温杯、旧工牌、一叠泛黄的值班表。保温杯底有一道磕痕。")
-				_say_seq("林屿", "他总说夜班冷，带点热水。")
+				bag_add("hoodie","旧灰卫衣","无牌、无尺码、无产地。穿了很久，却还没开线。")
+				_say_seq("旁白", "纸箱里一件灰卫衣，无牌、无尺码、无产地。另一只纸箱里是便利店辞退通知：你总在半夜发呆。")
+				_say_seq("许砚", "穿这么久，还没开线。")
 			else:
 				_say_seq("旁白", "保温杯里的水早凉了。")
 		"radio":
@@ -2077,14 +2085,14 @@ func _prologue_act(id: String) -> void:
 			if not prologue_wallphone_checked:
 				prologue_wallphone_checked = true
 				_say_seq("旁白", "墙上的旧电话没有接线。听筒安静地挂在叉簧上。", 2.4)
-				_say_seq("林屿", "……爸以前总用这台。", 1.6)
+				_say_seq("许砚", "电话没有接线。", 1.6)
 			else:
 				_say_seq("旁白", "电话还是没有接线。", 1.6)
 		"photo":
 			if not prologue_photo_checked:
 				prologue_photo_checked = true
-				_say_seq("旁白", "照片里，父亲站在岚桥站门口，手里提着一袋橘子。你站在他旁边，眼睛被闪光灯照得睁不开。", 3.0)
-				_say_seq("林屿", "那天风很大。", 1.6)
+				_say_seq("旁白", "福利院合影里，孩子站成两排，中间留了一个人的空隙。", 3.0)
+				_say_seq("许砚", "那时候……我站哪儿来着？", 1.6)
 			else:
 				_say_seq("旁白", "照片的边角已经卷了。", 1.6)
 		"window":
@@ -2333,6 +2341,9 @@ func set_case_objective(text: String, key := "") -> void:
 ## 洗衣店里的目标推进（由 _process 每帧或事件调用）
 func _update_case_objective() -> void:
 	if laundry == null: return
+	if laundry.campaign != null:
+		laundry.campaign.update_objective()
+		return
 	if laundry.selected_ending != "":
 		set_case_objective("03:55交班，03:56领800元。可按T拨到交班。", "handover")
 		return
@@ -3452,14 +3463,10 @@ func _interact() -> void:
 				_show_end(chooser_b); choice = null
 		return
 	if choice != null:
-		# 第一案三选一：E 认领 / C 顶替 / R 抹平
+		# 兼容旧现场入口，仅保留认领；新三夜流程由调查阅读页驱动。
 		if choice == "case_final":
 			if Input.is_physical_key_pressed(KEY_E):
 				laundry.choose_final("A")
-			elif Input.is_physical_key_pressed(KEY_C):
-				laundry.choose_final("C")
-			elif Input.is_physical_key_pressed(KEY_R):
-				laundry.choose_final("B")
 			return
 		# 信封：E=去 / R=留在屋里；第二次的 forced 只有 E=去
 		if choice == "env_choice":
@@ -4125,6 +4132,14 @@ func _animate_items(delta: float) -> void:
 		i += 1
 
 func _update_hud() -> void:
+	if hotbar != null:
+		hotbar.visible = case_mode != "laundry" and not state.begins_with("prologue") and state != "town"
+	if state in ["case_end", "case_title"]:
+		hud_clock.visible = false
+		hud_objective.visible = false
+		hud_cam.visible = false
+		hud_map.visible = false
+		return
 	if state.begins_with("prologue") or (state == "clock_ui" and case_mode != "laundry"):
 		hud_clock.visible = state != "prologue_intro"
 		if director != null: hud_clock.text = director.hhmm(director.now(),true)
@@ -4522,6 +4537,18 @@ func show_case_title(title: String, sub: String) -> void:
 ## 用现成的 hud_end / hud_end_title（0017 本来就有这套「结局文字」控件）
 func _show_case_end(title: String, body: String, dossier: String) -> void:
 	state = "case_end"
+	if case_end_backdrop == null:
+		case_end_backdrop = ColorRect.new()
+		case_end_backdrop.color = Color(.02,.035,.04,.97)
+		case_end_backdrop.size = Vector2(1600,900)
+		case_end_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hud_end.get_parent().add_child(case_end_backdrop)
+		hud_end.get_parent().move_child(case_end_backdrop,0)
+	case_end_backdrop.visible = true
+	hud_end_title.position = Vector2(260,100)
+	hud_end_title.size = Vector2(1080,80)
+	hud_end.position = Vector2(260,205)
+	hud_end.size = Vector2(1080,640)
 	player.can_move = false
 	player.allow_capture = false
 	player.dragging = false
@@ -4535,6 +4562,7 @@ func _show_case_end(title: String, body: String, dossier: String) -> void:
 		hud_end.text = body + "\n\n———————————————\n" + dossier + "\n\n[ESC] 回主菜单"
 		hud_end.modulate.a = 1.0
 	_fade_to(0.0, 0.2)
+	_update_hud()
 	print("[CASE] 结局卡：", title)
 
 # ------------------------------------------------------------------ 手机 UI
@@ -4597,6 +4625,9 @@ func _set_sel(v: int) -> void:
 		bag.sel = v
 
 func _refresh_items_ui() -> void:
+	if case_mode == "laundry" or state.begins_with("prologue") or state == "town":
+		if hotbar != null: hotbar.visible = false
+		return
 	_refresh_clue_board()
 	if hotbar != null:
 		hotbar.items = items
@@ -5051,7 +5082,8 @@ func slots_info() -> Array:
 					var r := clampi(int(j.get("round", -1)) + 1, 0, 4)
 					d["round"] = str(ROUND_NAMES[r])
 					if j.get("case_id", "") == "00184":
-						d["round"] = "得利洗衣店 · 第一夜" if j.get("mode") == "laundry" else "得利洗衣店 · 出租屋"
+						var night_index: int = int(j.get("laundry",{}).get("campaign",{}).get("night",1))
+						d["round"] = "得利洗衣店 · 第%d夜 · %s" % [night_index,"现场" if j.get("mode")=="laundry" else ("街道" if j.get("stage")=="town" else "出租屋")]
 					else:
 						d["legacy"] = true
 						d["round"] = "旧版车站 · 已保留"
@@ -5173,6 +5205,14 @@ func game_load(i: int) -> bool:
 	return true
 
 func _discard_laundry() -> void:
+	if case_end_backdrop != null: case_end_backdrop.visible = false
+	hud_end_title.position = Vector2(340,320)
+	hud_end_title.size = Vector2(920,80)
+	hud_end.position = Vector2(340,402)
+	hud_end.size = Vector2(920,378)
+	prologue_spots = prologue_spots.filter(func(sp): return sp.get("id","") != "case_rest")
+	if laundry != null and is_instance_valid(laundry.campaign):
+		laundry.campaign.queue_free()
 	if laundry != null and is_instance_valid(laundry.world):
 		_set_tree_visible(laundry.world, false)
 		laundry.world.queue_free()

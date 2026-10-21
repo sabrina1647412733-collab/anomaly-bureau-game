@@ -107,7 +107,8 @@ func run() -> void:
 	game.laundry.t=240*60
 	game.laundry._timeline()
 	director.open_clock()
-	check(not director.modal.visible and game.choice=="case_final","必须回应她后才能继续拨到交班")
+	director.next_event()
+	check(is_equal_approx(game.laundry.t,240*60) and game.choice==null,"拨时停在待回应节点，不出现结局选择菜单")
 	game.field_kit.generation+=1
 	game._discard_laundry()
 	game.queue_free()

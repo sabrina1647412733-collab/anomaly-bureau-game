@@ -17,7 +17,7 @@ static func build(m) -> void:
 	header.add_child(title)
 	m.mode_hint = m._label("", 14, Color("d5b67e"))
 	header.add_child(m.mode_hint)
-	var sub: Label = m._label("案卷 00184  /  得利洗衣店  /  第一夜", 14, Color("a7b8b5"))
+	var sub: Label = m._label("案卷 00184  /  得利洗衣店  /  三夜调查 · 唯一结局", 14, Color("a7b8b5"))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	v.add_child(sub)
 	v.add_child(m._line(988, Color(0.6, 0.65, 0.57, 0.3)))

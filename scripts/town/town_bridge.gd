@@ -141,6 +141,9 @@ func leave() -> void:
 func update_map() -> void:
 	if active and town_map != null:
 		town_map.set_player_position(game.player.global_position - ORIGIN)
+		var target := "01"
+		if game.laundry != null and game.laundry.campaign != null and bool(game.laundry.campaign.progress.rest_pending): target = "02"
+		town_map.set_navigation(game.player.rotation.y,target)
 
 func toggle_map() -> void:
 	if active:
@@ -166,7 +169,10 @@ func interact(id: String) -> void:
 		"02":
 			leave()
 			game._show_prologue_stage("room")
-			game._prologue_set_objective("从房门出发，23:40 到得利洗衣店值夜班。")
+			if game.laundry != null and game.laundry.campaign != null and bool(game.laundry.campaign.progress.rest_pending):
+				game._prologue_set_objective("夜班已结束。到床边按E，休息至下一班。")
+			else:
+				game._prologue_set_objective("从房门出发，23:40 到得利洗衣店值夜班。")
 		_:
 			var entry := _landmark(id)
 			if not entry.is_empty():

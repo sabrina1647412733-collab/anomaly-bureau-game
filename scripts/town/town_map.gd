@@ -6,6 +6,19 @@ var player_local := Vector2.ZERO
 var big_open := false
 var first_hint := true
 var map_font: Font
+var player_yaw := 0.0
+var target_id := "01"
+
+func set_navigation(yaw: float, target: String) -> void:
+	if absf(yaw-player_yaw)>.01 or target_id!=target:
+		player_yaw = yaw
+		target_id = target
+		queue_redraw()
+
+func _arrow(at: Vector2) -> void:
+	var direction := Vector2(-sin(player_yaw),-cos(player_yaw))
+	var side := direction.orthogonal()
+	draw_colored_polygon(PackedVector2Array([at+direction*15,at-direction*7+side*6,at-direction*7-side*6]),Color("fff0b0"))
 
 func setup(data: Dictionary, font: Font) -> void:
 	layout = data
@@ -43,6 +56,7 @@ func _draw_small() -> void:
 	_draw_markers(center, scale, true)
 	draw_circle(center, 5.5, Color(0.97, 0.92, 0.69))
 	draw_arc(center, 9.0, 0.0, TAU, 24, Color(0.97, 0.92, 0.69), 1.5)
+	_arrow(center)
 	_label("许砚 · 当前位置", frame.position + Vector2(8, 19), 16, Color(0.95, 0.90, 0.72))
 	_label("M  全镇地图", frame.position + Vector2(8, frame.size.y - 8), 13, Color(0.70, 0.83, 0.78))
 	if first_hint:
@@ -59,8 +73,9 @@ func _draw_big() -> void:
 	var here := _point(player_local, center, scale, false)
 	draw_circle(here, 7.0, Color(0.98, 0.88, 0.58))
 	draw_arc(here, 12.0, 0.0, TAU, 24, Color(0.98, 0.88, 0.58), 1.5)
+	_arrow(here)
 	_label("回潮镇  ·  全镇地图", outer.position + Vector2(22, 31), 23, Color(0.93, 0.87, 0.69))
-	_label("● 你的位置     ◆ 当前目标：得利洗衣店     ○ 直觉区域", outer.position + Vector2(22, 56), 16, Color(0.74, 0.87, 0.79))
+	_label("▲ 你的位置与朝向     ◆ 当前目标：%s     ○ 直觉区域" % ("出租公寓" if target_id=="02" else "得利洗衣店"), outer.position + Vector2(22, 56), 16, Color(0.74, 0.87, 0.79))
 	_label("M 关闭地图", outer.end - Vector2(145, 15), 15, Color(0.74, 0.87, 0.79))
 
 func _point(world: Vector2, center: Vector2, scale: float, small: bool) -> Vector2:
@@ -110,10 +125,12 @@ func _draw_markers(center: Vector2, scale: float, small: bool) -> void:
 		var p := _point(Vector2(float(raw_front[0]), float(raw_front[1])), center, scale, small)
 		if small and (p.x < size.x - 260.0 or p.x > size.x - 36.0 or p.y < 78.0 or p.y > 302.0):
 			continue
-		var target := String(place.get("id", "")) == "01"
+		var target := String(place.get("id", "")) == target_id
 		draw_circle(p, 4.5 if target else 2.5, Color(0.95, 0.67, 0.31) if target else Color(0.59, 0.77, 0.73))
 		if target:
 			draw_arc(p, 12.0 if small else 16.0, 0.0, TAU, 28, Color(0.67, 0.83, 0.50, 0.9), 2.0)
+		if String(place.get("id",""))=="01" and not target:
+			draw_arc(p,12.0 if small else 16.0,0.0,TAU,28,Color(.67,.83,.50,.65),1.0)
 		if not small:
 			_label(String(place.get("name", "")), p + Vector2(7, -7), 13, Color(0.89, 0.91, 0.83))
 

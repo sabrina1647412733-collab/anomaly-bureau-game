@@ -40,6 +40,7 @@ func _mirror_mat() -> ShaderMaterial:
 	return m
 var drums: Dictionary = {}
 var doors: Dictionary = {}
+var mirror_surface: MeshInstance3D
 var sweater: Node3D = null
 
 func _init(art: LaundryArt) -> void:
@@ -84,11 +85,12 @@ func _shell() -> void:
 	# 四面墙：下 2.2 m 白瓷砖，以上浅绿漆
 	var walls := [
 		[Vector3(-HX - 0.06, 0, 0), Vector3(0.12, HH, fd), 0.0],   # 西
-		[Vector3(HX + 0.06, 0, 0), Vector3(0.12, HH, fd), 0.0],    # 东
+		[Vector3(HX+.06,0,-1.68),Vector3(.12,HH,4.64),0.0], # 东墙：配电门北段
+		[Vector3(HX+.06,0,2.28),Vector3(.12,HH,1.44),0.0], # 配电门至廊桥
 		[Vector3(-2.43, 0, -HZ - 0.06), Vector3(1.55, HH, 0.12), 0.0],   # 北（西段）
 		[Vector3(1.23, 0, -HZ - 0.06), Vector3(3.95, HH, 0.12), 0.0],    # 北（东段）
 		[Vector3(-2.25, 0, HZ + 0.06), Vector3(1.90, HH, 0.12), 0.0],
-		[Vector3(2.25, 0, HZ + 0.06), Vector3(1.90, HH, 0.12), 0.0],
+		[Vector3(1.80, 0, HZ + 0.06), Vector3(1.00, HH, 0.12), 0.0], # 东南角留廊桥入口
 	]
 	for wl in walls:
 		var c: Vector3 = w(wl[0].x, wl[1].y, wl[0].z)
@@ -100,9 +102,11 @@ func _shell() -> void:
 			Vector3(s.x, HH - 2.20, s.z), m_paint, false)
 
 	# 北墙门洞：x −1.65…−0.75（0.9 m），通后房
+	# 东侧配电房和廊桥均有真实门洞，不能只放交互点而保留整面墙。
+	a.box(Vector3(HX+.06,Y0+2.62,7.1),Vector3(.12,.84,.92),m_paint,false)
 	a.box(w(-1.20, 2.70, -HZ - 0.06), Vector3(0.90, 0.80, 0.12), m_tile_w, false)
 	var df := a.plain(Color(0.22, 0.18, 0.14), 0.85)
-	a.box(w(-1.20, 1.05, -HZ + 0.02), Vector3(0.98, 2.10, 0.05), df, false)
+	# 门框沿洞口边缘，不放一整块挡住打开后的门。
 	# 门扇：绕左侧铰链成组，才能转开
 	var hinge := a.push_group(w(-1.63, 1.05, -HZ + 0.06), 0.0, true)
 	a.box(Vector3(0.43, 0.0, 0.0), Vector3(0.86, 2.02, 0.03),
@@ -480,7 +484,8 @@ func _furniture() -> void:
 	# 6 镜子（东墙）：1.2 × 1.8，左边三分之一是雾的
 	#   用 shaders/mirror_screen.gdshader 做镜面反射 —— 原来只是一块高金属度的板，
 	#   实测在场景里读成"一整块黑"（截图确认），照不出店堂。
-	a.box(w(3.12, 1.55, -0.50), Vector3(0.03, 1.80, 1.20), _mirror_mat())
+	mirror_surface = a.box(w(3.12, 1.55, -0.50), Vector3(0.03, 1.80, 1.20), _mirror_mat())
+	mirror_surface.set_meta("dynamic",true)
 	a.box(w(3.10, 1.55, -0.50 - 0.40), Vector3(0.01, 1.76, 0.38),
 		a.plain(Color(0.66, 0.68, 0.66), 0.5, 0.2))
 	a.box(w(3.13, 1.55, -0.50), Vector3(0.02, 1.86, 1.26), m_steel)

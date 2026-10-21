@@ -222,13 +222,7 @@ func _clothes_lines() -> void:
 			var tpos: float = 0.35 + 0.06 * float(i % 3)
 			var zz2: float = lerpf(z_a, z_b, tpos)
 			var sag2 := sin(PI * tpos) * 0.16
-			# 全部同款：同一块藏青布 + 白条纹，只是挂的姿势微差
-			var knit := k.cloth("poly_wool_herringbone", Color(0.20, 0.26, 0.40), 3.0)
-			var g := k.garment(Vector3(x, Y + 2.42 - sag2 - 0.03, zz2), knit,
-				0.36, 0.42, float(i) * 1.7, PI * 0.5)
-			# 白条纹（袖口 + 下摆）
-			a.box(Vector3(x, Y + 2.42 - sag2 - 0.40, zz2), Vector3(0.35, 0.022, 0.015),
-				k.plain(Color(0.86, 0.86, 0.84), 0.9))
+			var g := preload("res://scripts/case1_prop.gd").place(a.root,"sweater",Vector3(x,Y+1.78,zz2),.55,PI*.5)
 			# 晾衣夹
 			for cx in [-0.12, 0.12]:
 				a.box(Vector3(x + cx, Y + 2.42 - sag2 - 0.01, zz2),

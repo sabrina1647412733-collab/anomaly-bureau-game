@@ -123,6 +123,12 @@ func step(delta: float) -> void:
 			var objective: String = game.case_objective if game.case_mode == "laundry" else game.prologue_objective
 			send_once("hint_"+objective,"派遣科" if game.prologue_call_done else "房东",objective)
 	if game.case_mode == "laundry" and game.laundry != null:
+		if game.laundry.campaign != null:
+			if game.laundry.t>=21*60:
+				var n: int = game.laundry.campaign.night_number()
+				send_once("bc1" if n==1 else "bc1_n%d"%n,"派遣科",game.laundry.campaign.objective())
+			if modal.visible: refresh_clock()
+			return
 		var t: float = game.laundry.t / 60.0
 		if t >= 21: send_once("bc1","派遣科","广播已经响了。先看清七号机、价目表和后房。信息可用Tab记在记事本里，之后用T跳到下一事件。")
 		if t >= 40: send_once("bc2","派遣科","第二遍广播少了一个字。留意七号机里的衣服；钥匙在后房附近，先搜集线索，再等01:30的来客。")
@@ -152,6 +158,8 @@ func close_clock(stow := false) -> void:
 	if stow: game.field_kit.stow()
 
 func next_mark() -> Array:
+	if game.case_mode == "laundry" and game.laundry != null and game.laundry.campaign != null:
+		return game.laundry.campaign.next_event()
 	for event in EVENTS:
 		if float(event[0]) > now() + .02:
 			return event

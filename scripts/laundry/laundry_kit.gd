@@ -221,7 +221,16 @@ func door_leaf(hinge: Vector3, w := 0.90, h := 2.02, yaw := 0.0,
 	var pm := panel_mat if panel_mat != null else pbr("oak_wood_planks", 1.6,
 		Color(0.24, 0.185, 0.135), 0.7)
 	var g := a.push_group(hinge, yaw, true)
-	a.box(Vector3(w * 0.5,h * .5,0),Vector3(w,h,.042),lm,true)
+	a.box(Vector3(w * 0.5,h * .5,0),Vector3(w,h,.042),lm,false)
+	# 门板碰撞随铰链转动，开门后不能留下原地的隐形碰撞。
+	var door_body := StaticBody3D.new()
+	var door_shape := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(w,h,.042)
+	door_shape.shape = shape
+	door_shape.position = Vector3(w*.5,h*.5,0)
+	door_body.add_child(door_shape)
+	g.add_child(door_body)
 	# 双嵌板：老楼的门几乎都是这个样子
 	for yy in [h * 0.30, h * 0.70]:
 		a.box(Vector3(w * 0.5, yy, 0.024), Vector3(w * 0.70, h * 0.30, 0.014), pm, false)

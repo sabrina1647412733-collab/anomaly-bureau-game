@@ -20,6 +20,7 @@ static func record_ending(kind: String) -> void:
 	var data := read_progress()
 	if not data["endings"].has(kind):
 		data["endings"].append(kind)
+	data["campaign_version"] = 3
 	data["updated"] = Time.get_datetime_string_from_system(false, false)
 	var file := FileAccess.open(PROGRESS_PATH, FileAccess.WRITE)
 	if file != null:
@@ -43,6 +44,7 @@ static func capture(g) -> Dictionary:
 	var d := {"schema_version": VERSION, "case_id": "00184", "mode": g.case_mode,
 		"state": resume, "stage": g.prologue_stage, "room": room, "bag": g.case_bag.duplicate(true),
 		"position": [p.x, p.y, p.z], "yaw": g.player.rotation.y, "pitch": g.player.pitch,
+		"camera_mode":g.player.cam_mode,
 		"clock": g.clock_min, "time": Time.get_datetime_string_from_system(false, false),
 		"objective": g.case_objective, "objective_done": g.case_obj_done.duplicate(true),
 		"clock_appeared": g.clock_appeared}
@@ -65,6 +67,8 @@ static func capture(g) -> Dictionary:
 			lc["lady_walk"] = g.laundry.night._lady_walk_t
 			lc["lady_state"] = g.laundry.night.lady_state
 		d["laundry"] = lc
+		if g.laundry.campaign != null:
+			lc["campaign"] = g.laundry.campaign.capture()
 	return d
 
 static func valid(d: Dictionary) -> bool:
@@ -148,15 +152,20 @@ static func restore(g, d: Dictionary) -> bool:
 	g.player.rotation.y = float(d.get("yaw", 0.0))
 	g.player.pitch = float(d.get("pitch", 0.0))
 	g.player.cam.rotation.x = g.player.pitch
+	g.player.cam_mode = clampi(int(d.get("camera_mode",g.player.cam_mode)),0,2)
+	g.player.body.visible = g.player.cam_mode!=0
+	g.player._update_camera(0.0,0.0,false)
 	g.player.velocity = Vector3.ZERO
 	g.state = String(d.get("state", "prologue"))
 	g._pre_pause_state = ""
 	if g.state == "case_choice":
+		g.state = "play"
 		g.laundry.final_open = false
-		g.laundry._open_final_choice()
-	elif g.state == "case_end":
+	elif g.state == "case_end" and g.laundry.selected_ending != "":
 		g.laundry.ended = false
 		g.laundry.complete_case()
+	elif g.state == "case_end":
+		g.state = "play"
 	if d.has("subtitle") and g.state != "case_end":
 		var subtitle: Dictionary = d["subtitle"]
 		g._show_sub(String(subtitle.get("who", "旁白")), String(subtitle.get("text", "")), 3.0, bool(subtitle.get("pause", false)))

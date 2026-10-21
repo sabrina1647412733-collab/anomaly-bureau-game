@@ -26,6 +26,7 @@ var a: LaundryArt
 var k: LaundryKit
 var lights: Dictionary = {}
 var breaker: Node3D = null       # 总闸（剧情层可拨动）
+var door: Node3D
 var breaker_on := false
 
 func _init(art: LaundryArt) -> void:
@@ -76,7 +77,7 @@ func _shell() -> void:
 	# 门（铁门，锁着）—— 建在洗衣店东墙上那个门洞的位置
 	var door_c := Vector3(RX0 + 0.02, Y, cz)
 	var dm := k.plain(Color(0.24, 0.28, 0.26), 0.72, 0.25)
-	a.box(door_c + Vector3(0, 1.02, 0), Vector3(0.06, 2.04, 0.92), dm, true)
+	door = k.door_leaf(Vector3(RX0+.02,Y,cz+.46),.92,2.04,PI*.5,dm)
 	# 门上的挂锁 + 「配电重地」
 	k.padlock(Vector3(door_c.x - 0.05, Y + 1.00, cz + 0.34), PI * 0.5, 1.4)
 	a.box(door_c + Vector3(-0.04, 1.62, 0), Vector3(0.008, 0.20, 0.52), m_paper, false)

@@ -923,8 +923,8 @@ func _set_status_chip(chip: Dictionary, text: String, tone: String) -> void:
 func refresh_archive() -> void:
     if case_rows.is_empty():
         var progress := preload("res://scripts/case_save.gd").read_progress()
-        var count: int = progress.get("endings", []).size()
-        archive_summary.text = "已见处置结局 %d / 3   ·   %s" % [count, "已归档" if count > 0 else "调查中"]
+        var completed: bool = progress.get("campaign_version",0)==3 and progress.get("endings",[]).has("A")
+        archive_summary.text = "第一案 · 唯一结局   ·   %s" % ("已认领 / 已归档" if completed else "三夜调查中")
         return
     var d := Archive.load_data()
     if archive_summary != null:

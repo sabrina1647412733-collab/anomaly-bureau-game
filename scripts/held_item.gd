@@ -80,20 +80,10 @@ func set_item(id: String) -> void:
 		content.queue_free()
 	content = Node3D.new()
 	add_child(content)
-	var skin := material(Color("b18d72"))
-	var cuff := material(Color("303d46"), .95)
-	var grip := Vector3(.235, -.235, -.55)
-	if id == "":
-		grip = Vector3(.39, -.51, -.48)
-	if not use_xuyan_arms:
-		segment(Vector3(.49, -.80, -.22), grip + Vector3(.01, -.055, -.01), .052, cuff)
-		segment(grip + Vector3(.01, -.065, -.01), grip + Vector3(0, .014, 0), .035, skin)
-		block(grip + Vector3(0, .025, -.014), Vector3(.078, .106, .033), skin, .015)
-		for i in range(4):
-			var y := grip.y + .069 - i * .024
-			segment(Vector3(grip.x - .039, y, grip.z - .018), Vector3(grip.x - .051, y, grip.z + .012), .011, skin)
-			segment(Vector3(grip.x - .051, y, grip.z + .012), Vector3(grip.x - .024, y, grip.z + .024), .010, skin)
-		segment(grip + Vector3(.028, -.011, .011), grip + Vector3(-.019, .029, .035), .014, skin)
+	if id != "":
+		var hands := preload("res://scripts/first_person_hands.gd").new()
+		content.add_child(hands)
+		hands.build(id)
 	if id == "phone":
 		var p := Vector3(.205, -.17, -.515)
 		block(p, Vector3(.090, .184, .014), material(Color("101a1e"), .3), .009)
@@ -109,6 +99,15 @@ func set_item(id: String) -> void:
 		block(Vector3(.19,-.18,-.534),Vector3(.16,.17,.005),material(Color("dfd8b5")),.001)
 		text("XII\n\n  ◷  \n\nVI",Vector3(.19,-.176,-.529),.00024,Color("25332e"))
 		block(Vector3(.19,-.34,-.57),Vector3(.23,.025,.09),material(Color("393b2f")),.005)
+	elif id in ["sweater","sandal","roof_copy"]:
+		var prop := "shoe" if id == "sandal" else "sweater"
+		preload("res://scripts/case1_prop.gd").place(content,prop,Vector3(.10,-.34,-.62),.21 if prop=="shoe" else .34,.25 if prop=="shoe" else 0.0)
+	elif id in ["slip","registry","photo","marriage","cert","homework","return_card","discharge","testimony","pipe_map","notice","waterline","back_water","accident","sign"]:
+		block(Vector3(.10,-.19,-.60),Vector3(.28,.20,.004),material(Color("dfd1ae")),.002)
+		text("案卷 00184\n\n调查记录",Vector3(.10,-.18,-.594),.00036,Color("26332e"))
+	elif id.ends_with("key"):
+		segment(Vector3(.22,-.17,-.53),Vector3(.22,-.26,-.53),.007,material(Color("a38c58")))
+		block(Vector3(.23,-.25,-.53),Vector3(.03,.025,.01),material(Color("a38c58")),.002)
 	elif id != "":
 		block(Vector3(.22, -.17, -.53), Vector3(.10, .14, .022), material(Color("b7ad90")), .007)
 		text("随身物", Vector3(.22, -.17, -.514), .00028, Color("222f2d"))

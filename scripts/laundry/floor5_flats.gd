@@ -179,7 +179,10 @@ func _room_502() -> void:
 	a.quad_xz(sx1, sz0, x1, sz1, yc, m_ceil, false)
 	_skylight(sx0, sz0, sx1, sz1, yc)
 	k.wall_z(x0 - 0.06, z0, z1, Y, HH, m_wall)
-	k.wall_z(x1 + 0.06, z0, z1, Y, HH, m_wall)
+	# 502和503共用维修通道：双侧隔墙都留出真实门洞。
+	k.wall_z(x1 + .06,z0,3.80,Y,HH,m_wall)
+	k.wall_z(x1 + .06,4.90,z1,Y,HH,m_wall)
+	a.box(Vector3(x1+.06,Y+2.35,4.35),Vector3(.12,.50,1.10),m_wall,false)
 	k.wall_x(z0 - 0.06, x0, x1, Y, HH, m_wall)
 	a.box(Vector3(-2.75, Y + HH * 0.5, z1 + 0.06), Vector3(0.90, HH, 0.12), m_wall, true)
 	a.box(Vector3(-0.65, Y + HH * 0.5, z1 + 0.06), Vector3(0.90, HH, 0.12), m_wall, true)
@@ -291,7 +294,10 @@ func _room_503() -> void:
 	var cz := (z0 + z1) * 0.5
 	k.slab(x0, z0, x1, z1, Y + 0.0015, m_floor)
 	k.slab_solid(x0, z0, x1, z1, Y + HH + 0.30, m_ceil, m_ceil)
-	k.wall_z(x0 - 0.06, z0, z1, Y, HH, m_wall)
+	k.wall_z(x0-.06,z0,3.80,Y,HH,m_wall)
+	k.wall_z(x0-.06,4.90,z1,Y,HH,m_wall)
+	a.box(Vector3(x0-.06,Y+2.35,4.35),Vector3(.12,.50,1.10),m_wall,false)
+	k.slab(-.22,3.80,.22,4.90,Y+.0015,m_floor)
 	k.wall_z(x1 + 0.06, z0, z1, Y, HH, m_wall)
 	k.wall_x(z0 - 0.06, x0, x1, Y, HH, m_wall)
 	a.box(Vector3(0.75, Y + HH * 0.5, z1 + 0.06), Vector3(1.10, HH, 0.12), m_wall, true)

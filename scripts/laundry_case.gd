@@ -49,6 +49,7 @@ var cast                 # story_cast
 var night = null         # 第一夜（复用 first_night.gd 的交互点/时间轴）
 var entered := false
 var routes
+var campaign
 
 ## 时间轴状态
 var t := 0.0             # 从 23:40 起算的游戏秒
@@ -107,6 +108,9 @@ func enter() -> void:
 	cast.spawn_xiulan()
 	routes = preload("res://scripts/building_routes.gd").new()
 	routes.setup(self)
+	campaign = preload("res://scripts/laundry_campaign.gd").new()
+	game.add_child(campaign)
+	campaign.setup(self)
 
 	# 把玩家放进 1F 门厅
 	_place_player_at_entrance()
@@ -163,10 +167,14 @@ func spots() -> Array:
 	]
 	if routes != null:
 		sd.append_array(routes.spots())
+	if campaign != null:
+		sd.append_array(campaign.spots())
 	return sd
 
 # ================================================================ 交互
 func interact(id: String) -> void:
+	if campaign != null and campaign.interact(id):
+		return
 	if id.begins_with("l_locked_"):
 		game.audio_system.sfx("knock",-11)
 		var lines := {"l_locked_402":"门上挂着五道锁。里面有人压低声音说：新来的？先把洗衣店的夜班值完。", "l_locked_401":"401已经空置。锁舌没有动，这扇门今晚打不开。", "l_locked_503":"门从里面反锁。贴近门板，能听见洗衣机的声音。这一夜，还进不去。"}
@@ -278,13 +286,7 @@ func got_count() -> int:
 
 ## 结局判定（剧本 9-D 的三选一 + 隐藏 D）
 func pick_ending() -> String:
-	if has_clue("name") and has_clue("cert") and has_clue("sandal"):
-		return "D"
-	if has_clue("name"):
-		return "A"
-	if has_clue("hoodie"):
-		return "C"
-	return "B"
+	return "A"
 
 # ================================================================ 时间轴
 func step(delta: float) -> void:
@@ -295,123 +297,10 @@ func step(delta: float) -> void:
 	_spin(delta)
 
 func _timeline() -> void:
-	var e := int(t / 60.0)     # 从 23:40 起算的分钟
-	var s: Node3D = game
-	if e >= 21 and _once("bc1"):
-		_tell("站内广播", "本店自助洗衣，二十四小时营业。夜间请勿使用七号机。")
-	if e >= 25 and _once("beat1"):
-		# 空档里的小事件：让玩家有事可看，不是干等
-		_tell("旁白", "3 号机里的滚筒停了一下。\n然后又转了起来，比刚才慢。")
-	if e >= 32 and _once("beat2"):
-		_tell("旁白", "收银机的抽屉自己弹开了一条缝。\n又合上了。")
-	if e >= 40 and _once("bc2"):
-		_tell("站内广播", "本店自助洗衣，二十四小时营业。夜间勿使用七号机。")
-		_tell("旁白", "……它把「请」字去掉了。")
-		spinning[1] = true
-		spinning[2] = true
-		spinning[3] = true
-		_tell("旁白", "1、2、3 号机自己转了起来。加上 7 号机，一共七台。")
-	if e >= 46 and _once("beat3"):
-		_tell("旁白", "门框内侧那排铅笔刻线，最上面一条旁边写着 1.32。\n再往上，一片空白。")
-	if e >= 54 and _once("beat4"):
-		_tell("旁白", "后房的门缝里有风。是往里吹的。")
-	if e >= 61 and _once("beat5"):
-		_tell("旁白", "镜子那边有响动。你回头看，什么也没有。")
-		# 暗示镜子：远处给一点动静
-		if cast != null and cast.aqi != null:
-			cast.aqi.play_once("LookDown", "Idle", 0.8)
-	if e >= 70 and _once("beat6"):
-		_tell("旁白", "9 号烘干机的滚筒里卡着一张纸。\n你还没去看。")
-	if e >= 80 and _once("beat7"):
-		_tell("旁白", "七台机器同时在转。\n你还站在这里。")
-	if e >= 90 and _once("beat8"):
-		_tell("旁白", "外面没有下雨。\n可是门口的地面，是湿的。")
-	if e >= 100 and _once("beat9"):
-		_tell("旁白", "楼上有脚步声。一层一层，往下走。")
-	if e >= 110 and _once("oldlady"):
-		_spawn_lady()
-		_tell("旁白", "门开了。一个老太太走进来，浑身是湿的——可是外面没有下雨。")
-	if e >= 116 and _once("beat10"):
-		_tell("旁白", "她不看你。她径直走到长椅那儿，坐下。")
-	if e >= 130 and _once("beat11"):
-		_tell("她", "秀兰啊，今天生意怎么样。")
-		_tell("旁白", "她自己回答了自己。\n声音比刚才年轻一些。")
-	if e >= 145 and _once("beat12"):
-		_tell("她", "晾在外头的，我收了。")
-		_tell("她", "下雨了，你记得带伞。")
-		_tell("旁白", "外面没下雨。")
-	if e >= 170 and _once("beat13"):
-		_tell("旁白", "停电了。")
-		# 停电 3.2 秒：只剩 7 号机的绿光
-		_blackout(3.2)
-	if e >= 171 and _once("beat14"):
-		_tell("旁白", "灯重新亮起来。\n长椅上多了一条叠得整整齐齐的毛巾。")
-		_place_towel()
-	if e >= 200 and _once("beat15"):
-		_tell("旁白", "她把布袋摊开在膝盖上。\n里面是五件小衣服。")
-	if e >= 205 and _once("beat16"):
-		_tell("旁白", "她开始一件一件往外拿。")
-	if e >= 210 and _once("count"):
-		_tell("她", "一件……两件……三件……")
-		_tell("旁白", "她在数布袋里的衣服。数到第五件，停了很久。")
-		if night != null:
-			night.lady_count()
-	if e >= 215 and _once("count2"):
-		_tell("她", "……还差一件。")
-		_tell("旁白", "她从头开始数。")
-		_tell("她", "一件……两件……")
-	if e >= 240 and _once("ask"):
-		_tell("她", "是不是洗好了？")
-		if night != null:
-			night.lady_ask()
-		# 问完这句 → 开三选一（剧本第三幕）
-		_open_final_choice()
-	# 不允许未作选择就越过处置阶段（读档/加速同样遵守）。
-	if selected_ending == "":
-		return
+	if campaign != null:
+		campaign.timeline()
 
-	# ── 第四幕 · 交班（剧本：03:55 → 04:03）──
-	# 注意：**这一案没有 00:17**。岚桥站是 23:50→00:17 的 27 分钟，
-	# 洗衣店是 23:40→04:00 的 4 小时 20 分，结束在 04:00 天光。
-	if e >= 255 and _once("handover"):
-		_tell("广播", "交班时间。请确认现场无人。")
-		_tell("广播", "……已确认。")
-	if e >= 256 and _once("handover_items"):
-		_tell("旁白", "柜台上放了三样东西。")
-		_place_handover_items()
-		_tell("旁白", "一张纸工牌，工号 临-0131。没有照片，没有名字。")
-		_tell("旁白", "一只信封，800 元旧钞，编号连号，年份跨了二十年。")
-		_tell("旁白", "一张权限卡。")
-		if game != null:
-			game.bag_add("badge", "纸工牌 · 临-0131", "没有照片，没有名字。", "物")
-			game.bag_add("cash800", "800 元旧钞", "编号连号，年份跨了 1999–2019。", "物")
-			game.bag_add("permcard", "权限卡", "未入册。", "物")
-	if e >= 258 and _once("recorded"):
-		_tell("广播", "许砚先生，工号 临-0131。")
-		_tell("广播", "您已录名。")
-		_tell("旁白", "……它知道你的名字。")
-	if e >= 260 and _once("dawn4"):
-		# 04:00 主灯光色温收到 3300 K，天光进来，她消失
-		_dawn_light()
-		_tell("旁白", "天开始亮。店里的灯一盏一盏回到正常。")
-		_tell("旁白", "她不见了。")
-		if night != null and night.lady != null:
-			night.lady.visible = false
-		for k in spinning.keys():
-			spinning[k] = false
-	if e >= 261 and _once("aqi_line"):
-		# 04:01 他回头，长椅上坐着一个人
-		_show_aqi_on_bench()
-		_tell("旁白", "你回头。")
-		_tell("旁白", "长椅上坐着一个人。穿深色工装的年轻女人。")
-		_tell("旁白", "她抬起头。")
-		_tell("阿七", "你现在能看见我了？")
-	if e >= 262 and _once("case_end"):
-		# 04:02 黑屏 → 标题卡
-		complete_case()
-
-# ================================================================ 第四幕 · 交班（剧本 03:55 → 04:03）
-## 柜台上三样东西：纸工牌 临-0131 / 800 元旧钞 / 权限卡
+# 柜台三件：仅在第三夜正式交班时出现。
 func _place_handover_items() -> void:
 	if art == null:
 		return
@@ -443,6 +332,7 @@ func _dawn_light() -> void:
 	# 加一盏假晨光（从窗的方向）
 	if art != null:
 		var dawn: DirectionalLight3D = DirectionalLight3D.new()
+		dawn.add_to_group("case1_dawn")
 		dawn.light_color = Color(1.0, 0.86, 0.62)
 		dawn.light_energy = 1.2
 		dawn.rotation = Vector3(deg_to_rad(-28), deg_to_rad(35), 0)
@@ -475,9 +365,12 @@ func _blackout(sec: float) -> void:
 	var e: Environment = game.env_node.environment
 	var saved_amb: float = e.ambient_light_energy
 	var saved_exp: float = e.tonemap_exposure
+	var blackout_night: int = campaign.night_number() if campaign != null else 1
 	e.ambient_light_energy = 0.02
 	e.tonemap_exposure = 0.35
 	await game.get_tree().create_timer(sec).timeout
+	if not is_instance_valid(world): return
+	if campaign != null and (not is_instance_valid(campaign) or campaign.night_number()!=blackout_night or bool(campaign.progress.rest_pending) or fired.has("dawn4")): return
 	if game != null and game.env_node != null:
 		e.ambient_light_energy = saved_amb
 		e.tonemap_exposure = saved_exp
@@ -495,48 +388,18 @@ func _place_towel() -> void:
 	a.box(Vector3(1.90, 4.03, 6.72), Vector3(0.30, 0.015, 0.22),
 		a.plain(Color(0.90, 0.91, 0.91), 0.95), false, 0.06)
 
-# ================================================================ 三选一结局（剧本第三幕）
-## A 认领：先把 7 号机里的童装毛衣拿出来，再放进她的布袋
-## B 抹平：拿旧招牌的木棍砸 7 号机
-## C 顶替：把自己的灰色卫衣放进布袋（需要背包里有）
+# 唯一认领结局。保留旧接口便于迁移存档，不再提供多结局操作。
 var final_open := false
 var ended := false
 var selected_ending := ""
 
 func _open_final_choice() -> void:
-	if final_open or ended or game == null:
-		return
-	final_open = true
-	game.state = "case_choice"
-	game.choice = "case_final"
-	game.player.can_move = false
-	game.player.allow_capture = false
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	var can_a: bool = has_clue("sweater")
-	var can_c: bool = game.bag_has("hoodie")
-	var line := ""
-	line += "[E]  把毛衣放进布袋（认领）    " if can_a else "[E]  认领（还没拿到毛衣）    "
-	line += "[C]  交出自己的卫衣（顶替）    " if can_c else "[C]  顶替（你没有别的了）    "
-	line += "[R]  砸掉 7 号机（抹平）"
-	game.choice_text = line
-	game._say_seq("旁白", "她抬头看你。布袋摊开在她膝盖上，里面五件。\n还差一件。", 1.8)
+	if campaign != null:
+		campaign.lady_talk()
 
 func choose_final(kind: String) -> void:
-	if not final_open or ended:
-		return
-	match kind:
-		"A":
-			if not has_clue("sweater"):
-				game._say_seq("旁白", "你手里什么都没有。先去 7 号机把那件毛衣拿出来。", 1.6)
-				return
-			_finish_case("A")
-		"B":
-			_finish_case("B")
-		"C":
-			if not game.bag_has("hoodie"):
-				game._say_seq("旁白", "你身上没有能拿出来的东西。", 1.4)
-				return
-			_finish_case("C")
+	if campaign != null and kind == "A":
+		campaign.claim()
 
 const ENDINGS := {
 	"A": {
@@ -548,41 +411,10 @@ const ENDINGS := {
 			+ "你说了。她点了点头，像是真的记住了。",
 		"dossier": "案卷 00184 · 得利洗衣店\n处置：已认领\n附：一件童装毛衣（2004-11-07 · 未取）",
 	},
-	"B": {
-		"title": "已抹平",
-		"body": "你抡起旧招牌的木棍，砸在 7 号机的玻璃上。\n\n"
-			+ "全店黑了 1.5 秒。\n\n"
-			+ "再亮起来的时候，店里是一个水泥空壳。\n"
-			+ "她还在。她只是不记得自己有过孩子。",
-		"dossier": "案卷 00184 · 得利洗衣店\n处置：已抹平\n复发风险：高",
-	},
-	"C": {
-		"title": "已认领 · 处置人交付个人物品",
-		"body": "你把那件灰色卫衣放进布袋。\n\n"
-			+ "她第一次正面看你。\n\n"
-			+ "「这不是你孩子的。」\n"
-			+ "「是你的。」\n"
-			+ "「你要给我？」\n\n"
-			+ "「我没有别的了。」",
-		"dossier": "案卷 00184 · 得利洗衣店\n处置：已认领\n备注：处置人自愿交付个人物品。建议跟踪。",
-	},
 }
 
 func _finish_case(kind: String) -> void:
-	if ended or selected_ending != "":
-		return
-	selected_ending = kind
-	final_open = false
-	game.choice = null
-	game.choice_text = ""
-	game.state = "play"
-	game.player.can_move = true
-	game.player.allow_capture = true
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	# 先完成处置，再交班；结局卡在 04:02 尾声之后显示。
-	for paragraph in String(ENDINGS[kind]["body"]).split("\n\n"):
-		game._say_seq("旁白", paragraph, 3.0, true, true)
-	game.set_case_objective("等到交班。", "handover")
+	choose_final(kind)
 
 func complete_case() -> void:
 	if selected_ending == "" or ended:
@@ -590,7 +422,9 @@ func complete_case() -> void:
 	ended = true
 	var kind := selected_ending
 	preload("res://scripts/case_save.gd").record_ending(kind)
-	var d: Dictionary = ENDINGS.get(kind, ENDINGS["B"])
+	var d: Dictionary = ENDINGS.get(kind, ENDINGS["A"])
+	if campaign != null:
+		d = {"title":"得利洗衣店 · 第一案结束", "body":"她把第六件叠好：……齐了。\n\n「谢谢你啊。你叫什么名字？」\n「许砚。」\n「许砚。我记着。」\n\n阿七坐在长椅上：「你现在能看见我了？」\n\n三夜工资2400元，欠租2160元结清，余下新收入240元。\n归还的第一份来历：向阳福利院旧址。", "dossier":"案卷00184 · 已认领\n周秀兰与未取原衣归属成立\n周小满：事故后去向未明，继续追查\n许砚：已录名 · 临-0131\n第一案 · 完"}
 	game._show_case_end(String(d["title"]), String(d["body"]), String(d["dossier"]))
 	print("[CASE] 第一案结束：", kind, " · ", String(d["title"]))
 
@@ -646,6 +480,8 @@ func restore_visuals(data: Dictionary) -> void:
 		_dawn_light()
 	if fired.has("aqi_line"):
 		_show_aqi_on_bench()
+	if campaign != null:
+		campaign.restore(data.get("campaign",{}))
 
 func _once(k: String) -> bool:
 	if fired.has(k):
