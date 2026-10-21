@@ -9,7 +9,7 @@ var current: Dictionary = {}
 var remaining := 0.0
 const ITEM_HELP := {
  "phone":"B 收纳手机；空手按 B 打开背包，再次取出。",
- "envelope":"入职已确认；任务与注意事项会发到手机。B 可重读通知书。",
+ "envelope":"入职已确认；任务会发到手机。空手 B 打开背包，取出通知书后按 F 重读。",
  "weird_clock":"T 打开随身时钟；可推进到下一事件。",
  "back_key":"用于 2F 后房外门，不能开启七号机。",
  "drawer_key":"用于 3F303 最下层抽屉。",

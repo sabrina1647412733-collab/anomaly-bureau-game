@@ -52,7 +52,7 @@ func setup(g) -> void:
 	detail = ui.lab(panel, "背包还是空的。", Vector2(700, 172), Vector2(450, 330), 22)
 	take_button = ui.btn(panel, "取出并手持   [ E ]", Vector2(700, 510), Vector2(450, 58), take_selected)
 	ui.btn(panel, "关闭背包  [ B / ESC ]", Vector2(830, 615), Vector2(320, 48), func(): open_inventory(false))
-	ui.lab(panel, "手持物品：B 收纳  ·  空手：B 打开背包  ·  E 查看手中物品", Vector2(40, 627), Vector2(780, 30), 14, Color("a7bcb6"))
+	ui.lab(panel, "手持物品：B 收纳  ·  空手：B 打开背包  ·  F 查看手中物品", Vector2(40, 627), Vector2(780, 30), 14, Color("a7bcb6"))
 	inventory.visible = false
 	_build_letter()
 	viewmodel = preload("res://scripts/viewmodel_view.gd").new()
