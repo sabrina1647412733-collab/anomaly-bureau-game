@@ -11,7 +11,7 @@ var letter_body: Label
 var accept_button: Button
 var refuse_button: Button
 var close_letter_button: Button
-var inventory: Control
+var inventory
 var grid: GridContainer
 var detail: Label
 var take_button: Button
@@ -32,28 +32,15 @@ func setup(g) -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 22
 	add_child(layer)
-	inventory = Control.new()
-	inventory.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	inventory = preload("res://scripts/inventory_view.gd").new()
 	layer.add_child(inventory)
-	shade(inventory)
-	var panel: Panel = ui.box(inventory, Vector2(200, 100), Vector2(1200, 700), Color("101e22"), 16)
-	ui.lab(panel, "随 身 背 包", Vector2(38, 28), Vector2(900, 55), 30)
-	ui.lab(panel, "物品放进包里以后，会从场景中移除。选择物品可再次拿到手中。", Vector2(40, 87), Vector2(1100, 40), 16, Color("a7bcb6"))
-	var sc := ScrollContainer.new()
-	sc.position = Vector2(38, 155)
-	sc.size = Vector2(610, 425)
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	panel.add_child(sc)
-	grid = GridContainer.new()
-	grid.columns = 6
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
-	sc.add_child(grid)
-	detail = ui.lab(panel, "背包还是空的。", Vector2(700, 172), Vector2(450, 330), 22)
-	take_button = ui.btn(panel, "取出并手持   [ E ]", Vector2(700, 510), Vector2(450, 58), take_selected)
-	ui.btn(panel, "关闭背包  [ B / ESC ]", Vector2(830, 615), Vector2(320, 48), func(): open_inventory(false))
-	ui.lab(panel, "手持物品：B 收纳  ·  空手：B 打开背包  ·  F 查看手中物品", Vector2(40, 627), Vector2(780, 30), 14, Color("a7bcb6"))
-	inventory.visible = false
+	inventory.setup(game.font)
+	grid = inventory.grid
+	detail = inventory.detail
+	take_button = inventory.take_button
+	inventory.item_selected.connect(func(id): selected_id = id; game.audio_system.sfx("ui_tap", -24))
+	inventory.take_requested.connect(take_selected)
+	inventory.close_requested.connect(func(): open_inventory(false))
 	_build_letter()
 	viewmodel = preload("res://scripts/viewmodel_view.gd").new()
 	viewmodel.setup(game.player,game.font)
@@ -186,6 +173,8 @@ func open_inventory(on: bool) -> void:
 	game.bag_open = on
 	inventory.visible = on
 	if on:
+		inventory.category = "道具"
+		inventory.fit_panel()
 		refresh_inventory()
 	game.player.can_move = not on
 	game.player.allow_capture = not on
@@ -193,45 +182,12 @@ func open_inventory(on: bool) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if on else Input.MOUSE_MODE_CAPTURED
 
 func refresh_inventory() -> void:
-	for child in grid.get_children():
-		grid.remove_child(child)
-		child.queue_free()
-	var slots := maxi(24,int(ceil(game.case_bag.size()/6.0))*6)
-	for index in range(slots):
-		var item: Dictionary = game.case_bag[index] if index < game.case_bag.size() else {}
-		var id := String(item.get("id",""))
-		var button: Button = ui.btn(grid,"",Vector2.ZERO,Vector2(92,92),func(): select(id))
-		button.custom_minimum_size = Vector2(92,92)
-		button.set_meta("item_id",id)
-		button.disabled = id == ""
-		button.add_theme_stylebox_override("normal",ui.style(Color("1b2b2d"),2,Color("687a70")))
-		button.add_theme_stylebox_override("disabled",ui.style(Color("122023"),2,Color("344744")))
-		if id != "":
-			var icon := preload("res://scripts/inventory_icon.gd").new()
-			icon.item_id = id
-			icon.position = Vector2(15,3)
-			icon.size = Vector2(62,58)
-			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			button.add_child(icon)
-			var name_label: Label = ui.lab(button,String(item["name"]),Vector2(3,65),Vector2(86,23),12)
-			name_label.clip_text = true
-			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			button.tooltip_text = String(item["name"])
-	if game.case_bag.is_empty():
-		detail.text = "背包还是空的。\n\n在场景中找到物品后，按 E 拾取。"
-		take_button.disabled = true
-	else:
-		select(selected_id if game.bag_has(selected_id) else String(game.case_bag[0]["id"]))
+	inventory.refresh(game.case_bag, selected_id)
+	selected_id = inventory.selected_id
 
 func select(id: String) -> void:
-	selected_id = id
-	for cell in grid.get_children():
-		if cell.get_meta("item_id","") != "": cell.add_theme_stylebox_override("normal",ui.style(Color("365248") if cell.get_meta("item_id") == id else Color("1b2b2d"),2,Color("c7b37e") if cell.get_meta("item_id") == id else Color("687a70")))
-	for item in game.case_bag:
-		if item["id"] == id:
-			var body: String = "诡异事务局送来的入职通知书。\n\n取出后按 E，可阅读完整正文与五条须知。" if id == "envelope" else String(item["desc"])
-			detail.text = String(item["name"]) + "\n\n" + body + "\n\n取出后 E 查看，B 收回。"
-			take_button.disabled = false
+	inventory.select_item(id)
+	selected_id = inventory.selected_id
 
 func take_selected() -> void:
 	if not game.bag_has(selected_id):
@@ -385,11 +341,15 @@ func _input(event: InputEvent) -> void:
 		else:
 			open_inventory(true)
 		get_viewport().set_input_as_handled()
-	elif inventory.visible and key in [KEY_ESCAPE, KEY_E, KEY_ENTER]:
-		if key == KEY_ESCAPE:
-			open_inventory(false)
-		else:
-			take_selected()
+	elif inventory.visible and key in [KEY_ESCAPE, KEY_E, KEY_ENTER, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_TAB]:
+		match key:
+			KEY_ESCAPE: open_inventory(false)
+			KEY_LEFT: inventory.move_selection(-1)
+			KEY_RIGHT: inventory.move_selection(1)
+			KEY_UP: inventory.move_selection(-6)
+			KEY_DOWN: inventory.move_selection(6)
+			KEY_TAB: inventory.cycle_category()
+			_: take_selected()
 		get_viewport().set_input_as_handled()
 	elif letter_ui.visible and not letter_decision and key == KEY_ESCAPE:
 		close_letter()

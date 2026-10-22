@@ -26,6 +26,7 @@
 - 当前路线、操作和验证见 `第一案三夜_操作与验收.md`；旧验收文件仅代表历史版本。
 
 ## 修改与验证
+- 最新背包界面见`20261022_背包界面重设计验收.md`：6组276项，窗口50项。`inventory_view.gd`负责四类筛选与界面，`field_items.gd`仍负责所有权与取出；只有道具/线索/钥匙/衣物，默认道具，不能加回全部。分类不改变case_bag数据或存档格式；原衣交还记录归线索。素材在assets/ui/inventory，来源/提示词在ART_SOURCES.md。17张静态渲染图，右侧不是实时3D旋转。空分类必须清空selected_id并禁用取出。Tab仅背包内切分类，不误开记事本。
 - 最新许砚动作修复见`20261022_许砚跳跃蹲下修复验收.md`：5组235项，窗口48项。运行时七段动作使用`assets/town/xuyan/motion/corrected_clips.res`（66骨骼×3轨道），不能恢复仅按同名骨骼复制GLB局部变换的旧方式。生成工具export_xuyan_deformations.py→import_xuyan_deformations.gd，来源仍是source_art/xuyan_motion_repaired.blend。许砚网格为8权重；视觉根节点鞋底补偿3.33cm。暂停需冻结主角动画与transition_left。探索操作方案只讨论，尚未实施。
 - 最新表演/反馈源码小更新见`20261022_交互反馈与基础角色表演验收.md`：8组399项，窗口新增套件90项。失败卡片统一用`campaign.blocked`/`feedback.blocked`，不要改成必须手持指定钥匙，失败不强制弹阅读页；正确钥匙仍自动从包里使用。声音/韵律/包络在`assets/audio/performance/`，三位NPC面部网格在`assets/models/chars/performance/`，不要覆盖原GLB或坐姿动画。嘴部上限0.48，仅基础响度口型；许砚未新增脸部形变。泵已通电与排水完成后的重复操作必须幂等。
 - 最新源码小更新见`20261022_暂停交互与脱困修复验收.md`：7组309项，另有窗口输入24项。`player.physics_frozen`用于暂停，恢复/读档/脱困必须解除；对白以`active`记录会话，不用面板可见性代替会话状态。菜单退出使用cancel，不能执行未完成回调。短信展示由`case_director.sync_toast`控制，模态期间保留剩余阅读时间。Release v0.3.2二进制不含本次源码修复。
