@@ -12,6 +12,7 @@ var done: Callable
 var return_state := "play"
 var source_position := Vector3.INF
 var active := false
+var actor
 func setup(g) -> void:
 	game=g
 	var layer=CanvasLayer.new();layer.layer=32;add_child(layer)
@@ -22,12 +23,12 @@ func setup(g) -> void:
 	caption=game.phone_ui.lab(panel,"",Vector2(28,64),Vector2(850,115),25)
 	next_button=game.phone_ui.btn(panel,"继续\nE / 空格",Vector2(910,70),Vector2(145,96),advance)
 	panel.visible=false
-func play(sequence: Array, callback: Callable=Callable(), at:=Vector3.INF) -> void:
+func play(sequence: Array, callback: Callable=Callable(), at:=Vector3.INF, speaker_actor=null) -> void:
 	if active:finish(false)
 	return_state=game.state
 	if game.phone_open:game._close_phone()
 	game._clear_sub();game.audio_system.stop_voice()
-	lines=sequence;cursor=-1;done=callback;source_position=at
+	lines=sequence;cursor=-1;done=callback;source_position=at;actor=speaker_actor
 	game.state="case_dialogue";game.player.can_move=false;game.player.allow_capture=false
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE;active=true;panel.visible=true
 	advance()
@@ -39,8 +40,10 @@ func advance() -> void:
 	var item: Array=lines[cursor]
 	speaker.text=item[0];caption.text=item[1]
 	if item.size()>2:
-		game.audio_system.speak_dialogue(item[2],source_position if item[0] not in ["许砚","广播"] else Vector3.INF)
-	remaining=maxf(2.0,float(String(item[1]).length())*.13)
+		var npc:bool=item[0] not in ["许砚","广播"]
+		game.audio_system.speak_dialogue(item[2],source_position if npc else Vector3.INF,actor if npc else null)
+		remaining=float(game.audio_system.voice_profiles.get(item[2],{}).get("gap",.55))
+	else:remaining=maxf(2.0,float(String(item[1]).length())*.13)
 func finish(run_callback:=true) -> void:
 	if not active:return
 	active=false;panel.visible=false;game.audio_system.stop_voice()
@@ -50,7 +53,7 @@ func finish(run_callback:=true) -> void:
 	if run_callback and callback.is_valid():callback.call()
 func cancel() -> void:
 	# Leaving the scene must not complete a pending conversation.
-	active=false;panel.visible=false;done=Callable();lines=[];remaining=0
+	active=false;panel.visible=false;done=Callable();lines=[];remaining=0;actor=null
 	game.audio_system.stop_voice()
 func _process(delta: float) -> void:
 	if not active:return

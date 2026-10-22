@@ -6,9 +6,10 @@ var selected := false
 
 class AimDot extends Control:
 	var active := false
+	var blocked := false
 	func _draw() -> void:
 		draw_circle(Vector2.ZERO, 4.5, Color(0,0,0,.65))
-		draw_circle(Vector2.ZERO, 2.1, Color("edc687") if active else Color(.9,.94,.91,.85))
+		draw_circle(Vector2.ZERO, 2.1, Color("e39d7c") if blocked else (Color("edc687") if active else Color(.9,.94,.91,.85)))
 		if active: draw_arc(Vector2.ZERO, 8, 0, TAU, 32, Color("edc687"), 1.3, true)
 
 func setup(g) -> void:
@@ -24,6 +25,7 @@ func _process(_delta: float) -> void:
 	dot.visible=available()
 	dot.position=game.get_viewport().get_visible_rect().size*.5
 	dot.active=game.prompt!=null and available()
+	dot.blocked=float(Time.get_ticks_msec())*.001<game.feedback.denied_until
 	dot.queue_redraw()
 
 func radius_for(id: String) -> float:

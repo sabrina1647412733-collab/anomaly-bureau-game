@@ -46,6 +46,7 @@ var extra_y := 0.0              # 坐下时额外的 Y 偏移（剧情层可调�
 var facing := 0.0               # 目标朝向
 var speed := 0.0                # 走路速度 m/s（0 = 站着）
 var _model_h := 1.6
+var performance:Node
 
 ## 建一个角色。pos 是脚底点。
 static func make(parent: Node3D, id: String, pos: Vector3, yaw := 0.0,
@@ -85,6 +86,9 @@ static func make(parent: Node3D, id: String, pos: Vector3, yaw := 0.0,
 	n.seat_base_y = inst.position.y       # 座偏移只在这个基准之上加减
 	n.refine_clips()
 	n.refine_materials()
+	if id in ["zhou","laozhou","aqi"]:
+		n.performance=preload("res://scripts/laundry/facial_performance.gd").new()
+		n.add_child(n.performance);n.performance.setup(n)
 
 	for clip_name in ["Idle","Walk","SitIdle"]:
 		var clip = n.ap.get_animation(clip_name) if n.ap != null and n.ap.has_animation(clip_name) else null

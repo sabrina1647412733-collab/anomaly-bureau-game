@@ -28,3 +28,5 @@ https://creativecommons.org/licenses/by/4.0/
 脚步、落地、布料、纸张、钥匙、门、开关的其余变体为本项目程序生成的拟音，不冒充实录。现有角色对白仍是本地合成中文配音，没有使用真人声音克隆。
 
 生成依赖只用于作者工具：numpy、miniaudio、imageio-ffmpeg；游戏运行不需要Python或联网。
+
+2026-10-22补充：lock_rattle、device_blocked为本项目原创程序拟音，作者入口`scripts/tools/generate_interaction_audio.py`，不使用外部录音。新增现场对白与SSML/响度数据在`assets/audio/performance/`，同样不是声音克隆。

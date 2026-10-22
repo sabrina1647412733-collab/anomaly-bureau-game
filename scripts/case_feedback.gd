@@ -7,6 +7,9 @@ var detail: Label
 var pending: Array[Dictionary] = []
 var current: Dictionary = {}
 var remaining := 0.0
+var denied_until := 0.0
+var last_denied := {}
+var denial_times := {}
 const ITEM_HELP := {
  "phone":"B 收纳手机；空手按 B 打开背包，再次取出。",
  "envelope":"入职已确认；任务会发到手机。空手 B 打开背包，取出通知书后按 F 重读。",
@@ -34,6 +37,16 @@ func setup(g) -> void:
  panel.visible=false
 func reset() -> void:
  pending.clear();current.clear();remaining=0;panel.visible=false
+ denial_times.clear();last_denied.clear();denied_until=0
+func blocked(id: String, heading: String, reason: String, next_step: String, at: Vector3, cue := "lock_rattle") -> void:
+ var now := float(Time.get_ticks_msec())*.001
+ if now-float(denial_times.get(id,-100))<.65:return
+ denial_times[id]=now;denied_until=now+.55
+ last_denied={"id":id,"title":heading,"detail":reason+"\n"+next_step,"severity":"blocked"}
+ if not current.is_empty() and current.get("severity","")!="blocked":pending.push_front(current)
+ current=last_denied.duplicate();remaining=6.5
+ title.text=current.title;detail.text=current.detail
+ game.audio_system.spatial_sfx(cue,at,-16)
 func notify(heading: String, body: String) -> void:
  var notice={"title":heading,"detail":body}
  if current==notice or pending.has(notice):return
@@ -51,6 +64,7 @@ func step(delta: float) -> void:
   title.text=current.title;detail.text=current.detail
   game.audio_system.sfx("ui_tap",-20)
  if current.is_empty():return
+ title.modulate=Color("e6b48c") if current.get("severity","")=="blocked" else Color("e0c992")
  panel.visible=true;remaining-=delta
  if remaining<=0:current.clear();panel.visible=false
 func _process(delta: float) -> void:step(delta)

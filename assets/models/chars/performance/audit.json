@@ -1,0 +1,26 @@
+{
+  "aqi": {
+    "moving_face_vertices": 1837,
+    "original_vertices": 18360,
+    "result": 0,
+    "shapes": 4,
+    "surfaces": 2,
+    "vertices": 104898
+  },
+  "laozhou": {
+    "moving_face_vertices": 2173,
+    "original_vertices": 17347,
+    "result": 0,
+    "shapes": 4,
+    "surfaces": 2,
+    "vertices": 73200
+  },
+  "zhou": {
+    "moving_face_vertices": 4035,
+    "original_vertices": 17228,
+    "result": 0,
+    "shapes": 4,
+    "surfaces": 2,
+    "vertices": 103824
+  }
+}

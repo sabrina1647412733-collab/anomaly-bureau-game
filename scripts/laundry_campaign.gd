@@ -245,13 +245,26 @@ func spots() -> Array:
 		])
 	return points
 
+func blocked(id: String, title: String, reason: String, next_step: String, cue := "lock_rattle") -> void:
+	var key_for={"l_backdoor":"back_key","l_m7":"machine_key","c1_drawer":"drawer_key","lb_box503":"mail_key","c1_keybox":"tool_key"}
+	var held: String=game.field_kit.held_id
+	if key_for.has(id) and held.ends_with("_key") and held!=key_for[id]:
+		reason+=" 当前手持钥匙用途不符；正确钥匙在背包里时会自动使用。"
+	var at: Vector3=game.player.global_position+game.player.forward()*1.2+Vector3(0,.8,0)
+	for point in lc.spots():
+		if point.id==(id if id!="power_order" else "c1_power"):
+			at=point.pos;break
+	game.feedback.blocked(id,title,reason,next_step,at,cue)
+
 func interact(id: String) -> bool:
 	if id=="l_price":
 		mark("rules_seen")
 		show_page("今晚的工作","先记录广播与机器异常，保管未取洗衣单。七号机需要专用钥匙，不可强开。\n\n许砚：先查九号烘干机里的纸，再看看七号机。")
 		return true
-	if not id.begins_with("c1_") and id not in ["lb_box503","lb_booth","l_locked_402","l_locked_503","l_m7","l_m9","l_backdoor","l_keyring","l_registry","l_sign","l_photowall","l_clipping","l_boiler","l_raincoat"]: return false
+	if not id.begins_with("c1_") and id not in ["lb_elev","lb_box503","lb_booth","l_locked_401","l_locked_402","l_locked_503","l_m7","l_m9","l_backdoor","l_keyring","l_registry","l_sign","l_photowall","l_clipping","l_boiler","l_raincoat"]: return false
 	match id:
+		"lb_elev": blocked(id,"电梯无法使用","轿厢卡在三楼，呼叫按钮没有响应。","沿一楼门厅走到尽头，使用楼梯。","device_blocked")
+		"l_locked_401": blocked(id,"401 · 房门锁死","这间房已空置，现有钥匙无法开启。","本案无需进入401；按 H 查看当前调查目标。")
 		"lb_booth":
 			mark("signed")
 			show_page("交接簿没有上一班", "最后日期2004-11-07。上一班姓名空白，已交接却盖了章。\n你签下许砚，字迹慢慢变成“待分配”。\n\n广播：到岗已确认。未经核定的姓名不予显示。\n\n本夜任务：核对价目表，查看九号烘干机，记录异常声音。")
@@ -263,7 +276,7 @@ func interact(id: String) -> bool:
 		"c1_terminal": terminal()
 		"l_backdoor":
 			if not flag("back_key"):
-				show_page("后房外门","门锁着。等到03:40回应老妇人，她会交出外门钥匙。\n这把钥匙不能开启七号机。")
+				blocked(id,"后房外门 · 缺少钥匙","门锁未打开，需要后房外门钥匙。","先完成店内观察；03:40后走近周秀兰交谈，可用 T 到下一事件。")
 			else:
 				lc.has_back_key = true
 				if not lc.back_open:
@@ -287,17 +300,18 @@ func interact(id: String) -> bool:
 		"l_m7":
 			mark("seven_seen")
 			if not lc.has_clue("machine_key"):
-				show_page("七号机","里面一件藏青色童装毛衣，袖口两道白条。\n筒在转，它却悬在正中间。\n\n锁需要专用钥匙，后房外门钥匙不能开启。")
+				blocked(id,"七号机 · 专用锁","童装毛衣悬在转筒中央。后房外门钥匙不能开滚筒锁。","继续核实住户与维修记录；七号机专用钥匙存放在5F503检修盒。")
 			else:
 				if not lc.has_clue("sweater"):game.audio_system.spatial_sfx("washer_latch",Vector3(0,4.1,2.7),-11)
 				doc("sweater")
 				lc.f2.sweater.visible = false
 		"l_locked_402": knock()
 		"l_locked_503":
-			show_page("503从里面反锁","从未锁的502进入，寻找两间屋子之间的共用维修通道；或由屋顶天窗下到502。\n信箱钥匙只开1F信箱。")
+			if flag("503_open"):game.feedback.notify("503房门已解锁","插销已解除，可以从走廊直接进出。")
+			else:blocked(id,"503 · 从内反锁","走廊侧没有可用锁孔；信箱钥匙只开1F信箱。","先进入未锁的502，沿两间屋子共用的维修通道进入503，再打开插销。")
 		"c1_drawer":
 			if flag("zhou_open"): doc("marriage")
-			else: show_page("303上锁的抽屉","卧室门没锁，抽屉却打不开。去4F402找修水表的老周。")
+			else: blocked(id,"303抽屉 · 缺少钥匙","卧室门没锁，但最下层抽屉需要独立钥匙。","带上九号烘干机的洗衣单，去4F402找修水表的老周。")
 		"c1_photo": doc("photo")
 		"c1_cert": doc("cert")
 		"c1_homework": doc("homework")
@@ -305,21 +319,21 @@ func interact(id: String) -> bool:
 		"c1_shoe_room": show_page("儿童房留下的鞋","只有一只蓝布鞋。外侧鞋头的手工补线清晰可辨。\n鞋口向着房门，旁边空了一只的位置。")
 		"lb_box503":
 			if flag("zhou_open"): doc("return_card")
-			else: show_page("503信箱","锁很新。门牌与信箱各有自己的锁，先去402问有没有信箱钥匙。")
+			else: blocked(id,"503信箱 · 缺少钥匙","信箱有自己的锁，与五楼房门不是同一把钥匙。","先带洗衣单去4F402，向老周询问信箱钥匙。")
 		"c1_mail_route": show_page("楼内邮政存档间","沿二楼东侧廊桥前往隔壁旧邮政存档间。维修木板覆盖了破损钢网，可以正常步行。\n按退件卡转存号找件：27—503—1107。")
 		"c1_mail_letter":
 			if lc.has_clue("return_card"): doc("discharge")
-			else: show_page("挂号旧件","信格都有转存编号。先找503信箱里的退件卡，核实要找哪一件。")
+			else: blocked(id,"暂时无法确定挂号件","这里按转存编号保管，不能直接取走未核实的旧件。","先打开1F503信箱，找到退件卡和对应转存号。","device_blocked")
 		"c1_pipe_map":
 			if lc.has_clue("discharge") and flag("zhou_open"): zhou_testimony()
 			else: show_page("管线图","老周把图压在手边：先找到那封医院的信，再谈事故。")
 		"c1_tools":
 			if flag("zhou_open"): doc("tool_key")
-			else: show_page("维修挂板","先问过402的老周，再取维修物品。")
+			else: blocked(id,"维修挂板 · 尚未交接","这把钥匙由修表师傅保管，暂时不能取走。","先带洗衣单去4F402询问老周。","device_blocked")
 		"c1_sewing": show_page("未缝完的小毛衣","藏青色，袖口两道白条，和七号机里的同款。\n旁边的纸箱存着从事故中抢救出的衣物。")
 		"c1_passage": passage()
 		"c1_unlock503":
-			if game.player.global_position.z > 5.35: show_page("插销在门内","先经502共用维修通道进入503，才能从内打开走廊门。")
+			if game.player.global_position.z > 5.35: blocked(id,"插销在门内","站在走廊侧够不到503的插销。","经502共用维修通道进入503后，从门内打开。")
 			else:
 				if not flag("503_open"):
 					game.audio_system.sfx("door",-10)
@@ -329,7 +343,7 @@ func interact(id: String) -> bool:
 				show_page("503捷径已打开","三道插销退开。现在可以从走廊直接进入，不必再绕维修通道。")
 		"c1_keybox":
 			if lc.has_clue("tool_key"): doc("machine_key")
-			else: show_page("上锁的检修盒","盒上贴着七号机维修单。钥匙在4F403维修挂板，不能用信箱钥匙代替。")
+			else: blocked(id,"检修盒 · 钥匙不匹配","盒上是七号机维修单，信箱和后房外门钥匙均不适用。","取得4F403维修挂板上的检修盒钥匙，再回到这里。")
 		"c1_toys": show_page("七台小洗衣机","每一台都传出同一句：未取。\n整间屋子都在等同一件衣服。地上的空位不代表第八个孩子。")
 		"c1_roof_copy": doc("roof_copy")
 		"c1_roof_patch": doc("roof_patch")
@@ -337,7 +351,9 @@ func interact(id: String) -> bool:
 		"c1_skylight_up": climb_skylight(false)
 		"c1_power": power_page()
 		"c1_valve":
-			if int(progress.power) == 2:
+			if flag("drained"):
+				game.feedback.notify("排水已经完成","阀门保持开启，不必重复操作。接下来放下检修梯并取证。")
+			elif int(progress.power) == 2:
 				progress.power = 3
 				sync_power_feedback()
 				game.feedback.notify("排水完成","水位已经下降。先放下竖井检修梯，再取蓝布鞋。")
@@ -345,7 +361,7 @@ func interact(id: String) -> bool:
 				lc.buildings.b1.water.position.y -= .8
 				game.audio_system.sfx("door",-14)
 				show_page("排水泵启动","独立回路运转，排水阀方向与图一致。水位下降，露出通向竖井的安全步道。\n先在边缘放下检修梯，再拿童鞋。")
-			else: show_page("先确认安全顺序","回二楼配电控制盘：隔离浸水线路→接通独立泵回路→开排水阀。")
+			else: blocked(id,"排水阀 · 泵未就绪","独立排水泵尚未接通，转阀门不能安全排水。","回2F控制盘，先隔离浸水回路，再接通独立泵，最后回B1开阀。","device_blocked")
 		"c1_notice": doc("notice")
 		"c1_waterline": doc("waterline")
 		"c1_ladder":
@@ -354,12 +370,12 @@ func interact(id: String) -> bool:
 				game.feedback.notify("检修梯已固定","现在可以走近竖井边，按 E 拾取蓝布鞋。")
 				game.audio_system.sfx("ladder",-8)
 				show_page("检修梯放下了","梯脚已经抵到井底。沿步道靠近蓝布鞋，按E拾取，记得核对补线。")
-			else: show_page("危险水域","漏电警告：浸水线路未隔离，水位尚未下降。先完成配电与排水。")
+			else: blocked(id,"检修梯 · 暂不能放下","积水尚未排除，竖井仍有涉水危险。","先在2F隔离回路并接泵，再到B1开排水阀。","device_blocked")
 		"c1_sandal":
 			if flag("drained") and flag("ladder"):
 				doc("sandal")
 				game.audio_system.speak("flood_memory")
-			else: show_page("先放下检修梯","安全步道可以观察，取鞋前需要完成排水并放下检修梯。")
+			else: blocked(id,"蓝布鞋 · 暂时够不到","取鞋前必须排水，并固定竖井边的检修梯。","先完成配电和排水，再检查竖井边的检修梯。","device_blocked")
 		"c1_accident": combine()
 		_: return false
 	update_objective()
@@ -371,7 +387,7 @@ func speak(lines: Array, callback: Callable=Callable(), actor=null) -> void:
 		actor.face_point(game.player.global_position)
 		actor.play("Idle",.35)
 	var at: Vector3=actor.global_position+Vector3(0,1.15,0) if is_instance_valid(actor) else Vector3.INF
-	dialogue.play(lines,callback,at)
+	dialogue.play(lines,callback,at,actor)
 
 func give_back_key() -> void:
 	mark("back_key");lc.has_back_key=true
@@ -437,7 +453,7 @@ func passage() -> void:
 
 func climb_skylight(down: bool) -> void:
 	if not lc.has_clue("pipe_map"):
-		show_page("封住的检修梯","先向老周核实管线图和检修路径，避免在陌生竖井盲目下探。")
+		blocked("skylight","检修梯 · 路径未核实","尚未确认天窗与下方维修通道的落脚位置。","先向老周核实医院挂号件，取得管线图。","device_blocked")
 		return
 	game.state = "case_climb"
 	game.player.can_move = false
@@ -462,6 +478,12 @@ func power_page() -> void:
 		["先收起图纸",close_page]])
 
 func power_action(step: int) -> void:
+	if flag("drained"):
+		game.feedback.notify("排水已经完成","保持现有安全回路，继续检查竖井和水位线。")
+		return
+	if step==2 and int(progress.power)==2:
+		game.feedback.notify("排水泵已在运转","无需重复送电；到B1开启排水阀。")
+		return
 	game.audio_system.sfx("breaker",-10)
 	if step == 1:
 		progress.power = 1
@@ -478,7 +500,7 @@ func power_action(step: int) -> void:
 		progress.power = 0
 		sync_power_feedback()
 		game.feedback.notify("保护跳闸","没有丢失证据。先切断浸水回路，再接通泵回路。")
-		game.audio_system.sfx("door",-15)
+		blocked("power_order","保护跳闸 · 操作顺序不符","浸水回路未隔离，安全保护切断了泵电源。","先按图切断浸水回路，再接独立泵；证据不会丢失。","device_blocked")
 		show_page("保护跳闸","浸水线路未隔离。先切断浸水回路，再接独立泵。没有丢失证据，可以复位重试。",[["按图重新隔离回路",func(): power_action(1)],["收起图纸",close_page]])
 
 func combine() -> void:
