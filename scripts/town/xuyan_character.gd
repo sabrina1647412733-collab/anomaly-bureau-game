@@ -2,6 +2,9 @@ extends Node3D
 ## 从回潮镇的许研资源导入角色；游戏内名字仍按剧本使用“许砚”。
 
 const CHAR_PATH := "res://assets/town/xuyan/character.glb"
+const CORRECTED_MOTION := preload("res://assets/town/xuyan/motion/corrected_clips.res")
+# Idle skinning lowers the soles 3.32 cm relative to the unposed import AABB.
+const SKIN_FLOOR_OFFSET := 0.0333
 const CLIP_PATHS := {
 	"walk": "res://assets/town/xuyan/walk.glb",
 	"run": "res://assets/town/xuyan/run.glb",
@@ -25,6 +28,7 @@ var model_scale := 1.0
 var was_airborne := false
 var was_crouching := false
 var transition_left := 0.0
+var playback_rate := 1.0
 
 func setup(p: CharacterBody3D, held_rig: Node3D) -> void:
 	player = p
@@ -46,7 +50,7 @@ func setup(p: CharacterBody3D, held_rig: Node3D) -> void:
 	var bounds := _local_mesh_bounds(actor, mesh_node)
 	model_scale = 1.74 / maxf(bounds.size.y, 0.01)
 	actor.scale = Vector3.ONE * model_scale
-	actor.position.y = -bounds.position.y * model_scale
+	actor.position.y = -bounds.position.y * model_scale + SKIN_FLOOR_OFFSET
 	actor.rotation.y = PI # GLB 正面与 Godot 角色前方对齐
 	_load_extra_clips()
 	_play("idle")
@@ -80,6 +84,9 @@ func _local_mesh_bounds(root_node: Node3D, visual: MeshInstance3D) -> AABB:
 func _load_extra_clips() -> void:
 	var lib := AnimationLibrary.new()
 	for name in CLIP_PATHS.keys():
+		if CORRECTED_MOTION.has_animation(name):
+			lib.add_animation(name, CORRECTED_MOTION.get_animation(name))
+			continue
 		var source: PackedScene = load(CLIP_PATHS[name])
 		if source == null:
 			continue
@@ -102,36 +109,50 @@ func _load_extra_clips() -> void:
 		animator.get_animation("Idle_11").loop_mode = Animation.LOOP_LINEAR
 	animator.add_animation_library("town", lib)
 
-func _play(name: String) -> void:
+func _play(name: String, blend := 0.10, rate := 1.0) -> void:
+	playback_rate = rate
+	if animator != null:
+		animator.speed_scale = rate
 	if animator == null or name == current_clip:
 		return
 	current_clip = name
 	var clip := "Idle_11" if name == "idle" else "town/" + name
 	if animator.has_animation(clip):
-		animator.play(clip, 0.18)
+		animator.play(clip, blend)
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if player == null or animator == null:
 		return
+	if player.physics_frozen:
+		animator.speed_scale = 0.0
+		return
+	animator.speed_scale = playback_rate
 	var speed := Vector2(player.velocity.x, player.velocity.z).length()
-	transition_left=maxf(0,transition_left-_delta)
-	var airborne: bool=not player.is_on_floor() and player.air_time>.04
+	# Jump begins on the actual launch frame; short floor gaps on stairs stay locomotion.
+	var airborne: bool=not player.sitting and not player.is_on_floor() and (player.air_time > .04 or player.velocity.y > .1)
+	update_motion(delta, speed, airborne, player.velocity.y > 0.0, player.crouching)
+
+func update_motion(delta: float, speed: float, airborne: bool, rising: bool, crouching: bool) -> void:
+	transition_left = maxf(0.0, transition_left - delta)
 	if airborne:
-		var rising: bool=player.velocity.y>0 and player.air_time<.13
-		_play("jump_start" if rising else "jump_loop")
-		animator.speed_scale=3.2 if rising else 1.0
+		if not was_airborne and rising:
+			_play("jump_start", .05, 3.2)
+			transition_left = animator.get_animation("town/jump_start").length / playback_rate
+		elif current_clip != "jump_start" or transition_left <= 0.0:
+			_play("jump_loop", .06)
 	elif was_airborne:
-		_play("jump_land"); animator.speed_scale=2.0;transition_left=.24
-	elif player.crouching!=was_crouching:
-		_play("crouch_down" if player.crouching else "crouch_up")
-		animator.speed_scale=2.5;transition_left=.27
-	elif transition_left<=0:
-		if player.crouching:
-			_play("crouch_walk" if speed>.1 else "crouch_idle")
-			animator.speed_scale=clampf(speed/.29,.6,2.4) if speed>.1 else 1.0
+		_play("jump_land", .05, 2.0)
+		transition_left = animator.get_animation("town/jump_land").length / playback_rate
+	elif crouching != was_crouching:
+		_play("crouch_down" if crouching else "crouch_up", .08, 2.5)
+		transition_left = animator.get_animation("town/" + current_clip).length / playback_rate
+	elif transition_left <= 0.0:
+		if crouching:
+			_play("crouch_walk" if speed > .1 else "crouch_idle", .10, clampf(speed / .29, .6, 2.4) if speed > .1 else 1.0)
 		else:
-			_play("run" if speed>4 else ("walk" if speed>.25 else "idle"));animator.speed_scale=1.0
-	was_airborne=airborne;was_crouching=player.crouching
+			_play("run" if speed > 4 else ("walk" if speed > .25 else "idle"))
+	was_airborne = airborne
+	was_crouching = crouching
 
 func _attach_model_arms(held_rig: Node3D) -> void:
 	# 全身模型继续用于第三人称；第一人称采用同服装风格的近景持物网格。

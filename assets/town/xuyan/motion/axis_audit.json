@@ -1,0 +1,47 @@
+{
+	"clips": {
+		"crouch_down": {
+			"bones": 66,
+			"frames": 21,
+			"length": 0.666666666666667,
+			"max_reconstruction_error_m": 0.00000497746032124269
+		},
+		"crouch_idle": {
+			"bones": 66,
+			"frames": 61,
+			"length": 2.0,
+			"max_reconstruction_error_m": 0.00000373146167476079
+		},
+		"crouch_up": {
+			"bones": 66,
+			"frames": 19,
+			"length": 0.6,
+			"max_reconstruction_error_m": 0.00000472794999950565
+		},
+		"crouch_walk": {
+			"bones": 66,
+			"frames": 33,
+			"length": 1.06666666666667,
+			"max_reconstruction_error_m": 0.00000352737583853013
+		},
+		"jump_land": {
+			"bones": 66,
+			"frames": 15,
+			"length": 0.466666666666667,
+			"max_reconstruction_error_m": 0.00000486060343973804
+		},
+		"jump_loop": {
+			"bones": 66,
+			"frames": 25,
+			"length": 0.8,
+			"max_reconstruction_error_m": 0.00000467043855678639
+		},
+		"jump_start": {
+			"bones": 66,
+			"frames": 13,
+			"length": 0.4,
+			"max_reconstruction_error_m": 0.00000485738792121992
+		}
+	},
+	"space": "original Godot Skeleton3D"
+}

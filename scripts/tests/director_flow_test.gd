@@ -88,7 +88,7 @@ func run():
  var actor=game.player.body.get_node("XuYan3D")
  for clip in ["jump_start","jump_loop","jump_land","crouch_down","crouch_idle","crouch_walk","crouch_up"]:
   var animation=actor.animator.get_animation("town/"+clip)
-  check(animation!=null and animation.get_track_count()==131,"完整映射新动作："+clip)
+  check(animation!=null and animation.get_track_count()==actor.skeleton.get_bone_count()*3,"完整映射原骨架坐标轴修正动作："+clip)
   check(animation.loop_mode==(Animation.LOOP_LINEAR if clip in ["jump_loop","crouch_idle","crouch_walk"] else Animation.LOOP_NONE),"动作循环属性："+clip)
   animation=null
  clear();game.player.global_position=Vector3(0,3.52,7)
