@@ -4344,6 +4344,10 @@ func _fade_to(a: float, dur: float) -> void:
 	tw.tween_property(hud_fade, "modulate:a", a, dur)
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Modal controls own their input; stale world prompts and shortcuts stay inert.
+	var modal_input := state in ["menu","paused","case_dialogue","case_reader","clock_ui","prologue_ui"] or phone_open or bag_open or nb_open
+	if modal_input and event is InputEventKey and event.physical_keycode!=KEY_ESCAPE:
+		return
 	# ── 字幕：点鼠标左键 / 按空格 / 回车，一下推进一句 ──
 	# 放在最前面，保证「点一下就放」在任何状态下都成立（除了手机/背包/暂停这些自己要吃点击的 UI）。
 	var ui_open := state == "paused" or state == "prologue_ui" or bag_open or phone_open or nb_open
@@ -4629,10 +4633,12 @@ var _pre_pause_state := ""
 func _open_pause() -> void:
 	if menu == null:
 		return
+	if state=="paused":return
 	_pre_pause_state = state
 	state = "paused"
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if player != null:
+		player.physics_frozen = true
 		player.can_move = false
 		player.allow_capture = false
 		player.dragging = false
@@ -4980,12 +4986,15 @@ func _apply_settings() -> void:
 
 func _hide_menu() -> void:
 	menu.visible = false
+	player.physics_frozen = false
 	if hud != null: hud.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	player.allow_capture = true
 
 func _show_menu() -> void:
 	state = "menu"
+	if laundry!=null and is_instance_valid(laundry.campaign):
+		laundry.campaign.dialogue.cancel()
 	if hud != null: hud.visible = false
 	menu.hide_all()
 	menu.visible = true
@@ -4995,6 +5004,8 @@ func _show_menu() -> void:
 	menu.set_slots(slots_info(), "load")
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if player != null:
+		player.physics_frozen = true
+		player.can_move = false
 		player.allow_capture = false
 		player.dragging = false
 
@@ -5126,6 +5137,7 @@ func _on_resume() -> void:
 	_pre_pause_state = ""
 	if hud != null: hud.visible = true
 	menu.hide_all()
+	player.physics_frozen = false
 	player.can_move = state in ["play", "prologue"]
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if player.can_move else Input.MOUSE_MODE_VISIBLE
 	player.allow_capture = player.can_move

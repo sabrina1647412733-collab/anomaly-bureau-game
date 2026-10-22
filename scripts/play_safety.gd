@@ -71,6 +71,11 @@ func recover(manual:=true) -> void:
 	if not supported(target):target=anchor()
 	game.player.global_position=target;game.player.velocity=Vector3.ZERO
 	game.player.sitting=false;game.player.can_move=true;game.player.allow_capture=true
+	game.player.cap_node.disabled=false
+	game.player.physics_frozen=false
+	game.player.crouching=false;game.player.crouch_k=0
+	game.player.cap.height=1.72;game.player.cap_node.position.y=.86
+	game.player.dragging=false;Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
 	game.player.pitch=0;game.player.cam.rotation.x=0
 	game.safe_pos=target;last_good=target;fall_time=0;stable=0
 	game.player._update_camera(0,0,false)

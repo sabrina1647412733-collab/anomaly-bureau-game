@@ -72,9 +72,15 @@ func send_once(id: String, who: String, text: String) -> void:
 	game.phone_ui.receive(who,text)
 	toast_sender = who
 	toast.text = who + " · 新消息\n" + text.left(68) + "  [点击查看]"
-	toast.visible = true
 	toast_time = 9.0
+	sync_toast(0)
 	game.audio_system.sfx("ui_tap",-6)
+
+func sync_toast(delta: float) -> void:
+	var available: bool = game.state in ["prologue","play"] and not game.phone_open and not game.bag_open and not game.nb_open and not game.field_kit.letter_ui.visible and not modal.visible and game.choice==null and not game.sub_pause
+	# Keep its reading time while a conversation, menu or document owns the screen.
+	if available:toast_time=maxf(0,toast_time-delta)
+	toast.visible=available and toast_time>0
 
 func open_message() -> void:
 	if game.state not in ["prologue","play"] or game.choice != null: return
@@ -105,14 +111,12 @@ func on_arrival() -> void:
 	send_once("arrive","派遣科","你已到一楼门厅。先在传达室签交接簿，再沿门厅向里走到尽头，上左侧楼梯到二楼，进入得利洗衣店。先读价目表和广播须知，再记录异常。空闲时可按T拨动随身时钟。")
 
 func step(delta: float) -> void:
+	sync_toast(delta)
 	if game.state == "menu":
 		toast.visible = false
 		return
 	if game.state == "paused": return
 	if game.case_mode != "laundry" and not game.state.begins_with("prologue") and game.state != "clock_ui": return
-	toast_time -= delta
-	if toast_time <= 0: toast.visible = false
-	if game.bag_open or game.phone_open or game.field_kit.letter_ui.visible or modal.visible: toast.visible = false
 	var free: bool = game.state in ["prologue","play"] and not game.phone_open and not game.bag_open and not game.nb_open and not modal.visible and game.choice == null and not game.sub_pause
 	if free and game.case_mode != "laundry": room_minutes += delta * RATE / 60.0
 	game.clock_min = now()

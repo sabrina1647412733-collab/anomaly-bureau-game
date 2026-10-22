@@ -11,6 +11,7 @@ var remaining := 0.0
 var done: Callable
 var return_state := "play"
 var source_position := Vector3.INF
+var active := false
 func setup(g) -> void:
 	game=g
 	var layer=CanvasLayer.new();layer.layer=32;add_child(layer)
@@ -22,16 +23,16 @@ func setup(g) -> void:
 	next_button=game.phone_ui.btn(panel,"继续\nE / 空格",Vector2(910,70),Vector2(145,96),advance)
 	panel.visible=false
 func play(sequence: Array, callback: Callable=Callable(), at:=Vector3.INF) -> void:
-	if panel.visible:finish(false)
+	if active:finish(false)
 	return_state=game.state
 	if game.phone_open:game._close_phone()
 	game._clear_sub();game.audio_system.stop_voice()
 	lines=sequence;cursor=-1;done=callback;source_position=at
 	game.state="case_dialogue";game.player.can_move=false;game.player.allow_capture=false
-	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE;panel.visible=true
+	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE;active=true;panel.visible=true
 	advance()
 func advance() -> void:
-	if not panel.visible:return
+	if not active or game.state!="case_dialogue":return
 	game.audio_system.stop_voice()
 	cursor+=1
 	if cursor>=lines.size():finish(true);return
@@ -41,17 +42,30 @@ func advance() -> void:
 		game.audio_system.speak_dialogue(item[2],source_position if item[0] not in ["许砚","广播"] else Vector3.INF)
 	remaining=maxf(2.0,float(String(item[1]).length())*.13)
 func finish(run_callback:=true) -> void:
-	panel.visible=false;game.audio_system.stop_voice()
+	if not active:return
+	active=false;panel.visible=false;game.audio_system.stop_voice()
 	game.state=return_state;game.player.can_move=true;game.player.allow_capture=true
 	Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
 	var callback=done;done=Callable()
 	if run_callback and callback.is_valid():callback.call()
+func cancel() -> void:
+	# Leaving the scene must not complete a pending conversation.
+	active=false;panel.visible=false;done=Callable();lines=[];remaining=0
+	game.audio_system.stop_voice()
 func _process(delta: float) -> void:
-	if not panel.visible or game.state=="paused":return
+	if not active:return
+	if game.state=="menu":cancel();return
+	panel.visible=game.state=="case_dialogue"
+	if game.state!="case_dialogue":return
 	if game.audio_system.is_busy():return
 	remaining-=delta
 	if remaining<=0:advance()
 func _input(event: InputEvent) -> void:
-	if not panel.visible:return
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode in [KEY_E,KEY_SPACE,KEY_ENTER,KEY_ESCAPE]:
-		advance();get_viewport().set_input_as_handled()
+	if not active or game.state!="case_dialogue":return
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.physical_keycode==KEY_ESCAPE:
+			game._open_pause()
+		elif event.physical_keycode in [KEY_E,KEY_SPACE,KEY_ENTER]:
+			advance()
+		else:return
+		get_viewport().set_input_as_handled()

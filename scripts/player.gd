@@ -41,6 +41,7 @@ var cap_node: CollisionShape3D
 var pitch := 0.0
 var lock_look := false        # 截图脚本用：锁住鼠标转头，避免窗口鼠标事件把镜头带跑（游戏里恒为 false）
 var can_move := true
+var physics_frozen := false   # Pause freezes falling as well as keyboard movement.
 var allow_capture := true
 var cam_mode := 0          # 0 第一人称 / 1 第三人称 / 2 第二人称（正面看眼睛）/ 3 监视器
 var cctv_i := 0
@@ -489,6 +490,7 @@ func can_stand() -> bool:
 	return get_world_3d().direct_space_state.intersect_shape(query,1).is_empty()
 
 func _physics_process(delta: float) -> void:
+	if physics_frozen:return
 	# 键盘转头
 	var turn := 0.0
 	var tilt := 0.0

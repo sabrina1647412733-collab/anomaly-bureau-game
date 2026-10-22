@@ -2,6 +2,8 @@
 
 这是持续维护的 Godot 主工程。以后都在本工程更新。旧地铁原型说明保留在本文后半部分，仅作历史参考。
 
+当前 `main` 含 v0.3.2 后续的暂停、对话输入、短信遮挡与坐姿脱困修复，相关7组309项回归通过，见[本轮验收](20261022_暂停交互与脱困修复验收.md)。小更新只同步工程，不重新打包；下方 v0.3.2 安装包不含这些后续修复，最新改动请从 Godot 运行工程。
+
 ## 打开与游玩
 
 直接游玩请到 [GitHub Releases](https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/tag/v0.3.2) 下载 **Windows 安装包**或**免安装 ZIP**。运行安装包后打开桌面快捷方式；ZIP 完整解压后运行 `AnomalyBureau.exe`。两者都不需要 Godot。详细操作与存档说明见 [开始游玩说明](distribution/开始游玩说明.txt)。

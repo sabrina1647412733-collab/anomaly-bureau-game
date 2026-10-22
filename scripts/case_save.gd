@@ -35,6 +35,8 @@ const CASE_FIELDS := ["t", "fired", "clues", "back_open", "has_back_key", "claim
 
 static func capture(g) -> Dictionary:
 	var resume: String = g._pre_pause_state if g.state == "paused" else g.state
+	if resume=="case_dialogue" and g.laundry!=null:
+		resume=g.laundry.campaign.dialogue.return_state
 	if resume not in ["prologue", "play", "case_choice", "case_end"]:
 		return {}
 	var room := {}
@@ -179,6 +181,7 @@ static func restore(g, d: Dictionary) -> bool:
 		g._sub_hold_left = float(subtitle.get("hold", 0.5))
 		g._update_sub(0.0)
 	g.menu.hide_all()
+	g.player.physics_frozen = false
 	g.hud.visible = true
 	g.hud_fade.modulate.a = 0.0
 	g.player.can_move = g.state in ["prologue", "play"]
