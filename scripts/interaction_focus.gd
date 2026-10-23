@@ -60,6 +60,7 @@ func select_target() -> Variant:
 			var id=String(entry.get("id",""))
 			var at:Vector3=bridge.ORIGIN+Vector3(float(front[0]),1.1,float(front[1]))
 			candidates.append({"kind":"town","id":id,"text":"进入得利洗衣店" if id=="01" else ("回出租屋" if id=="02" else "查看"+String(entry.get("name","地点"))),"pos":at,"reach":3.3,"radius":.7})
+		if bridge.residents != null:candidates.append_array(bridge.residents.interaction_candidates())
 	elif game.state=="prologue":
 		for point in game.prologue_spots:
 			if point.stage!=game.prologue_stage:continue

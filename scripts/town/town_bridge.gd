@@ -19,6 +19,7 @@ var imported := false
 var renewal
 var hero
 var weather
+var residents
 var indoor_camera_attributes:CameraAttributes
 var outdoor_camera_attributes:CameraAttributesPractical
 var indoor_fx:Dictionary={}
@@ -116,6 +117,8 @@ func _build_once() -> void:
 		var v := pb - pa
 		var h := float(wall.get("h", 2.0))
 		_box(Vector3((pa.x + pb.x) * 0.5, h * 0.5, (pa.y + pb.y) * 0.5), Vector3(0.18, h, v.length()), atan2(v.x, v.y))
+	residents = preload("res://scripts/town/street_residents.gd").new()
+	residents.setup(self)
 	print("[TOWN] 模块导入完成；地点 ", layout.get("landmarks", []).size(), "，建筑 ", layout.get("buildings", []).size())
 
 func _hide_replaced_landmarks(node:Node)->void:
@@ -169,8 +172,10 @@ func enter(from_laundry := false) -> void:
 		game._prologue_set_objective("沿街前往得利洗衣店。M 地图 · V 切视角 · E 开门；23:40 报到。")
 		game._say_seq("旁白", "雨还在下。出租公寓的灯亮在身后，洗衣店在老街那头。")
 	update_map()
+	residents.activate()
 
 func leave() -> void:
+	if residents != null:residents.deactivate()
 	weather.deactivate()
 	_outdoor_view(false)
 	active = false
@@ -225,6 +230,7 @@ func interaction_hint() -> Dictionary:
 	return {}
 
 func interact(id: String) -> void:
+	if residents != null and residents.interact(id):return
 	match id:
 		"01":
 			game._leave_room_to_laundry()
