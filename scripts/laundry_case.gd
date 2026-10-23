@@ -59,6 +59,7 @@ var back_open := false
 var has_back_key := false
 var spinning := {7: true}
 var claimed := false
+var blackout_active := false
 
 # ================================================================ 进入
 func _init(g) -> void:
@@ -279,7 +280,7 @@ func pick_ending() -> String:
 func step(delta: float) -> void:
 	if ended:
 		return
-	if game.audio_system.is_busy() or not game.sub_queue.is_empty():
+	if game.audio_system.is_busy() or game.sub!="" or not game.sub_queue.is_empty():
 		_spin(delta)
 		return
 	t += delta * RATE
@@ -352,6 +353,7 @@ func _show_title_card() -> void:
 func _blackout(sec: float) -> void:
 	if game == null or game.env_node == null:
 		return
+	blackout_active = true
 	var e: Environment = game.env_node.environment
 	var saved_amb: float = e.ambient_light_energy
 	var saved_exp: float = e.tonemap_exposure
@@ -365,6 +367,7 @@ func _blackout(sec: float) -> void:
 	e.ambient_light_energy = 0.02
 	e.tonemap_exposure = 0.35
 	await game.get_tree().create_timer(sec).timeout
+	blackout_active = false
 	if not is_instance_valid(world): return
 	for lamp in lamps:
 		if is_instance_valid(lamp):lamp.light_energy=lamps[lamp]

@@ -1,6 +1,7 @@
 extends Node
 ## 第一案三夜调查。剧情结果唯一；调查顺序和可选线索自由。
 const Props := preload("res://scripts/case1_prop.gd")
+const Pacing := preload("res://scripts/case_pacing.gd")
 const REST_POINT := Vector3(-3.10,12.88,320.55)
 const DOCS := {
 	"slip": ["未取洗衣单", "秀兰干洗 · 留存联\n2004-11-07\n顾客：周秀兰\n七号机 · 童装一套\n状态：未取\n\n许砚：单子在，衣服就不会丢。"],
@@ -544,7 +545,6 @@ func resolve_claim() -> void:
 	lc.selected_ending = "A"
 	lc.claimed = true
 	mark("recognized")
-	lc.t = minf(lc.t,254.0*60.0)
 	game.field_kit.held_id = ""
 	game.field_kit.rig.set_item("")
 	game.case_bag = game.case_bag.filter(func(item): return item.get("id","")!="sweater")
@@ -554,7 +554,7 @@ func resolve_claim() -> void:
 
 func start_epilogue() -> void:
 	close_page()
-	lc.t = 255.0*60.0
+	lc.t = maxf(lc.t,255.0*60.0)
 	if lc.lady == null: return
 	lc.night.lady_state = "leave"
 	lc.lady.stand()
@@ -581,7 +581,7 @@ func terminal() -> void:
 			show_page("证据核对完成","唯一处置流程：认领周秀兰与未取原衣。\n请把七号机的原衣交还长椅上的周秀兰。")
 		else: show_page("第一案调查进度",objective()+"\n\n证据已收集：%d / %d。可用背包重读文件，时钟只会拨快，不会删除已发生的事件。" % [required_count(),REQUIRED.size()])
 		return
-	if lc.t / 60.0 < 240.0:
+	if lc.t / 60.0 < 240.0 and (night_number()==1 or not flag("name_told")):
 		show_page("现场继续观察","第一夜无现场处置权限。03:40回应老妇人，04:00再提交交班。\n现在可自由调查；T可以到下一事件。" if night_number()==1 else "续查中。完成本夜证据，03:40以后回应周秀兰，04:00交班。")
 		return
 	var keys := ["slip","sign"] if night_number()==1 else ["marriage","photo","cert","discharge","testimony","pipe_map","tool_key"]
@@ -635,7 +635,7 @@ func begin_next_night() -> void:
 		lc.night.queue_free()
 		lc.night = null
 		lc.lady = null
-	lc.spinning = {7:true}
+	lc.spinning = {1:true,2:true,3:true,7:true}
 	game.director.room_minutes = 1390.0
 	game.audio_system.played.clear()
 	for node in get_tree().get_nodes_in_group("case1_dawn"):
@@ -693,8 +693,9 @@ func current_goal() -> Dictionary:
 			["name_told","c1_lady","回2F告诉她：孩子叫周小满。","名字已经核实，接下来还要调查事故。"]]:
 			if not flag(row[0]) and not lc.has_clue(row[0]):
 				if row[1]=="c1_lady" and not lc.fired.has("oldlady"):return goal("c1_lady","身份材料已核实，等候周秀兰到店。","留在2F，可按 T 推进到来客事件。","wait")
+				if row[1]=="c1_lady" and lc.night!=null and lc.night.lady_state=="walk":return goal("c1_lady","周秀兰正走向长椅，等她坐稳。","材料已经核实，稍后走近按 E 告诉她。","arrival")
 				return goal(row[1],row[2],row[3])
-		return goal("c1_terminal","本夜材料已齐，等待03:40后再交班。" if lc.t<240*60 else "到2F柜台申请续查，领取本夜工资。","可按 T 推进时间；交班后回出租公寓休息。","wait" if lc.t<240*60 else "act")
+		return goal("c1_terminal","本夜材料已齐，到2F柜台提交续查。","柜台可登记并等到04:00交班，不必在店内空等；之后回出租公寓休息。")
 	if lc.has_clue("machine_key") and not flag("503_open"):return goal("c1_unlock503","从503门内解除插销，打开回走廊的捷径。","面对房门内侧按 E，之后不必再绕维修通道。")
 	for row in [
 		["machine_key","c1_keybox","从502穿维修通道到503，打开检修盒。","房门从内反锁；先取七号机专用钥匙。"],
@@ -712,6 +713,7 @@ func current_goal() -> Dictionary:
 	if not lc.has_clue("accident"):return goal("c1_accident","回B1安全步道整理事故证据。","确认周秀兰遭遇；孩子去向保留为未明。")
 	if not lc.has_clue("sweater"):return goal("l_m7","用专用钥匙取回七号机原衣。","真正未取的那件，才是她缺少的第六件。")
 	if not lc.fired.has("oldlady"):return goal("c1_lady","证据已齐，等待周秀兰到店。","留在2F，可按 T 推进到来客事件。","wait")
+	if lc.night!=null and lc.night.lady_state=="walk":return goal("c1_lady","周秀兰正走向长椅，等她坐稳。","原衣已经找到，稍后走近按 E 交还。","arrival")
 	return goal("c1_lady","把第六件原衣交还周秀兰。","证据已齐；听她说完最后的话。")
 
 func objective() -> String:
@@ -725,77 +727,92 @@ func update_objective() -> void:
 	chapter.text = "10月%d日  ·  第%d夜  ·  现场证据 %d/%d" % [17+night_number(),night_number(),required_count(),REQUIRED.size()]
 	chapter.visible = game.case_mode == "laundry" and game.state not in ["menu","case_end","case_title","case_cinematic"]
 
+func timed_events() -> Array[Dictionary]:
+	return Pacing.events_for(night_number(),flag("recognized") or lc.selected_ending!="")
+
+func sync_recognition() -> void:
+	# Repair partial legacy saves without replaying the handover or granting items.
+	if flag("recognized"):
+		lc.selected_ending="A"
+		lc.claimed=true
+
+func pending_event() -> Dictionary:
+	for event in timed_events():
+		if not lc.fired.has(event.id):return event
+	return {}
+
 func next_event() -> Array:
 	if cinematic.active:return [1420.0+lc.t/60.0,"先看完现场变化，空格可跳过"]
 	if lc.night != null and lc.night.lady_state=="walk":return [1420.0+lc.t/60.0,"等来客坐稳，再继续拨时"]
-	if game.audio_system.is_busy() or dialogue.panel.visible or not game.sub_queue.is_empty():return [1420.0+lc.t/60.0,"先听完当前对白，再继续拨时"]
+	if lc.blackout_active:return [1420.0+lc.t/60.0,"灯还没有恢复，先观察现场变化"]
+	if game.audio_system.is_busy() or dialogue.active or game.sub_pause or game.choice!=null or game.sub!="" or not game.sub_queue.is_empty():return [1420.0+lc.t/60.0,"先听完当前对白，再继续拨时"]
 	if night_number()==1 and (not flag("signed") or not flag("rules_seen") or not lc.has_clue("slip") or not flag("seven_seen")):
 		return [1420.0+lc.t/60.0,"先完成当前目标："+objective()]
-	if lc.selected_ending=="" and lc.t>=240*60:
-		if night_number()==1 and not flag("back_key"):return [1420.0+lc.t/60.0,"先回应老妇人"]
-		if night_number()==2 and not flag("name_told"):return [1420.0+lc.t/60.0,"先核对周小满姓名"]
-	var events=[[21.0,"00:01 第一遍广播"],[40.0,"00:20 第二遍广播"],[90.0,"01:10 来客"],[170.0,"02:30 停电"],[171.0,"02:31 擦拭"],[210.0,"03:10 清点衣物"],[240.0,"03:40 核对与回应"]]
-	if lc.selected_ending!="":events.append_array([[255.0,"03:55 交班"],[256.0,"03:56 工资回执"],[258.0,"03:58 录名"],[260.0,"04:00 天亮"],[261.0,"04:01 长椅"],[262.0,"04:02 归档"]])
-	else:events.append([260.0,"04:00 完成本夜调查后提交交班"])
-	for event in events:
-		if float(event[0])>lc.t/60.0+.02:return [1420.0+float(event[0]),event[1]]
-	return [1420.0+lc.t/60.0,"当前："+objective()]
+	var event := pending_event()
+	if not event.is_empty():return [1420.0+maxf(lc.t/60.0,event.at),event.label]
+	return [1420.0+lc.t/60.0,"无需继续空等；"+objective()]
 
 func timeline() -> void:
+	sync_recognition()
 	if bool(progress.rest_pending) or lc.ended: return
-	if dialogue.panel.visible:return
+	# A late arrival/load catches up one event at a time. Never pile an entire
+	# shift into the subtitle queue or interrupt a conversation/observation.
+	if dialogue.active or cinematic.active or lc.blackout_active or game.sub_pause or game.choice!=null:return
+	if game.phone_open or game.bag_open or game.nb_open or modal.visible:return
+	if game.audio_system.is_busy() or game.sub!="" or not game.sub_queue.is_empty():return
+	if lc.night!=null and lc.night.lady_state=="walk":return
 	if night_number()==1 and (not flag("signed") or not flag("rules_seen") or not lc.has_clue("slip") or not flag("seven_seen")):
 		lc.t=minf(lc.t,20*60.0)
 	if lc.selected_ending=="":lc.t=minf(lc.t,260*60.0)
-	var e: float=lc.t/60.0
-	if e >= 21 and lc._once("bc1"):
-		lc._tell("站内广播","夜间请勿使用七号机。")
-		game.note("话","第一遍广播","夜间请勿使用七号机。")
-		game.director.send_once("bc1" if night_number()==1 else "bc1_n%d"%night_number(),"派遣科",objective())
-	if e >= 40 and lc._once("bc2"):
-		lc._tell("站内广播","夜间勿使用七号机。")
-		game.note("话","第二遍广播","夜间勿使用七号机。")
-		lc.spinning[1]=true; lc.spinning[2]=true; lc.spinning[3]=true
-	if e >= 90 and lc._once("oldlady"):
-		lc._spawn_lady()
-		game.audio_system.sfx("door",-8)
-		lc._tell("旁白","门开了。有人提着布袋走进来，水滴落在她身后。")
-		if bag_model != null: bag_model.visible = true
-	if e >= 170 and lc._once("beat13"): lc._blackout(3.2)
-	if e >= 171 and lc._once("beat14"):
-		lc._place_towel()
-		lc._tell("她","湿了就得擦。纸泡开，就认不出字了。")
-	if e >= 210 and lc._once("count"):
-		lc._tell("她","一件……两件……三件……四件……五件……还差一件。")
-		if lc.night != null: lc.night.lady_count()
-	if e >= 240 and lc._once("ask"):
-		lc._tell("她","是不是洗好了？")
-		game.director.send_once("ask_%d"%night_number(),"派遣科",objective())
-	if lc.selected_ending == "": return
-	if e >= 255 and lc._once("handover"):
-		lc._tell("广播","交班时间。请确认现场无人。……已确认。")
-	if e >= 256 and lc._once("handover_items"):
-		lc._place_handover_items()
-		progress.paid = 3
-		progress.earnings = 2400
-		progress.rent_due = 0
-		progress.spare = 240
-		game.bag_add("badge","纸工牌 · 临-0131","此牌不作身份证明。")
-		game.bag_add("wage_3","第3夜工资回执","工资800元，付清余欠560元，剩余新收入240元。")
-		game.bag_add("permcard","录名权限卡","已录名，可查阅已结案卷结论页。")
-	if e >= 258 and lc._once("recorded"):
-		lc._tell("广播","许砚先生，工号临-0131。您已录名。")
-	if e >= 260 and lc._once("dawn4"):
-		lc._dawn_light()
-		if lc.lady != null: lc.lady.visible = false
-		if bag_model != null: bag_model.visible = false
-	if e >= 261 and lc._once("aqi_line"):
-		lc._show_aqi_on_bench()
-		lc._tell("阿七","你现在能看见我了？")
-	if e >= 262 and lc._once("case_end"):
-		game.bag_add("address","向阳福利院旧址","归还的第一份来历：向阳福利院旧址。")
-		game.director.send_once("rent_paid","房东","560收到了，欠租结清。")
-		lc.complete_case()
+	var event := pending_event()
+	if event.is_empty() or lc.t/60.0<float(event.at):return
+	if not lc._once(event.id):return
+	match String(event.id):
+		"bc1":
+			lc._tell("站内广播","夜间请勿使用七号机。")
+			game.note("话","第一遍广播","夜间请勿使用七号机。")
+		"bc2":
+			lc._tell("站内广播","夜间勿使用七号机。")
+			game.note("话","第二遍广播","夜间勿使用七号机。")
+			lc.spinning[1]=true; lc.spinning[2]=true; lc.spinning[3]=true
+		"oldlady":
+			lc._spawn_lady()
+			game.audio_system.sfx("door",-8)
+			if night_number()==1:lc._tell("旁白","门开了。有人提着布袋走进来，水滴落在她身后。")
+			if bag_model != null: bag_model.visible = true
+		"beat13":lc._blackout(3.2)
+		"beat14":
+			lc._place_towel()
+			lc._tell("她","湿了就得擦。纸泡开，就认不出字了。")
+		"count":
+			lc._tell("她","一件……两件……三件……四件……五件……还差一件。")
+			if lc.night != null: lc.night.lady_count()
+		"ask":
+			lc._tell("她","是不是洗好了？")
+		"handover":
+			lc._tell("广播","交班时间。请确认现场无人。……已确认。")
+		"handover_items":
+			lc._place_handover_items()
+			progress.paid = 3
+			progress.earnings = 2400
+			progress.rent_due = 0
+			progress.spare = 240
+			game.bag_add("badge","纸工牌 · 临-0131","此牌不作身份证明。")
+			game.bag_add("wage_3","第3夜工资回执","工资800元，付清余欠560元，剩余新收入240元。")
+			game.bag_add("permcard","录名权限卡","已录名，可查阅已结案卷结论页。")
+		"recorded":
+			lc._tell("广播","许砚先生，工号临-0131。您已录名。")
+		"dawn4":
+			lc._dawn_light()
+			if lc.lady != null: lc.lady.visible = false
+			if bag_model != null: bag_model.visible = false
+		"aqi_line":
+			lc._show_aqi_on_bench()
+			lc._tell("阿七","你现在能看见我了？")
+		"case_end":
+			game.bag_add("address","向阳福利院旧址","归还的第一份来历：向阳福利院旧址。")
+			game.director.send_once("rent_paid","房东","560收到了，欠租结清。")
+			lc.complete_case()
 
 func capture() -> Dictionary:
 	return progress.duplicate(true)
@@ -807,6 +824,7 @@ func restore(data: Dictionary) -> void:
 		lc.selected_ending = ""; lc.ended = false; lc.final_open = false
 		lc.fired.erase("ask"); lc.fired.erase("case_end")
 		lc.t = minf(lc.t,240.0*60.0)
+	sync_recognition()
 	for id in physical:
 		physical[id].visible = not lc.has_clue(id)
 	if flag("zhou_open"): lc.buildings.f4.k.doors["402"].rotation.y = 1.25

@@ -1,0 +1,276 @@
+{
+  "date": "2026-10-24",
+  "baseline_runtime_commit": "9c9ab93c197748870f10abab98330cf91ad82b42",
+  "method": "Same instrumented normal_route_review, new game, real input/physics/UI; headless and Dummy; subtitles, reading, speech and skippable cinematics accelerated by test driver",
+  "real_minute_to_game_minutes": 10,
+  "before": {
+    "finished": true,
+    "unique_ending": "A",
+    "route_errors": [],
+    "state": "case_end",
+    "interactions": 86,
+    "clock_stops_total": 22,
+    "clock_stops_by_night": {
+      "1": 7,
+      "2": 7,
+      "3": 8
+    },
+    "dispatch_messages": 49,
+    "automated_wall_seconds": 476.333,
+    "clock_stops": [
+      {
+        "from": 1422.3937125,
+        "label": "00:01 第一遍广播",
+        "night": 1,
+        "to": 1441.0
+      },
+      {
+        "from": 1441.01851833333,
+        "label": "00:20 第二遍广播",
+        "night": 1,
+        "to": 1460.0
+      },
+      {
+        "from": 1460.011111,
+        "label": "01:10 来客",
+        "night": 1,
+        "to": 1510.0
+      },
+      {
+        "from": 1511.10554372222,
+        "label": "02:30 停电",
+        "night": 1,
+        "to": 1590.0
+      },
+      {
+        "from": 1590.02037016667,
+        "label": "02:31 擦拭",
+        "night": 1,
+        "to": 1591.0
+      },
+      {
+        "from": 1591.02592566667,
+        "label": "03:10 清点衣物",
+        "night": 1,
+        "to": 1630.0
+      },
+      {
+        "from": 1630.011111,
+        "label": "03:40 核对与回应",
+        "night": 1,
+        "to": 1660.0
+      },
+      {
+        "from": 1430.62581966667,
+        "label": "00:01 第一遍广播",
+        "night": 2,
+        "to": 1441.0
+      },
+      {
+        "from": 1441.02407383333,
+        "label": "00:20 第二遍广播",
+        "night": 2,
+        "to": 1460.0
+      },
+      {
+        "from": 1460.033333,
+        "label": "01:10 来客",
+        "night": 2,
+        "to": 1510.0
+      },
+      {
+        "from": 1511.49170327778,
+        "label": "02:30 停电",
+        "night": 2,
+        "to": 1590.0
+      },
+      {
+        "from": 1590.01851851852,
+        "label": "02:31 擦拭",
+        "night": 2,
+        "to": 1591.0
+      },
+      {
+        "from": 1591.02777777778,
+        "label": "03:10 清点衣物",
+        "night": 2,
+        "to": 1630.0
+      },
+      {
+        "from": 1630.01851851852,
+        "label": "03:40 核对与回应",
+        "night": 2,
+        "to": 1660.0
+      },
+      {
+        "from": 1438.42777777777,
+        "label": "00:01 第一遍广播",
+        "night": 3,
+        "to": 1441.0
+      },
+      {
+        "from": 1441.02222222222,
+        "label": "00:20 第二遍广播",
+        "night": 3,
+        "to": 1460.0
+      },
+      {
+        "from": 1460.02592592593,
+        "label": "01:10 来客",
+        "night": 3,
+        "to": 1510.0
+      },
+      {
+        "from": 1675.01481468519,
+        "label": "03:56 工资回执",
+        "night": 3,
+        "to": 1676.0
+      },
+      {
+        "from": 1676.02037016667,
+        "label": "03:58 录名",
+        "night": 3,
+        "to": 1678.0
+      },
+      {
+        "from": 1678.00925916667,
+        "label": "04:00 天亮",
+        "night": 3,
+        "to": 1680.0
+      },
+      {
+        "from": 1680.02037016667,
+        "label": "04:01 长椅",
+        "night": 3,
+        "to": 1681.0
+      },
+      {
+        "from": 1681.03518483333,
+        "label": "04:02 归档",
+        "night": 3,
+        "to": 1682.0
+      }
+    ],
+    "old_count_lines": 3,
+    "old_ask_lines": 3
+  },
+  "after": {
+    "finished": true,
+    "unique_ending": "A",
+    "route_errors": [],
+    "state": "case_end",
+    "interactions": 52,
+    "clock_stops_total": 14,
+    "clock_stops_by_night": {
+      "1": 7,
+      "2": 1,
+      "3": 6
+    },
+    "dispatch_messages": 9,
+    "automated_wall_seconds": 424.891,
+    "clock_stops": [
+      {
+        "from": 1422.36712935185,
+        "label": "00:01 第一遍广播",
+        "night": 1,
+        "to": 1441.0
+      },
+      {
+        "from": 1441.02407407407,
+        "label": "00:20 第二遍广播",
+        "night": 1,
+        "to": 1460.0
+      },
+      {
+        "from": 1460.01111111111,
+        "label": "01:10 来客",
+        "night": 1,
+        "to": 1510.0
+      },
+      {
+        "from": 1511.07336872222,
+        "label": "02:30 停电",
+        "night": 1,
+        "to": 1590.0
+      },
+      {
+        "from": 1590.55369816667,
+        "label": "02:31 擦拭",
+        "night": 1,
+        "to": 1591.0
+      },
+      {
+        "from": 1591.02592566667,
+        "label": "03:10 清点衣物",
+        "night": 1,
+        "to": 1630.0
+      },
+      {
+        "from": 1630.011111,
+        "label": "03:40 核对与回应",
+        "night": 1,
+        "to": 1660.0
+      },
+      {
+        "from": 1430.62581966667,
+        "label": "01:10 周秀兰到店",
+        "night": 2,
+        "to": 1510.0
+      },
+      {
+        "from": 1438.4262262963,
+        "label": "01:10 周秀兰到店",
+        "night": 3,
+        "to": 1510.0
+      },
+      {
+        "from": 1675.011111,
+        "label": "03:56 工资回执",
+        "night": 3,
+        "to": 1676.0
+      },
+      {
+        "from": 1676.02037016667,
+        "label": "03:58 录名",
+        "night": 3,
+        "to": 1678.0
+      },
+      {
+        "from": 1678.01481466667,
+        "label": "04:00 天亮",
+        "night": 3,
+        "to": 1680.0
+      },
+      {
+        "from": 1680.02037016667,
+        "label": "04:01 长椅",
+        "night": 3,
+        "to": 1681.0
+      },
+      {
+        "from": 1681.00740733333,
+        "label": "04:02 归档",
+        "night": 3,
+        "to": 1682.0
+      }
+    ],
+    "old_count_lines": 1,
+    "old_ask_lines": 1
+  },
+  "checks": {
+    "investigation_pacing": 63,
+    "guidance_attention": 40,
+    "guidance_feedback": 32,
+    "director_flow": 48,
+    "three_nights": 65,
+    "polish_investigation": 68,
+    "total": 316,
+    "failed": 0
+  },
+  "limitations": [
+    "Not a human normal-speed playthrough or assessment of fear, fun, visuals or audible sound",
+    "Interactions include repeated E attempts during NPC arrival; reduction does not measure removed story content",
+    "36 local ignored historical preview-image UID warnings during import, no script errors"
+  ],
+  "raw_logs": "F:\\诡异事务局\\验收\\20261024_调查节奏"
+}

@@ -103,7 +103,8 @@ func _process(delta: float) -> void:
 		return
 	# Do not interrupt a paused simulation, phone, dialogue or another floor's exploration.
 	if not game.is_processing() or game.case_mode!="laundry" or game.state!="play" or game.phone_open or game.bag_open or game.nb_open or game.sub!="" or not game.sub_queue.is_empty() or game.audio_system.is_busy():return
+	if story.flag("recognized"):return
 	var p: Vector3=game.player.global_position
 	if story.flag("drained") and not story.flag("shot_basement") and p.y<0 and p.z>-7:play("basement")
-	elif story.lc.fired.has("count") and not story.flag("shot_count") and p.y>3.4 and p.y<4.0 and p.z<9.8 and story.lc.lady!=null:play("count")
-	elif story.lc.fired.has("bc2") and not story.lc.fired.has("oldlady") and not story.flag("shot_seven") and p.y>3.4 and p.y<4.0 and p.z<9.8:play("seven")
+	elif story.night_number()==1 and story.lc.fired.has("count") and not story.flag("shot_count") and p.y>3.4 and p.y<4.0 and p.z<9.8 and story.lc.lady!=null:play("count")
+	elif story.night_number()==1 and story.lc.fired.has("bc2") and not story.lc.fired.has("oldlady") and not story.flag("shot_seven") and p.y>3.4 and p.y<4.0 and p.z<9.8:play("seven")

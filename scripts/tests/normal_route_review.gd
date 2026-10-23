@@ -8,6 +8,10 @@ var errors: Array[String] = []
 var finished := false
 var door_at := Vector3(0,13.1,319.05)
 const OUT := "res://_预览/20261023_正常路线/"
+var report_dir := OUT
+var clock_stops: Array[Dictionary] = []
+var route_goals: Array[Dictionary] = []
+var route_started := 0
 func _initialize() -> void:call_deferred("run")
 func held_key(code: Key,on: bool) -> void:
 	var event=InputEventKey.new();event.physical_keycode=code;event.keycode=code;event.pressed=on;Input.parse_input_event(event)
@@ -16,7 +20,7 @@ func key(code: Key) -> void:
 func shot(name: String) -> void:
 	if DisplayServer.get_name()=="headless":return
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png(OUT+name+".png")
+	root.get_texture().get_image().save_png(report_dir+name+".png")
 func fail(message: String) -> void:
 	errors.append(message);push_error(message)
 func clear_ui() -> void:
@@ -42,7 +46,7 @@ func clear_ui() -> void:
 				await shot("检查_"+work.item_id+"_"+str(route_steps))
 				key(KEY_ESCAPE)
 			else:key(KEY_1)
-		elif game.audio_system.is_busy():await create_timer(.15).timeout
+		elif game.audio_system.is_busy() or (game.laundry!=null and game.laundry.blackout_active):await create_timer(.15).timeout
 		else:break
 		await create_timer(.04).timeout
 	await process_frame
@@ -144,10 +148,13 @@ func street_walk(target: Vector3) -> bool:
 func run() -> void:
 	create_timer(1000).timeout.connect(func():fail("正常路线超时");quit(2))
 	root.size=Vector2i(1600,900);Engine.max_fps=90
-	DirAccess.make_dir_recursive_absolute(OUT)
+	route_started=Time.get_ticks_msec()
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--route-report="):report_dir=argument.trim_prefix("--route-report=").replace("\\","/").trim_suffix("/")+"/"
+	DirAccess.make_dir_recursive_absolute(report_dir)
 	game=load("res://scenes/main.tscn").instantiate();root.add_child(game);await process_frame
-	if OS.get_cmdline_user_args().has("--resume-review") and FileAccess.file_exists(OUT+"checkpoint.json"):
-		var data=JSON.parse_string(FileAccess.get_file_as_string(OUT+"checkpoint.json"))
+	if OS.get_cmdline_user_args().has("--resume-review") and FileAccess.file_exists(report_dir+"checkpoint.json"):
+		var data=JSON.parse_string(FileAccess.get_file_as_string(report_dir+"checkpoint.json"))
 		if data is Dictionary and preload("res://scripts/case_save.gd").restore(game,data):
 			game.player.lock_look=true
 			await run_nights();return
@@ -188,8 +195,10 @@ func run_nights() -> void:
 		story=game.laundry.campaign
 		var snapshot:Dictionary=preload("res://scripts/case_save.gd").capture(game)
 		if not snapshot.is_empty():
-			var checkpoint=FileAccess.open(OUT+"checkpoint.json",FileAccess.WRITE);checkpoint.store_string(JSON.stringify(snapshot));checkpoint.close()
+			var checkpoint=FileAccess.open(report_dir+"checkpoint.json",FileAccess.WRITE);checkpoint.store_string(JSON.stringify(snapshot));checkpoint.close()
 		var goal:Dictionary=story.current_goal()
+		var goal_record={"night":story.night_number(),"id":goal.id,"mode":goal.mode,"text":goal.text}
+		if route_goals.is_empty() or route_goals.back()!=goal_record:route_goals.append(goal_record)
 		print("PLAYER_ROUTE night=",story.night_number()," goal=",goal.id," ",goal.text," pos=",game.player.global_position)
 		if bool(story.progress.rest_pending):
 			if not await laundry_target("lb_exit"):fail("交班出口不可达");break
@@ -209,7 +218,10 @@ func run_nights() -> void:
 		elif goal.mode=="wait":
 			key(KEY_T);await process_frame
 			print("CLOCK_REVIEW now=",game.director.now()," next=",game.director.next_mark()," modal=",game.director.modal.visible," voice=",game.audio_system.is_busy())
-			if game.director.modal.visible:game.director.next_event()
+			if game.director.modal.visible:
+				var before:float=game.director.now();var target:Array=game.director.next_mark()
+				game.director.next_event()
+				clock_stops.append({"night":story.night_number(),"from":before,"to":game.director.now(),"label":target[1]})
 			await create_timer(.1).timeout
 		else:
 			if not await laundry_target(goal.id):fail("正常路线无法完成目标 "+goal.id);break
@@ -220,8 +232,10 @@ func check_sequence() -> void:
 func finish() -> void:
 	held_key(KEY_W,false)
 	await shot("结案" if finished else "路线中断")
-	var data={"finished":finished,"errors":errors,"interactions":route_steps,"position":str(game.player.global_position),"state":game.state}
-	var file=FileAccess.open(OUT+"route_result.json",FileAccess.WRITE);file.store_string(JSON.stringify(data,"\t"));file.close()
+	var messages:Dictionary=game.phone_ui.messages
+	var pacing={"clock_stops":clock_stops,"goals":route_goals,"dispatch_messages":messages.get("派遣科",[]).size(),"automated_seconds":(Time.get_ticks_msec()-route_started)/1000.0,"reading_and_voice_skipped":true}
+	var data={"finished":finished,"errors":errors,"interactions":route_steps,"position":str(game.player.global_position),"state":game.state,"pacing":pacing}
+	var file=FileAccess.open(report_dir+"route_result.json",FileAccess.WRITE);file.store_string(JSON.stringify(data,"\t"));file.close()
 	print("NORMAL_ROUTE_RESULT ",JSON.stringify(data))
 	game.field_kit.generation+=1;game._discard_laundry();game.queue_free();await process_frame;await process_frame
 	quit(0 if finished and errors.is_empty() else 1)

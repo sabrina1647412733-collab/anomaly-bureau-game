@@ -39,8 +39,16 @@ func act(id: String) -> void:
 func clock_to(minutes: float) -> void:
 	close()
 	lc.t = minutes*60.0
-	lc._timeline()
-	game._clear_sub()
+	# This logical-flow suite explicitly drains late events; normal_route_review
+	# remains the independent player-input clock/route acceptance.
+	for i in range(20):
+		close()
+		if lc.blackout_active:await create_timer(3.3).timeout
+		if lc.night!=null and lc.night.lady_state=="walk":lc.night._npc_step(6.1)
+		var pending:Dictionary=story.pending_event()
+		if pending.is_empty() or float(pending.at)>lc.t/60.0:break
+		lc._timeline()
+	close()
 
 func rest_to_next() -> void:
 	close()
@@ -94,7 +102,7 @@ func run() -> void:
 	check(story.flag("signed"),"签入交接簿")
 	act("l_m9")
 	check(lc.has_clue("slip") and game.bag_has("slip"),"未取洗衣单入包可重读")
-	clock_to(240)
+	await clock_to(240)
 	check(lc.lady!=null and not lc.final_open and game.choice==null,"03:40仍自由调查，无结局选择菜单")
 	act("c1_lady")
 	check(story.flag("back_key"),"老妇人交外门钥匙")
@@ -141,7 +149,7 @@ func run() -> void:
 	check(lc.has_clue("sweater"),"允许第二夜提前取到原衣")
 	story.claim()
 	check(lc.selected_ending=="","提前取原衣不跳过第三夜核实")
-	clock_to(240)
+	await clock_to(240)
 	act("c1_lady")
 	check(story.flag("name_told"),"向周秀兰说出小满姓名")
 	act("c1_terminal")
@@ -181,7 +189,7 @@ func run() -> void:
 	check(story.workbench.submit_conclusions(),"按物证完成唯一结论复核")
 	check(lc.has_clue("accident"),"口述与现场相互核实")
 	check(story.ready_to_claim(),"第三夜证据齐备才可认领")
-	clock_to(10000)
+	await clock_to(10000)
 	check(not lc.ended and lc.t<=260*60,"超过时限保留调查，不进坏结局")
 	act("c1_lady")
 	story.invoke(0)
@@ -190,7 +198,7 @@ func run() -> void:
 	check(not game.bag_has("sweater") and game.bag_has("sweater_record"),"原衣交还后不重复持有，保留证据记录")
 	story.invoke(0)
 	drain_dialogue()
-	for minute in [255,256,258,260,261,262]: clock_to(minute)
+	for minute in [255,256,258,260,261,262]: await clock_to(minute)
 	check(game.state=="case_end" and lc.ended,"三夜到第一案正式结束")
 	check(lc.fired.has("aqi_line") and lc.cast.aqi.visible,"录名之后阿七正面出现")
 	check(game.hud_end.text.contains("去向未明"),"结案保留小满去向未明")

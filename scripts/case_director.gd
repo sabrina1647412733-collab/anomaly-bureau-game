@@ -14,6 +14,7 @@ var event_label: Label
 var toast: Button
 var toast_time := 0.0
 var toast_sender := ""
+var toast_chime_pending := false
 var return_state := "prologue"
 
 func setup(g) -> void:
@@ -57,6 +58,7 @@ func reset() -> void:
 	modal.visible = false
 	toast.visible = false
 	toast_time = 0.0
+	toast_chime_pending = false
 	game.phone_ui.reset_messages()
 
 func now() -> float:
@@ -74,13 +76,17 @@ func send_once(id: String, who: String, text: String) -> void:
 	toast_sender = who
 	toast.text = who + " · 新消息  [点击查看]\n" + text.left(48)
 	toast_time = 6.5
+	toast_chime_pending = true
 	sync_toast(0)
-	if not game.phone_ui.quiet:game.audio_system.sfx("phone_notice",-13)
 
 func sync_toast(delta: float) -> void:
-	var available: bool = game.state in ["prologue","play"] and not game.phone_open and not game.bag_open and not game.nb_open and not game.field_kit.letter_ui.visible and not modal.visible and game.choice==null and not game.sub_pause
+	var available: bool = game.state in ["prologue","play"] and not game.phone_open and not game.bag_open and not game.nb_open and not game.field_kit.letter_ui.visible and not modal.visible and game.choice==null and not game.sub_pause and game.sub=="" and game.sub_queue.is_empty() and not game.audio_system.is_busy()
 	# Keep its reading time while a conversation, menu or document owns the screen.
-	if available:toast_time=maxf(0,toast_time-delta)
+	if available:
+		if toast_chime_pending:
+			toast_chime_pending=false
+			if not game.phone_ui.quiet:game.audio_system.sfx("phone_notice",-13)
+		toast_time=maxf(0,toast_time-delta)
 	toast.visible=available and toast_time>0
 
 func open_message() -> void:
@@ -93,6 +99,8 @@ func open_message() -> void:
 	game.phone_ui.active_chat = toast_sender
 	game.phone_ui._goto("conversation")
 	toast.visible = false
+	toast_time = 0.0
+	toast_chime_pending = false
 
 func after_rent_call() -> void:
 	var run: int = game.field_kit.generation
@@ -132,9 +140,6 @@ func step(delta: float) -> void:
 			send_once("hint_"+objective,"派遣科" if game.prologue_call_done else "房东",objective)
 	if game.case_mode == "laundry" and game.laundry != null:
 		if game.laundry.campaign != null:
-			if game.laundry.t>=21*60:
-				var n: int = game.laundry.campaign.night_number()
-				send_once("bc1" if n==1 else "bc1_n%d"%n,"派遣科",game.laundry.campaign.objective())
 			if modal.visible: refresh_clock()
 			return
 		var t: float = game.laundry.t / 60.0
@@ -168,15 +173,15 @@ func close_clock(stow := false) -> void:
 func next_mark() -> Array:
 	if game.case_mode == "laundry" and game.laundry != null and game.laundry.campaign != null:
 		return game.laundry.campaign.next_event()
-	for event in EVENTS:
-		if float(event[0]) > now() + .02:
-			return event
-	return [now()+10.0,"本夜事件已结束"]
+	if game.laundry!=null and game.laundry.campaign!=null and bool(game.laundry.campaign.progress.rest_pending):
+		return [now(),"本夜已交班，回出租公寓床边休息"]
+	return [maxf(now(),1420.0),"23:40 去洗衣店"+("续查" if game.laundry!=null and game.laundry.campaign!=null and game.laundry.campaign.night_number()>1 else "报到")]
 
 func refresh_clock() -> void:
 	time_label.text = hhmm(now(),true)
 	event_label.text = "下一事件  " + String(next_mark()[1])
-	if game.case_mode != "laundry": event_label.text += "\n先从房门去洗衣店报到。"
+	if game.case_mode != "laundry":
+		event_label.text += "\n"+("从街道进入出租公寓，在床边休息。" if game.laundry!=null and game.laundry.campaign!=null and bool(game.laundry.campaign.progress.rest_pending) else "沿街道去得利洗衣店，调查事件在店内推进。")
 
 func next_event() -> void:
 	advance(maxf(.1,float(next_mark()[0])-now()))
@@ -184,13 +189,24 @@ func next_event() -> void:
 func advance(minutes: float) -> void:
 	if not modal.visible: return
 	var target := minf(now()+minutes,float(next_mark()[0]))
+	if target<now() or (is_equal_approx(target,now()) and game.case_mode!="laundry"):
+		refresh_clock()
+		return
+	# An overdue unplayed event may legitimately be due *now*. Let the common
+	# timeline catch it up, but do not close/reopen the clock for a blocked action.
+	if is_equal_approx(target,now()) and game.case_mode=="laundry":
+		var campaign=game.laundry.campaign
+		var pending:Dictionary=campaign.pending_event()
+		if pending.is_empty() or campaign.next_event()[1]!=pending.label:
+			refresh_clock()
+			return
 	close_clock(false)
 	if game.case_mode == "laundry" and game.laundry != null:
 		game.laundry.t = maxf(game.laundry.t,(target-1420.0)*60.0)
 		game.laundry._timeline()
 	else:
 		room_minutes = maxf(room_minutes,minf(target,1420.0))
-		game._prologue_set_objective("23:40去得利洗衣店报到，值夜班到04:00，报酬800元。带通知书，从房门出发。")
+		game._prologue_set_objective("第%d夜：去得利洗衣店续查，23:40报到。"%game.laundry.campaign.night_number() if game.laundry!=null and game.laundry.campaign!=null and game.laundry.campaign.night_number()>1 else "23:40去得利洗衣店报到，值夜班到04:00，报酬800元。带通知书，从房门出发。")
 	game.clock_min = now()
 	game.audio_system.sfx("ui_tap",-8)
 	idle = 0.0

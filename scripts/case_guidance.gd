@@ -105,14 +105,17 @@ func route_for(goal: Dictionary, p: Vector3) -> Dictionary:
  return waypoint(destination,"看向标记，走近后按 E 交互",true)
 func available() -> bool:
  var g=story.game
- return g.case_mode=="laundry" and g.state=="play" and not g.phone_open and not g.bag_open and not g.nb_open
+ if g.case_mode!="laundry" or g.state!="play" or g.phone_open or g.bag_open or g.nb_open:return false
+ # 无语音的字幕与阅读也占用注意力，不能把它们算成卡关。
+ # 暂停时对话面板可能隐藏，仍应以会话active状态判断。
+ if story.modal.visible or story.dialogue.active or g.choice!=null or not g.dialog.is_empty():return false
+ return not g.sub_pause and g.sub.is_empty() and g.sub_queue.is_empty() and not g.audio_system.is_busy()
 func sync_goal(goal: Dictionary) -> void:
  if last_key==goal.key:return
- var previous=last_key;last_key=goal.key;idle_seconds=0;best_distance=INF;last_route=""
- if previous!="" and goal.mode=="act":story.game.director.send_once("goal_"+goal.key,"派遣科",goal.text+"\n"+goal.why)
+ last_key=goal.key;idle_seconds=0;best_distance=INF;last_route=""
 func track_progress(delta: float, goal: Dictionary, route: Dictionary, position: Vector3) -> void:
  sync_goal(goal)
- if goal.mode!="act":return
+ if goal.mode!="act" or not available():return
  var offset:Vector3=route.pos-position;offset.y=0
  if route.text!=last_route:
   last_route=route.text;best_distance=offset.length();idle_seconds=0
@@ -125,8 +128,6 @@ func _process(delta: float) -> void:
  hint.visible=available();marker.visible=false
  if not hint.visible:return
  var g=story.game
- if g.audio_system.is_busy() or not g.sub_queue.is_empty():
-  hint.text="正在听现场对白，暂时不用拨动时钟。";return
  var goal:Dictionary=story.current_goal();var route=route_for(goal,g.player.global_position)
  if route.is_empty():hint.text=goal.why;return
  track_progress(delta,goal,route,g.player.global_position)
@@ -147,7 +148,7 @@ func _process(delta: float) -> void:
  var focused:bool=g.prompt!=null and g.prompt.get("id","")==goal.id
  hint.text=("" if focused else "%s · %.1f米 · %s\n"%[direction,offset.length(),route.text])+goal.why+"\nH 展开提示"+(" · "+route.text if idle_seconds>=45 else "")
 func _input(event: InputEvent) -> void:
- if not available() or story.game.audio_system.is_busy():return
+ if not available():return
  if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode==KEY_H:
   var goal:Dictionary=story.current_goal();var route=route_for(goal,story.game.player.global_position)
   story.show_page("当前调查提示",goal.text+"\n\n为什么："+goal.why+"\n\n怎么走："+String(route.get("text","按当前目标继续调查"))+"。\n\n可选调查不会拦住主线；找到的文件可在背包重读。")
