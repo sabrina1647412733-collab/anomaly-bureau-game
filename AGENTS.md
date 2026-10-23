@@ -2,9 +2,17 @@
 
 ## 用户最新运行限制：后台、无窗口、无声
 - 用户已提供`F:\角色3d模型\npc\3d`两位新街坊模型，并授权继续接入；此前角色暂停要求对这两份用户模型解除，不能恢复旧派生店主代替它们。
-- 所有开发、导入、检查和验证只能无窗口后台执行，严禁打开Godot编辑器/项目管理器/试玩窗口、Blender桌面或浏览器，严禁播放或试听声音。Godot调用必须同时带`--headless --audio-driver Dummy`；启动外部进程须使用`Start-Process -WindowStyle Hidden`及F盘日志重定向。Blender仅`--background`，不操作用户桌面会话。
+- 所有开发、导入、检查和验证只能无窗口后台执行，严禁打开Godot编辑器/项目管理器/试玩窗口、Blender桌面或浏览器，严禁播放或试听声音。Godot调用必须同时带`--headless --audio-driver Dummy`；启动外部进程须使用`Start-Process -WindowStyle Hidden`及F盘日志重定向。Blender仅`--background -noaudio`，TEMP/TMP及BLENDER_USER_RESOURCES指向F盘任务目录，不操作用户桌面会话。
 - 需要可见窗口或声音才可完成的步骤必须先停下告知用户；不能为截实机图绕过该限制。离线后台渲染只能标注为模型/姿态检查，不得冒充Godot实机。此偏好持续有效，除非用户明确修改。
 - 不强制关闭用户的其他进程、不改系统音量；缓存、日志、资源继续放F盘。
+
+## 2026-10-24 街坊生活化与门前精修
+- 最新验收`20261024_街坊生活化与门前精修验收.md`。两位用户街坊继续复用，不增加新人物；新增短步、换步、理袖/拢衣/看街与实际碰撞停让。正式短线是0.72米、2.4秒非匀速ShortWalk，必须按runtime.walk_distance_curve分段smoothstep同步根位移和动画相位，不能用平均速度硬推。原Walking不启用，WalkGrounded仅备用。
+- 转身恰90度/1.8秒，必须匹配runtime.turn_yaw_curve和turn_positive_clip/turn_negative_clip；正Y偏转用TurnStepRight，负用TurnStepLeft。不能靠名字猜朝向或在Idle中直接扭根。Actor为CharacterBody3D，collider指向自身，胶囊用body_shape读取。
+- 只在门前切向店主.68—1.40米、女住户.78—1.50米的短线移动，outward .42米；原电料店花盆在正侧约1.924米，不得延长路线穿盆。原4道具碰撞、17簇小草、街道/地标保持不变；两处滴水折边、门槛与墙脚修补来自现有hero层。
+- 情境对白模块只读既有current_goal/flags，区分接单、报到、各夜调查与休息；街道小邮局与二楼廊桥存档间不能混淆。仍用原非模态字幕，不新增剧情会话/证据/旗标，不宣称新增NPC配音。脚步使用原step_tile音效，空间声源随暂停/离街停止；测试必须Dummy无声。
+- 存档可选town_residents版本1，室内未建街道时由town_bridge暂存，首次建场后交付。恢复需校验容器、数值、路线/相位/转身一致性；无效记录拒绝并保留默认状态。主存档schema_version仍为2，旧档兼容。
+- 本轮5组300项通过；新档真实键盘自动路线85次交互到唯一A结案，街道W往返84.1米。仍是无窗口验证，非人工全程试玩/跨电脑/GPU或听感验收。离线姿态联系图和结构结果已保存source_art/art_direction/street_residents_v2，严禁冒充Godot实机图。源.blend使用压缩保存，避免超过GitHub单文件限制。小更新不重新打安装包。
 
 ## 2026-10-23 用户街坊接入
 - 用户两份新Meshy模型已经接入`assets/models/chars/street_residents/`；运行脚本`street_residents.gd`只用新增4秒Idle驻足，保留原Walking/Running但未开启巡逻。原Walking鞋底存在2.4—5.9厘米高度偏差，不能直接启用或宣称行走接地完成。原始用户文件未修改，不能用此前暂停的老周派生角色替代。

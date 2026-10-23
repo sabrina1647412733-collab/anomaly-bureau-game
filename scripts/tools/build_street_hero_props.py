@@ -24,6 +24,8 @@ bpy.ops.object.delete(use_global=False)
 GEOM = {}
 ANCHOR = None
 GROUP = ''
+DETAIL_ID = None
+DETAIL_VERTS = defaultdict(list)
 RAND = random.Random(95131)
 MANIFEST = {'version': 1, 'chunks': [], 'props': [], 'anchors': [],
             'preserve_materials': ['wicker', 'enamel', 'enamel_flower', 'linen', 'verge_green'],
@@ -51,13 +53,18 @@ def world(p):
 
 
 def face(mat, verts, polys, color=(1, 1, 1, 1), smooth=False):
-    key = (GROUP, mat)
+    # Both adjoining fronts share one small galvanized hardware batch. All
+    # positions stay in town space; this avoids extra draw calls per doorway.
+    batch = 'electrical_shop' if mat == 'galvanized' else GROUP
+    key = (batch, mat)
     vv, ff, cc, ss = GEOM.setdefault(key, [[], [], [], []])
     off = len(vv)
     for p in verts:
         x, y, z = world(p)
         vv.append((x, -z, y))
         cc.append(color)
+        if DETAIL_ID is not None:
+            DETAIL_VERTS[(ANCHOR['seed'],DETAIL_ID,mat)].append(tuple(p))
     ff.extend(tuple(off+i for i in f) for f in polys)
     ss.extend([smooth] * len(polys))
 
@@ -354,7 +361,10 @@ def weeds(x,z,seed):
             (bx+dx*length*.30+width*.65*dz,.046+length*.62,bz+dz*length*.30-width*.65*dx),
             (bx+dx*length*.66,.046+length*.84,bz+dz*length*.66),
             (bx+dx*length*.30-width*.65*dz,.046+length*.62,bz+dz*length*.30+width*.65*dx)]
-        face('grass',vv,[(0,1,2,3,4)],(r.uniform(.6,1.),r.uniform(.75,1.15),.65,1))
+        # Match the later small wall-joint growth and keep both shapes in one
+        # native plant batch instead of maintaining two dark-tinted materials.
+        value=r.uniform(.78,1.08)
+        face('verge_green',vv,[(0,1,2,3,4)],(.075*value,.105*value,.030*value,1))
 
 
 def small_weeds(x,z,seed,height=.14):
@@ -403,6 +413,95 @@ def drying_rack():
             box('wood',(cx+dx,3.65,.582),(.018,.065,.026),(.7,.57,.37,1),.003)
 
 
+def profile_along_x(mat, profile_yz, left, right, color):
+    """Closed folded-sheet section, not a plane laid across a doorway."""
+    n=len(profile_yz)
+    vv=[(x,y,z) for x in [left,right] for y,z in profile_yz]
+    ff=[tuple(range(n-1,-1,-1)),tuple(n+i for i in range(n))]
+    ff.extend((i,(i+1)%n,(i+1)%n+n,i+n) for i in range(n))
+    face(mat,vv,ff,color)
+
+
+def wall_repair(left,right,bottom,top,seed):
+    # Local bedded mortar, cut with an irregular outline and 8-13mm thickness.
+    # The back intersects the old masonry rather than hovering in front of it.
+    r=random.Random(seed)
+    outline=[(left,bottom+.035),(left+.10,bottom),
+        (right-.08,bottom+.014),(right,bottom+.10),
+        (right-.025,top-.11),(right-.11,top),
+        (left+(right-left)*.42,top-.045),(left+.018,top-.14)]
+    n=len(outline)
+    outer=[(x,y,.035+r.uniform(-.002,.003)) for x,y in outline]
+    inner=[(x,y,.016) for x,y in outline]
+    # Positive Z is facade outward. Counterclockwise front and reversed back.
+    vv=outer+inner
+    ff=[tuple(range(n)),tuple(n+i for i in range(n-1,-1,-1))]
+    ff.extend((i,n+i,n+(i+1)%n,(i+1)%n) for i in range(n))
+    face('concrete',vv,ff,(.91,.90,.81,1))
+    # Three real shallow trowel joints near the repair's lower edge. These
+    # recesses are masonry returns, not floating dirt/decal planes.
+    for i in range(3):
+        xx=left+.09+i*(right-left-.16)/3
+        box('concrete',(xx,bottom+.046,.031),
+            (.10,.013,.013),(.58,.61,.55,1),.003)
+
+
+def drip_flashing():
+    # Existing awning has corrugation, braces and a rectangular front batten.
+    # This slim Z-fold wraps only that batten's exposed edge, with a return
+    # below it to break surface tension and keep runoff away from the facade.
+    w=min(ANCHOR['w']*.72,4.4)
+    yy=2.7
+    p=[(yy-.120,.778),(yy-.120,.807),
+       (yy-.218,.807),(yy-.235,.824),
+       (yy-.232,.827),(yy-.215,.811),
+       (yy-.116,.811),(yy-.116,.778)]
+    profile_along_x('galvanized',p,-w/2-.012,w/2+.012,(.72,.74,.71,1))
+    for xx in [-w*.40,0,w*.40]:
+        # Fixings have a washer and closed shank; no unsupported extra pipes.
+        tube('galvanized',(xx,yy-.155,.799),(xx,yy-.155,.818),.0065,10,(.61,.64,.64,1))
+        ring=[(xx+.011*math.cos(a),yy-.155+.011*math.sin(a),.815)
+              for a in [j*math.tau/12 for j in range(12)]]
+        sweep('galvanized',ring,.002,5,(.66,.67,.62,1),True)
+    # Existing downpipe is at the far negative jamb. A rain chain is avoided:
+    # it would occupy the resident/player corridor below this overhead trim.
+
+
+def entrance_craft(shop=False):
+    global DETAIL_ID
+    DETAIL_ID='drip_flashing'
+    drip_flashing()
+    DETAIL_ID='threshold_nosing'
+    if shop:
+        # The open shop remains 1.6m wide. An 11mm return sits at paving level,
+        # not a new high step or a collider placed across its opening.
+        profile_along_x('galvanized',[(.036,.012),(.036,.071),
+            (.046,.071),(.046,.065),(.042,.065),(.042,.012)],
+            -.785,.785,(.64,.65,.60,1))
+    else:
+        # Existing stone sill ends at z=.60, y=.09. Only its worn nose receives
+        # a flush bevel; the maximum height is unchanged.
+        profile_along_x('concrete',[(.039,.578),(.078,.578),(.089,.591),
+            (.089,.599),(.077,.614),(.039,.614)],-.642,.642,(.94,.92,.85,1))
+        # A tiny bedded repair at one jamb has real end faces and no extra box
+        # collision; it remains entirely behind the resident walking strip.
+        DETAIL_ID='threshold_jamb_repair'
+        box('concrete',(-.65,.135,.034),(.055,.18,.025),(.74,.74,.67,1),.006)
+    DETAIL_ID='bedded_mortar_repair'
+    if shop:
+        wall_repair(.98,1.33,.10,.55,58421)
+        wall_repair(-2.35,-1.90,.09,.40,58422)
+    else:
+        wall_repair(.85,1.30,.10,.56,58423)
+        wall_repair(2.78,3.11,.11,.49,58424)
+    # Runoff leaves a localized, moss-coloured coarse mortar return below the
+    # actual downpipe outlet. No broad planar stain covers masonry or windows.
+    DETAIL_ID='drain_outlet_splash_repair'
+    px=-ANCHOR['w']/2+.13
+    box('concrete',(px+.055,.085,.046),(.22,.083,.032),(.45,.50,.39,1),.012)
+    DETAIL_ID=None
+
+
 set_anchor(579349,'doorstep_cane')
 wicker_chair(-1.20,.315)
 enamel_basin(-1.92,.285)
@@ -422,6 +521,7 @@ for road in DATA['roads']:
         c,s=math.cos(ANCHOR['rot']),math.sin(ANCHOR['rot'])
         dx,dz=wx-ANCHOR['fx'],wz-ANCHOR['fz']
         small_weeds(dx*c-dz*s,dx*s+dz*c,8250,.08)
+entrance_craft(shop=False)
 
 set_anchor(551335,'electrical_shop')
 drawer_unit(-1.35,.225)
@@ -429,6 +529,7 @@ wire_coil(-1.38,1.46,.105)
 weeds(-1.81,.10,4520)
 for i,(x,z) in enumerate([(-2.40,.08),(-2.12,.08),(1.12,.08),(1.43,.07)]):
     small_weeds(x,z,8301+i,[.12,.17,.10,.14][i])
+entrance_craft(shop=True)
 
 set_anchor(993505,'tile_corner')
 tile_stack(-1.38,.28)
@@ -478,17 +579,46 @@ for prop in MANIFEST['props']:
         raise ValueError('Prop extends into road: '+prop['id']+' '+str(road))
 MANIFEST['validation']['clearances']=valid
 
+# The actor movement specification is supplied by the runtime owner. Keep a
+# swept capsule corridor in the same local facade coordinates for QA; do not
+# infer that a stationary source model has already passed gameplay testing.
+NPC_ROUTES=[{'id':'resident_shopkeeper','seed':551335,'side_min':.68,'side_max':1.40},
+            {'id':'resident_woman','seed':579349,'side_min':.78,'side_max':1.50}]
+MANIFEST['npc_swept_corridors']=[]
+for route in NPC_ROUTES:
+    route=dict(route,outward_m=.42,capsule_radius_m=.24,
+               capsule_bottom_m=.04,capsule_top_m=1.90,safety_margin_m=.025)
+    MANIFEST['npc_swept_corridors'].append(route)
+MANIFEST['frontage_details']=[]
+for (seed,label,kind),verts in DETAIL_VERTS.items():
+    lo=[min(v[i] for v in verts) for i in range(3)]
+    hi=[max(v[i] for v in verts) for i in range(3)]
+    MANIFEST['frontage_details'].append({'seed':seed,'detail':label,'material':kind,
+        'bounds_local':[lo,hi],'solid_geometry':True})
+    for route in MANIFEST['npc_swept_corridors']:
+        if route['seed']!=seed:continue
+        pad=route['capsule_radius_m']+route['safety_margin_m']
+        # Low existing threshold repairs retain their old height; roof trim is
+        # checked against full standing height, not only against the feet.
+        overlap_x=hi[0]>route['side_min']-pad and lo[0]<route['side_max']+pad
+        overlap_y=hi[1]>.10 and lo[1]<route['capsule_top_m']
+        overlap_z=hi[2]>route['outward_m']-pad and lo[2]<route['outward_m']+pad
+        if overlap_x and overlap_y and overlap_z:
+            raise ValueError('Detail enters resident walking corridor: '+str(seed)+' '+label)
+MANIFEST['validation']['new_detail_npc_corridor_overlap']=False
+
 basecolors={'wood':(.38,.28,.16,1),'metal':(.28,.31,.28,1),
     'rust':(.38,.22,.12,1),'concrete':(.46,.44,.37,1),'paper':(.67,.60,.44,1),
     'grass':(.23,.30,.12,1),'leaf':(.18,.27,.13,1),
-    'wicker':(1,1,1,1),'enamel':(1,1,1,1),'enamel_flower':(1,1,1,1),'linen':(1,1,1,1),'verge_green':(1,1,1,1)}
+    'wicker':(1,1,1,1),'enamel':(1,1,1,1),'enamel_flower':(1,1,1,1),'linen':(1,1,1,1),'verge_green':(1,1,1,1),
+    'galvanized':(.59,.62,.63,1)}
 materials={}
 for kind in sorted(set(k[1] for k in GEOM)):
     m=bpy.data.materials.new(kind);m.use_nodes=True
     bsdf=m.node_tree.nodes['Principled BSDF']
     bsdf.inputs['Base Color'].default_value=basecolors[kind]
-    bsdf.inputs['Roughness'].default_value=.30 if kind=='enamel' else (.39 if kind=='enamel_flower' else .83)
-    bsdf.inputs['Metallic'].default_value=1. if kind=='metal' else 0.
+    bsdf.inputs['Roughness'].default_value=.30 if kind=='enamel' else (.39 if kind=='enamel_flower' else (.55 if kind=='galvanized' else .83))
+    bsdf.inputs['Metallic'].default_value=1. if kind in ['metal','galvanized'] else 0.
     if kind=='enamel':bsdf.inputs['Coat Weight'].default_value=.22
     col=m.node_tree.nodes.new('ShaderNodeVertexColor');col.layer_name='Color'
     if kind in ['wicker','enamel','enamel_flower','linen','verge_green']:

@@ -20,6 +20,7 @@ var renewal
 var hero
 var weather
 var residents
+var resident_snapshot: Dictionary = {}
 var indoor_camera_attributes:CameraAttributes
 var outdoor_camera_attributes:CameraAttributesPractical
 var indoor_fx:Dictionary={}
@@ -119,6 +120,9 @@ func _build_once() -> void:
 		_box(Vector3((pa.x + pb.x) * 0.5, h * 0.5, (pa.y + pb.y) * 0.5), Vector3(0.18, h, v.length()), atan2(v.x, v.y))
 	residents = preload("res://scripts/town/street_residents.gd").new()
 	residents.setup(self)
+	if not resident_snapshot.is_empty():
+		residents.restore(resident_snapshot)
+		resident_snapshot.clear()
 	print("[TOWN] 模块导入完成；地点 ", layout.get("landmarks", []).size(), "，建筑 ", layout.get("buildings", []).size())
 
 func _hide_replaced_landmarks(node:Node)->void:
@@ -126,6 +130,15 @@ func _hide_replaced_landmarks(node:Node)->void:
 		if node is Node3D:node.visible=false
 		return
 	for child in node.get_children():_hide_replaced_landmarks(child)
+
+func capture_residents() -> Dictionary:
+	return residents.capture() if residents!=null else resident_snapshot.duplicate(true)
+
+func restore_residents(data: Variant) -> void:
+	resident_snapshot=data.duplicate(true) if data is Dictionary else {}
+	if residents!=null:
+		residents.restore(resident_snapshot)
+		resident_snapshot.clear()
 
 func _box(at: Vector3, extent: Vector3, yaw: float) -> void:
 	var shape := BoxShape3D.new()

@@ -1859,6 +1859,10 @@ func _merge_static_meshes(root: Node3D) -> void:
 func _start_prologue(with_intro := true) -> void:
 	if town_bridge != null and town_bridge.active:
 		town_bridge.leave()
+	if town_bridge != null and town_bridge.residents != null:
+		town_bridge.residents.reset()
+	if town_bridge != null:
+		town_bridge.resident_snapshot.clear()
 	if director != null:
 		director.room_minutes = director.ROOM_START
 		clock_min = director.room_minutes

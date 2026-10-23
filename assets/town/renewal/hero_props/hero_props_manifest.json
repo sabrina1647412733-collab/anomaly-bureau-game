@@ -150,6 +150,7 @@
         "road_edge_clearance_m": 0.407
       }
     ],
+    "new_detail_npc_corridor_overlap": false,
     "zero_area_polygons": 0,
     "door_protection_m": 0.65,
     "road_volume_overlap": false
@@ -351,13 +352,205 @@
       "collision": false
     }
   ],
+  "npc_swept_corridors": [
+    {
+      "id": "resident_shopkeeper",
+      "seed": 551335,
+      "side_min": 0.68,
+      "side_max": 1.4,
+      "outward_m": 0.42,
+      "capsule_radius_m": 0.24,
+      "capsule_bottom_m": 0.04,
+      "capsule_top_m": 1.9,
+      "safety_margin_m": 0.025
+    },
+    {
+      "id": "resident_woman",
+      "seed": 579349,
+      "side_min": 0.78,
+      "side_max": 1.5,
+      "outward_m": 0.42,
+      "capsule_radius_m": 0.24,
+      "capsule_bottom_m": 0.04,
+      "capsule_top_m": 1.9,
+      "safety_margin_m": 0.025
+    }
+  ],
+  "frontage_details": [
+    {
+      "seed": 579349,
+      "detail": "drip_flashing",
+      "material": "galvanized",
+      "bounds_local": [
+        [
+          -2.212,
+          2.4650000000000003,
+          0.778
+        ],
+        [
+          2.212,
+          2.584,
+          0.827
+        ]
+      ],
+      "solid_geometry": true
+    },
+    {
+      "seed": 579349,
+      "detail": "threshold_nosing",
+      "material": "concrete",
+      "bounds_local": [
+        [
+          -0.642,
+          0.039,
+          0.578
+        ],
+        [
+          0.642,
+          0.089,
+          0.614
+        ]
+      ],
+      "solid_geometry": true
+    },
+    {
+      "seed": 579349,
+      "detail": "threshold_jamb_repair",
+      "material": "concrete",
+      "bounds_local": [
+        [
+          -0.6775000095367432,
+          0.04500000178813934,
+          0.0215000007301569
+        ],
+        [
+          -0.6225000023841858,
+          0.22499999403953552,
+          0.04650000110268593
+        ]
+      ],
+      "solid_geometry": true
+    },
+    {
+      "seed": 579349,
+      "detail": "bedded_mortar_repair",
+      "material": "concrete",
+      "bounds_local": [
+        [
+          0.85,
+          0.1,
+          0.016
+        ],
+        [
+          3.11,
+          0.56,
+          0.03798543057607313
+        ]
+      ],
+      "solid_geometry": true
+    },
+    {
+      "seed": 579349,
+      "detail": "drain_outlet_splash_repair",
+      "material": "concrete",
+      "bounds_local": [
+        [
+          -3.25,
+          0.04349999874830246,
+          0.029999999329447746
+        ],
+        [
+          -3.0299999713897705,
+          0.1264999955892563,
+          0.06199999898672104
+        ]
+      ],
+      "solid_geometry": true
+    },
+    {
+      "seed": 551335,
+      "detail": "drip_flashing",
+      "material": "galvanized",
+      "bounds_local": [
+        [
+          -1.884,
+          2.4650000000000003,
+          0.778
+        ],
+        [
+          1.884,
+          2.584,
+          0.827
+        ]
+      ],
+      "solid_geometry": true
+    },
+    {
+      "seed": 551335,
+      "detail": "threshold_nosing",
+      "material": "galvanized",
+      "bounds_local": [
+        [
+          -0.785,
+          0.036,
+          0.012
+        ],
+        [
+          0.785,
+          0.046,
+          0.071
+        ]
+      ],
+      "solid_geometry": true
+    },
+    {
+      "seed": 551335,
+      "detail": "bedded_mortar_repair",
+      "material": "concrete",
+      "bounds_local": [
+        [
+          -2.35,
+          0.09,
+          0.016
+        ],
+        [
+          1.33,
+          0.55,
+          0.03767294994648859
+        ]
+      ],
+      "solid_geometry": true
+    },
+    {
+      "seed": 551335,
+      "detail": "drain_outlet_splash_repair",
+      "material": "concrete",
+      "bounds_local": [
+        [
+          -2.5250000953674316,
+          0.04349999874830246,
+          0.029999999329447746
+        ],
+        [
+          -2.305000066757202,
+          0.1264999955892563,
+          0.06199999898672104
+        ]
+      ],
+      "solid_geometry": true
+    }
+  ],
   "counts": {
-    "vertices": 28007,
-    "triangles": 51762,
+    "vertices": 29447,
+    "triangles": 54526,
     "material_batches": 20,
-    "glb_bytes": 2274520
+    "glb_bytes": 2479360
   },
   "geometry": {
+    "doorstep_cane/concrete": {
+      "vertices": 492,
+      "triangles": 940
+    },
     "doorstep_cane/enamel": {
       "vertices": 960,
       "triangles": 1916
@@ -366,13 +559,9 @@
       "vertices": 839,
       "triangles": 1246
     },
-    "doorstep_cane/grass": {
-      "vertices": 95,
-      "triangles": 57
-    },
     "doorstep_cane/verge_green": {
-      "vertices": 980,
-      "triangles": 980
+      "vertices": 1075,
+      "triangles": 1037
     },
     "doorstep_cane/wicker": {
       "vertices": 10296,
@@ -382,13 +571,17 @@
       "vertices": 260,
       "triangles": 484
     },
+    "electrical_shop/concrete": {
+      "vertices": 424,
+      "triangles": 812
+    },
     "electrical_shop/enamel": {
       "vertices": 2880,
       "triangles": 5736
     },
-    "electrical_shop/grass": {
-      "vertices": 95,
-      "triangles": 57
+    "electrical_shop/galvanized": {
+      "vertices": 524,
+      "triangles": 1012
     },
     "electrical_shop/metal": {
       "vertices": 7750,
@@ -403,8 +596,8 @@
       "triangles": 132
     },
     "electrical_shop/verge_green": {
-      "vertices": 560,
-      "triangles": 560
+      "vertices": 655,
+      "triangles": 617
     },
     "electrical_shop/wood": {
       "vertices": 880,
@@ -413,10 +606,6 @@
     "tile_corner/concrete": {
       "vertices": 624,
       "triangles": 1200
-    },
-    "tile_corner/grass": {
-      "vertices": 190,
-      "triangles": 114
     },
     "tile_corner/linen": {
       "vertices": 208,
@@ -431,8 +620,8 @@
       "triangles": 112
     },
     "tile_corner/verge_green": {
-      "vertices": 840,
-      "triangles": 840
+      "vertices": 1030,
+      "triangles": 954
     },
     "tile_corner/wood": {
       "vertices": 248,
@@ -447,21 +636,21 @@
         126.6297841229788
       ],
       [
-        154.98305908885482,
+        155.13867467459707,
         1.1037267446517944,
-        127.56204129931753
+        127.6143542125377
       ]
     ],
     "electrical_shop": [
       [
-        167.43162060381775,
+        149.77701244963254,
         0.032499998807907104,
-        118.92548081566399
+        118.8616004177582
       ],
       [
-        168.38734648696615,
-        1.7400000095367432,
-        122.81214435897607
+        168.40777184310906,
+        2.584,
+        126.76738514692933
       ]
     ],
     "tile_corner": [

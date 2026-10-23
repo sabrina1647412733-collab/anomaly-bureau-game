@@ -60,6 +60,8 @@ static func capture(g) -> Dictionary:
 	d["director"] = g.director.capture()
 	if g.town_bridge!=null and g.town_bridge.weather!=null:
 		d["town_environment"]=g.town_bridge.weather.capture()
+	if g.town_bridge!=null:
+		d["town_residents"]=g.town_bridge.capture_residents()
 	if g.nb != null:
 		d["notes"] = g.nb.entries.duplicate(true)
 	if g.wclock != null:
@@ -160,6 +162,8 @@ static func restore(g, d: Dictionary) -> bool:
 	g.clock_min = float(d.get("clock", 1420.0))
 	if g.town_bridge!=null and g.town_bridge.weather!=null:
 		g.town_bridge.weather.restore(d.get("town_environment",{}))
+	if g.town_bridge!=null:
+		g.town_bridge.restore_residents(d.get("town_residents",{}))
 	var p: Array = d["position"]
 	g.player.global_position = Vector3(float(p[0]), float(p[1]), float(p[2]))
 	if d.get("mode") == "laundry" and int(d.get("building_version",0)) < 2:

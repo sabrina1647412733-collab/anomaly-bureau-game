@@ -1,0 +1,419 @@
+{
+  "date": "2026-10-24",
+  "street_passed": 72,
+  "audible_review": false,
+  "resident_integration_passed": 49,
+  "hero_geometry": {
+    "kind": "offline_geometry_and_export_QA_only",
+    "passed": true,
+    "existing_prop_collisions_unchanged": true,
+    "small_weed_clumps": 17,
+    "native_uv_color_present": true,
+    "new_detail_npc_corridor_overlap": false,
+    "counts": {
+      "vertices": 29447,
+      "triangles": 54526,
+      "material_batches": 20,
+      "glb_bytes": 2479360
+    },
+    "glbs": [
+      {
+        "file": "doorstep_cane.glb",
+        "bytes": 1053288,
+        "primitives": 6
+      },
+      {
+        "file": "electrical_shop.glb",
+        "bytes": 1233032,
+        "primitives": 8
+      },
+      {
+        "file": "tile_corner.glb",
+        "bytes": 193040,
+        "primitives": 6
+      }
+    ],
+    "source_meshes": [
+      {
+        "name": "concrete",
+        "triangles": 940
+      },
+      {
+        "name": "concrete.001",
+        "triangles": 812
+      },
+      {
+        "name": "concrete.002",
+        "triangles": 1200
+      },
+      {
+        "name": "enamel",
+        "triangles": 1916
+      },
+      {
+        "name": "enamel.001",
+        "triangles": 5736
+      },
+      {
+        "name": "enamel_flower",
+        "triangles": 1246
+      },
+      {
+        "name": "galvanized",
+        "triangles": 1012
+      },
+      {
+        "name": "linen",
+        "triangles": 336
+      },
+      {
+        "name": "metal",
+        "triangles": 15408
+      },
+      {
+        "name": "metal.001",
+        "triangles": 28
+      },
+      {
+        "name": "paper",
+        "triangles": 252
+      },
+      {
+        "name": "rust",
+        "triangles": 132
+      },
+      {
+        "name": "rust.001",
+        "triangles": 112
+      },
+      {
+        "name": "verge_green",
+        "triangles": 1037
+      },
+      {
+        "name": "verge_green.001",
+        "triangles": 617
+      },
+      {
+        "name": "verge_green.002",
+        "triangles": 954
+      },
+      {
+        "name": "wicker",
+        "triangles": 20152
+      },
+      {
+        "name": "wood",
+        "triangles": 484
+      },
+      {
+        "name": "wood.001",
+        "triangles": 1680
+      },
+      {
+        "name": "wood.002",
+        "triangles": 472
+      }
+    ],
+    "npc_swept_corridors": [
+      {
+        "id": "resident_shopkeeper",
+        "seed": 551335,
+        "side_min": 0.68,
+        "side_max": 1.4,
+        "outward_m": 0.42,
+        "capsule_radius_m": 0.24,
+        "capsule_bottom_m": 0.04,
+        "capsule_top_m": 1.9,
+        "safety_margin_m": 0.025
+      },
+      {
+        "id": "resident_woman",
+        "seed": 579349,
+        "side_min": 0.78,
+        "side_max": 1.5,
+        "outward_m": 0.42,
+        "capsule_radius_m": 0.24,
+        "capsule_bottom_m": 0.04,
+        "capsule_top_m": 1.9,
+        "safety_margin_m": 0.025
+      }
+    ],
+    "limitation": "No Godot view, rendering, sound or gameplay verification performed here."
+  },
+  "life": {
+    "body_overlaps": 0,
+    "errors": [],
+    "failed": 0,
+    "max_move_per_tick": 0.0144503870978951,
+    "method": "real imported scene, CharacterBody swept movement and state/save probes; no visible gameplay or audible review",
+    "minimum_y": 0.00399997038766742,
+    "passed": 33,
+    "samples": 4174,
+    "states": {
+      "resident_shopkeeper": {
+        "care": true,
+        "idle": true,
+        "turn": true,
+        "walk": true
+      },
+      "resident_woman": {
+        "care": true,
+        "idle": true,
+        "turn": true,
+        "walk": true
+      }
+    }
+  },
+  "audio_driver": "Dummy",
+  "dialogue": {
+    "errors": [],
+    "failed": 0,
+    "method": "headless Dummy pure replies using real campaign.current_goal; no scene/audio/model/save writes",
+    "passed": 122
+  },
+  "normal_route": {
+    "errors": [],
+    "finished": true,
+    "interactions": 85,
+    "position": "(0.678697, 3.500936, 7.57407)",
+    "state": "case_end"
+  },
+  "bridge_passed": 24,
+  "visible_gameplay_review": false,
+  "headless": true,
+  "models": [
+    {
+      "original_binary_prefix_preserved": true,
+      "turn_left": {
+        "Left": {
+          "support_speed_p95": 0.03290567798215614,
+          "support_speed_max": 0.034456765826238245
+        },
+        "Right": {
+          "support_speed_p95": 0.013629647969261086,
+          "support_speed_max": 0.03831633255593979
+        }
+      },
+      "model": "electrical_shopkeeper.glb",
+      "short_walk": {
+        "Left": {
+          "support_y_min": 0.00032395470706967906,
+          "support_y_max": 0.0010001050988105724,
+          "support_speed_p95": 0.023788549981647568,
+          "support_speed_max": 0.08747680975870763
+        },
+        "Right": {
+          "support_y_min": -5.760566047614243E-08,
+          "support_y_max": 0.001000088011909657,
+          "support_speed_p95": 0.028556313978922818,
+          "support_speed_max": 0.10634786946735456
+        }
+      },
+      "original_animations_preserved": true,
+      "turn_right": {
+        "Left": {
+          "support_speed_p95": 0.020831036632554797,
+          "support_speed_max": 0.03314437085441222
+        },
+        "Right": {
+          "support_speed_p95": 0.03770810706648824,
+          "support_speed_max": 0.03915885145405263
+        }
+      },
+      "sha256": "2c8a9710784893bab55e7d2a110a49b40760f4e55375d644d09e5e4b2de77beb",
+      "runtime": {
+        "walk_clip": "ShortWalk",
+        "walk_speed_mps": 0.3,
+        "walk_seconds": 2.4,
+        "stride_m": 0.72,
+        "walk_distance_curve": [
+          [
+            0,
+            0
+          ],
+          [
+            0.04,
+            0
+          ],
+          [
+            0.3,
+            0.25
+          ],
+          [
+            0.37,
+            0.25
+          ],
+          [
+            0.63,
+            0.75
+          ],
+          [
+            0.7,
+            0.75
+          ],
+          [
+            0.96,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "walk_distance_interpolation": "smoothstep changing segments; hold flat segments",
+        "life_clip": "CareShop",
+        "turn_left_clip": "TurnStepLeft",
+        "turn_right_clip": "TurnStepRight",
+        "turn_seconds": 1.8,
+        "turn_positive_clip": "TurnStepRight",
+        "turn_negative_clip": "TurnStepLeft",
+        "turn_degrees": 90,
+        "turn_yaw_curve": [
+          [
+            0,
+            0
+          ],
+          [
+            0.03,
+            0
+          ],
+          [
+            0.28,
+            0.5
+          ],
+          [
+            0.36,
+            0.5
+          ],
+          [
+            0.61,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "turn_yaw_interpolation": "smoothstep changing segments; hold flat segments",
+        "turn_max_yaw_degrees_per_sec": 150
+      }
+    },
+    {
+      "original_binary_prefix_preserved": true,
+      "turn_left": {
+        "Left": {
+          "support_speed_p95": 0.02591879111222031,
+          "support_speed_max": 0.027304630115561054
+        },
+        "Right": {
+          "support_speed_p95": 0.02378361441490732,
+          "support_speed_max": 0.02583304675967974
+        }
+      },
+      "model": "female_resident.glb",
+      "short_walk": {
+        "Left": {
+          "support_y_min": -3.5097613416334766E-08,
+          "support_y_max": 0.0010005735341363324,
+          "support_speed_p95": 0.01887485155912353,
+          "support_speed_max": 0.034140331350520345
+        },
+        "Right": {
+          "support_y_min": 0.0009973989892796595,
+          "support_y_max": 0.0015167345844985564,
+          "support_speed_p95": 0.019370968385070925,
+          "support_speed_max": 0.0257063929758841
+        }
+      },
+      "original_animations_preserved": true,
+      "turn_right": {
+        "Left": {
+          "support_speed_p95": 0.02214081644611141,
+          "support_speed_max": 0.026406294013822232
+        },
+        "Right": {
+          "support_speed_p95": 0.025414004138009955,
+          "support_speed_max": 0.026415986932496742
+        }
+      },
+      "sha256": "53359ec613d563c94a4fd0ca20af5edd3ad385bff9692ad7a5fb234f56a92f51",
+      "runtime": {
+        "walk_clip": "ShortWalk",
+        "walk_speed_mps": 0.3,
+        "walk_seconds": 2.4,
+        "stride_m": 0.72,
+        "walk_distance_curve": [
+          [
+            0,
+            0
+          ],
+          [
+            0.04,
+            0
+          ],
+          [
+            0.3,
+            0.25
+          ],
+          [
+            0.37,
+            0.25
+          ],
+          [
+            0.63,
+            0.75
+          ],
+          [
+            0.7,
+            0.75
+          ],
+          [
+            0.96,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "walk_distance_interpolation": "smoothstep changing segments; hold flat segments",
+        "life_clip": "Shelter",
+        "turn_left_clip": "TurnStepLeft",
+        "turn_right_clip": "TurnStepRight",
+        "turn_seconds": 1.8,
+        "turn_positive_clip": "TurnStepRight",
+        "turn_negative_clip": "TurnStepLeft",
+        "turn_degrees": 90,
+        "turn_yaw_curve": [
+          [
+            0,
+            0
+          ],
+          [
+            0.03,
+            0
+          ],
+          [
+            0.28,
+            0.5
+          ],
+          [
+            0.36,
+            0.5
+          ],
+          [
+            0.61,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "turn_yaw_interpolation": "smoothstep changing segments; hold flat segments",
+        "turn_max_yaw_degrees_per_sec": 150
+      }
+    }
+  ]
+}

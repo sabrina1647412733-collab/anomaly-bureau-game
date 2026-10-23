@@ -53,6 +53,7 @@ func run() -> void:
 	town = game.town_bridge
 	town.weather.set_process(false)
 	residents = town.residents
+	residents.behaviour_enabled=false # Movement has a separate full-physics review.
 	await physics_frame
 	await process_frame
 	await physics_frame
@@ -75,7 +76,7 @@ func run() -> void:
 		var difference := Vector4(pose.x,pose.y,pose.z,pose.w).distance_to(Vector4(moved.x,moved.y,moved.z,moved.w))
 		check(difference>.00001, id+" Idle实际驱动骨骼 delta="+str(difference))
 		var query := PhysicsShapeQueryParameters3D.new()
-		query.shape = actor.collider.get_child(0).shape
+		query.shape = actor.body_shape.shape
 		query.transform = Transform3D(Basis.IDENTITY, actor.global_position+Vector3(0,.85,0))
 		query.collision_mask = 1
 		query.exclude = [actor.collider.get_rid(),game.player.get_rid()]
@@ -91,10 +92,11 @@ func run() -> void:
 		check(selected!=null and selected.get("id","")==id, id+" 正常站位准星可选中")
 		game._clear_sub()
 		residents.interact(id)
-		check(game.sub==String(actor.definition.line), id+" 问路提示真实入口与二楼报到")
+		check(game.sub==String(residents.REPLIES.response(game,id).text), id+" 问路提示跟随真实剧情进度")
 		check(game.state=="prologue" and game.player.can_move and not game.sub_pause, id+" 问路不创建独立模态会话")
 		check(game.case_bag==original_bag and game.prologue_objective==original_objective, id+" 不改主线任务或背包")
 		game._clear_sub()
+		actor.activity="idle"
 		game._say_seq("旁白","关键剧情字幕",2.2,false)
 		actor.reply_cooldown=0.0
 		residents.interact(id)
@@ -115,6 +117,7 @@ func run() -> void:
 	var first_actor = residents.actors[0]
 	view(stand_for(first_actor),first_actor.global_position+Vector3(0,1.35,0))
 	first_actor.reply_cooldown=0.0
+	first_actor.activity="idle"
 	residents.interact(first_actor.definition.id)
 	var data: Dictionary = game.exit_save.snapshot()
 	check(SAVE.valid(data) and data.state=="prologue" and data.stage=="town", "无洗衣店对象时街坊回答中仍可保存")
