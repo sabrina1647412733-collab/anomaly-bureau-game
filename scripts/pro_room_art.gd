@@ -875,12 +875,13 @@ shader_type canvas_item;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
 uniform float vignette_strength = 0.42;
 uniform float grain_amount = 0.020;
+uniform float chromatic_amount = 0.0012;
 uniform float glitch = 0.0;
 float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 void fragment(){
 	vec2 uv = SCREEN_UV;
 	vec2 c = uv - 0.5;
-	float ca = 0.0012 + glitch * 0.004;
+	float ca = chromatic_amount + glitch * 0.004;
 	vec3 col;
 	col.r = texture(screen_tex, uv + c * ca * 2.0).r;
 	col.g = texture(screen_tex, uv).g;
@@ -935,7 +936,7 @@ func apply_room_environment(env: Environment) -> void:
 	env.fog_sun_scatter = 0.0
 	env.fog_aerial_perspective = 0.0
 	env.fog_sky_affect = 0.0
-	env.set("volumetric_fog_enabled", true)
+	env.set("volumetric_fog_enabled", RenderingServer.get_current_rendering_method()=="forward_plus")
 	env.set("volumetric_fog_density", 0.012)
 	env.set("volumetric_fog_albedo", Color(0.62, 0.72, 0.68))
 	env.set("volumetric_fog_emission", Color(0.06, 0.09, 0.08))

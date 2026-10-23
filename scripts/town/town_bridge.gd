@@ -16,6 +16,11 @@ var map_layer: CanvasLayer
 var town_map: Control
 var active := false
 var imported := false
+var renewal
+var weather
+var indoor_camera_attributes:CameraAttributes
+var outdoor_camera_attributes:CameraAttributesPractical
+var indoor_fx:Dictionary={}
 
 func setup(owner_game: Node3D, font: Font) -> void:
 	game = owner_game
@@ -28,6 +33,14 @@ func setup(owner_game: Node3D, font: Font) -> void:
 		var parsed: Variant = JSON.parse_string(file.get_as_text())
 		if parsed is Dictionary:
 			layout = parsed
+	var additions=JSON.parse_string(FileAccess.get_file_as_string("res://assets/town/renewal/layout_additions.json"))
+	if additions is Dictionary:
+		layout["buildings"].append_array(additions.get("infill",[]))
+	# The shop is on F2, with the existing investigation floors above it.
+	for landmark in layout.get("landmarks",[]):
+		if String(landmark.get("id",""))=="01":landmark["height"]=15.8;landmark["floors"]=5
+	weather=preload("res://scripts/town/street_weather.gd").new()
+	weather.setup(self)
 	map_layer = CanvasLayer.new()
 	map_layer.layer = 4
 	owner_game.add_child(map_layer)
@@ -40,52 +53,51 @@ func _build_once() -> void:
 		return
 	imported = true
 	var finish=preload("res://scripts/town/town_finish.gd").new()
-	for resource_path in MODULES:
+	for resource_path in [MODULES[2]]:
 		var packed: PackedScene = load(resource_path)
 		if packed == null:
 			push_error("回潮镇模块缺失：" + resource_path)
 			continue
 		var part: Node3D = packed.instantiate()
 		add_child(part)
+		_hide_replaced_landmarks(part)
 		finish.apply(part)
 	floor_body = StaticBody3D.new()
 	floor_body.name = "TownCollision"
 	add_child(floor_body)
-	_box(Vector3(150.0, -0.22, 120.0), Vector3(330.0, 0.44, 270.0), 0.0)
+	renewal=preload("res://scripts/town/street_world.gd").new()
+	renewal.setup(self)
 	for entry in layout.get("buildings", []):
 		var h := float(entry.get("height", 7.0))
 		_box(Vector3(float(entry["x"]), h * 0.5, float(entry["z"])), Vector3(float(entry["w"]), h, float(entry["d"])), float(entry.get("rot", 0.0)))
 	for entry in layout.get("landmarks", []):
-		if String(entry.get("id", "")) == "04" or String(entry.get("id", "")) == "08":
-			continue # 公交站与雨巷不是封闭房屋
+		if String(entry.get("id", "")) in ["04","08","10"]:
+			continue # 公交站、雨巷和铁路道口不是封闭房屋
 		var h := float(entry.get("height", 7.0))
 		_box(Vector3(float(entry["x"]), h * 0.5, float(entry["z"])), Vector3(float(entry.get("w", 5.0)), h, float(entry.get("d", 5.0))), float(entry.get("rot", 0.0)))
+	# GLB10's footprint includes the open deck. Only its actual guard hut is solid.
+	_box(Vector3(80.005,1.4,8.795),Vector3(2.803,2.8,3.203),.0008)
+	for post in [[84.0015,1.2,20.598,.109,2.4,.114],[89.896,1.7,19.603,.1,3.4,.1],
+		[89.904,1.7,10.403,.1,3.4,.1],[88.996,1.8,19.602,.24,3.6,.208],[89.004,1.8,10.402,.24,3.6,.208]]:
+		_box(Vector3(post[0],post[1],post[2]),Vector3(post[3],post[4],post[5]),0.)
+	for z in [10.405,19.605]:_box(Vector3(91.75,3.3,z),Vector3(5.3,.16,.17),0.)
 	for wall in layout.get("walls", []):
 		var a: Array = wall.get("a", [])
 		var b: Array = wall.get("b", [])
-		if a.size() < 3 or b.size() < 3:
+		if a.size() < 2 or b.size() < 2:
 			continue
-		var pa := Vector2(float(a[0]), float(a[2]))
-		var pb := Vector2(float(b[0]), float(b[2]))
+		var pa := Vector2(float(a[0]), float(a[a.size()-1]))
+		var pb := Vector2(float(b[0]), float(b[b.size()-1]))
 		var v := pb - pa
 		var h := float(wall.get("h", 2.0))
 		_box(Vector3((pa.x + pb.x) * 0.5, h * 0.5, (pa.y + pb.y) * 0.5), Vector3(0.18, h, v.length()), atan2(v.x, v.y))
-	var moon := DirectionalLight3D.new()
-	moon.name = "TownMoon"
-	moon.rotation_degrees = Vector3(-47, -32, 0)
-	moon.light_color = Color(0.48, 0.62, 0.72)
-	moon.light_energy = 0.55
-	moon.shadow_enabled = true
-	add_child(moon)
-	var lamp := OmniLight3D.new()
-	lamp.name = "LaundryApproachLamp"
-	lamp.position = Vector3(145.88, 4.0, 123.4)
-	lamp.light_color = Color(0.96, 0.70, 0.38)
-	lamp.light_energy = 2.1
-	lamp.omni_range = 13.0
-	add_child(lamp)
-	finish.lights(self)
 	print("[TOWN] 模块导入完成；地点 ", layout.get("landmarks", []).size(), "，建筑 ", layout.get("buildings", []).size())
+
+func _hide_replaced_landmarks(node:Node)->void:
+	if String(node.name).begins_with("01") or String(node.name).begins_with("02"):
+		if node is Node3D:node.visible=false
+		return
+	for child in node.get_children():_hide_replaced_landmarks(child)
 
 func _box(at: Vector3, extent: Vector3, yaw: float) -> void:
 	var shape := BoxShape3D.new()
@@ -121,6 +133,8 @@ func enter(from_laundry := false) -> void:
 	var dest: Array = laundry.get("front", [145.88, 120.8])
 	game.player.look_at(ORIGIN + Vector3(float(dest[0]), 0.12, float(dest[1])), Vector3.UP)
 	game.player.can_move = true
+	weather.activate()
+	_outdoor_view(true)
 	game.player.allow_capture = true
 	game.player.body.visible = game.player.cam_mode!=0
 	if from_laundry:
@@ -132,6 +146,8 @@ func enter(from_laundry := false) -> void:
 	update_map()
 
 func leave() -> void:
+	weather.deactivate()
+	_outdoor_view(false)
 	active = false
 	visible = false
 	if floor_body != null:
@@ -139,6 +155,25 @@ func leave() -> void:
 	if town_map != null:
 		town_map.visible = false
 		town_map.big_open = false
+
+func _outdoor_view(on:bool)->void:
+	# Indoor 8-metre DOF made the street unreadably blurred. Preserve that profile
+	# and use the player's natural outdoor depth of field until leaving the town.
+	var fx=game.get_meta("prologue_fx_mat",null)
+	if on and outdoor_camera_attributes==null:
+		indoor_camera_attributes=game.player.cam.attributes
+		outdoor_camera_attributes=CameraAttributesPractical.new()
+		game.player.cam.attributes=outdoor_camera_attributes
+		if fx!=null:
+			for key in ["vignette_strength","grain_amount","chromatic_amount"]:indoor_fx[key]=fx.get_shader_parameter(key)
+			fx.set_shader_parameter("vignette_strength",.18);fx.set_shader_parameter("grain_amount",.006)
+			fx.set_shader_parameter("chromatic_amount",.00015)
+	elif not on and outdoor_camera_attributes!=null:
+		if is_instance_valid(game.player) and game.player.cam.attributes==outdoor_camera_attributes:
+			game.player.cam.attributes=indoor_camera_attributes
+		if fx!=null:
+			for key in indoor_fx:fx.set_shader_parameter(key,indoor_fx[key])
+		outdoor_camera_attributes=null;indoor_camera_attributes=null;indoor_fx.clear()
 
 func update_map() -> void:
 	if active and town_map != null:

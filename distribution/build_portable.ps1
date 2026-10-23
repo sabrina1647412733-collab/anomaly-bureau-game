@@ -4,7 +4,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-if (-not $OutputDirectory) { $OutputDirectory = Join-Path $projectRoot 'build\windows-0.4.0' }
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $projectRoot 'build\windows-0.5.0' }
 $outputRoot = [System.IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Force -Path $outputRoot | Out-Null
 & $GodotBinary --headless --log-file (Join-Path $outputRoot 'export.log') --path $projectRoot --export-release 'Windows Desktop' (Join-Path $outputRoot 'AnomalyBureau.exe')
@@ -17,6 +17,7 @@ foreach ($name in @('credits.txt','CC-BY-4.0.txt','CC0-1.0.txt')) {
 }
 Copy-Item -LiteralPath (Join-Path $projectRoot 'assets\models\view_hands\SOURCES.md') -Destination (Join-Path $outputRoot '第一人称手部来源.md') -Force
 Copy-Item -LiteralPath (Join-Path $projectRoot 'assets\audio\polish\SOURCES.md') -Destination (Join-Path $outputRoot '新增音效来源.md') -Force
+Copy-Item -LiteralPath (Join-Path $projectRoot 'assets\town\renewal\README.md') -Destination (Join-Path $outputRoot '街道更新说明.md') -Force
 Get-ChildItem -LiteralPath $outputRoot -File | Where-Object { $_.Extension -in @('.exe','.pck') } | ForEach-Object {
     $digest=Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256
     '{0}  {1}' -f $digest.Hash.ToLowerInvariant(),$_.Name

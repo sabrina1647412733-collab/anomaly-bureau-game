@@ -250,6 +250,11 @@ func _process(delta: float) -> void:
 		var body=game.get_meta("phone_world_body",null)
 		if is_instance_valid(body):ring.global_position=body.global_position
 	if not paused:
+		if game.town_bridge!=null and game.town_bridge.weather!=null:
+			var rainfall:float=game.town_bridge.weather.rain_amount
+			var outside:bool=zone in ["town","roof"]
+			var rain_db=lerpf(-65.,-20. if outside else (-29. if zone=="laundry" else -30.),sqrt(rainfall))
+			atmosphere.volume_db=move_toward(atmosphere.volume_db,rain_db,delta*14.)
 		blend=minf(1.,blend+delta/2.4)
 		var target=-29. if music_id=="lightless_dawn" else -24.
 		if is_busy():target-=10.

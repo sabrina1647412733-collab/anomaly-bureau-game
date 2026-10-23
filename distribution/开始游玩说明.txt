@@ -1,13 +1,11 @@
 诡异事务局 · 第一案「得利洗衣店」
-Windows 游玩版 v0.4.0 / 2026-10-23
+Windows 游玩版 v0.5.0 / 2026-10-23 · 街道环境更新
 
 一、怎么打开
-如下载的是安装版：运行 AnomalyBureau-Setup-0.4.0.exe，按向导安装到当前用户目录。
-安装后从桌面或开始菜单打开「诡异事务局 · 得利洗衣店」。不需要安装 Godot。
-
-免安装版：打开交付的完整文件夹，再双击 AnomalyBureau.exe；如收到ZIP，请先完整解压。
-不要在压缩包里直接运行。AnomalyBureau.exe 与 AnomalyBureau.pck 必须放在一起。
-不要只发 exe 给别人，请发完整 ZIP 或安装包。
+打开交付的完整文件夹，双击 AnomalyBureau.exe。不需要安装 Godot。
+AnomalyBureau.exe 与 AnomalyBureau.pck 必须放在一起；给别人试玩时复制完整文件夹。
+这一版交付免安装文件夹，没有重新制作安装程序或ZIP。
+若要接续旧试玩版进度，请先退出游戏，再复制旧版的「_玩家数据」到本版同名位置并保留备份。
 
 二、电脑要求与启动问题
 本版面向 Windows 10/11 的 64 位电脑，尚未提供 Mac、Linux 或手机版。

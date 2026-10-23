@@ -83,7 +83,14 @@ func _run() -> void:
 	var space = game.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(Vector3(2.43,.1,-8.15), Vector3(2.43,-2.7,-8.15))
 	query.exclude = [game.player.get_rid()]
-	check(space.intersect_ray(query).is_empty(), "服务梯顶棚开口与 1F 洞口对齐")
+	# The approved hatch now has a visible, walkable lid so approaching it cannot
+	# drop the player before pressing E. Test that safety surface separately from
+	# the clear shaft beneath it; the old all-height empty-ray assertion predated it.
+	var lid_hit: Dictionary = space.intersect_ray(query)
+	check(not lid_hit.is_empty() and absf(lid_hit.position.y)<.08 and game.laundry.rebuilt.service_cover.visible, "检修洞口保留可见、可站立的实体盖板")
+	query = PhysicsRayQueryParameters3D.create(Vector3(2.43,-.08,-8.15), Vector3(2.43,-2.7,-8.15))
+	query.exclude = [game.player.get_rid()]
+	check(space.intersect_ray(query).is_empty(), "盖板下方服务梯开口与 1F 洞口对齐")
 	query = PhysicsRayQueryParameters3D.create(Vector3(1.55,4.4,9.8), Vector3(1.55,4.4,10.6))
 	query.exclude = [game.player.get_rid()]
 	var hit: Dictionary = space.intersect_ray(query)

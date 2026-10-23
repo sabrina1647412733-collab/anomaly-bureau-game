@@ -16,6 +16,7 @@ func apply(node:Node)->void:
 				var key=str(original.get_instance_id())+text
 				if not cache.has(key):
 					var material=original.duplicate()
+					material.albedo_texture=load("res://assets/textures/"+texture+"/albedo.jpg")
 					material.normal_enabled=true;material.normal_texture=load("res://assets/textures/"+texture+"/normal.jpg")
 					material.normal_scale=.18;material.roughness_texture=load("res://assets/textures/"+texture+"/rough.jpg")
 					material.roughness=.48 if text=="road" else .85

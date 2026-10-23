@@ -797,7 +797,7 @@ func _setup_prologue_camera() -> void:
 		return
 	player.cam.fov = 60.0
 	var attrs := CameraAttributesPractical.new()
-	attrs.dof_blur_far_enabled = true
+	attrs.dof_blur_far_enabled = RenderingServer.get_rendering_device()!=null
 	attrs.dof_blur_far_distance = 8.0
 	attrs.dof_blur_far_transition = 6.0
 	attrs.dof_blur_amount = 0.045
@@ -1862,6 +1862,8 @@ func _start_prologue(with_intro := true) -> void:
 	if director != null:
 		director.room_minutes = director.ROOM_START
 		clock_min = director.room_minutes
+	if town_bridge!=null and town_bridge.weather!=null:
+		town_bridge.weather.restore({})
 	if field_kit != null:
 		field_kit.sync_world()
 	prologue_seen.clear()
