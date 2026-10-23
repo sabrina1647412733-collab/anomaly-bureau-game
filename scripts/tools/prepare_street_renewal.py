@@ -71,6 +71,34 @@ for priority,r,p,n,side in candidates:
     b['fx']=round(x+math.sin(yaw)*d/2,3);b['fz']=round(z+math.cos(yaw)*d/2,3)
     infill.append(b);occupied=unary_union([occupied,shape])
 
+# Low service annexes compact the first-case street without turning access alleys
+# into blocked building plots. Their smaller roof overhang is authored separately.
+wall_buffer=unary_union([LineString([w['a'],w['b']]).buffer(.25) for w in data['walls']])
+shop_clearance=unary_union([Point(b['fx'],b['fz']).buffer(1.8) for b in data['buildings'] if b.get('shop')])
+annex_candidates=[]
+for r,line in roads:
+    for k in range(4,int(line.length),4):
+        p=line.interpolate(k)
+        if not (127<p.x<188 and 86<p.y<141):continue
+        before=line.interpolate(max(0,k-.2));after=line.interpolate(min(line.length,k+.2))
+        length=math.hypot(after.x-before.x,after.y-before.y)
+        if length<.01:continue
+        nx=-(after.y-before.y)/length;nz=(after.x-before.x)/length
+        for side in [-1,1]:
+            for extra in [1.8,3.1,4.4]:annex_candidates.append((r,p,nx,nz,side,extra))
+annex_count=0
+for r,p,nx,nz,side,extra in annex_candidates:
+    if annex_count>=12:break
+    w=rng.uniform(1.8,3.1);d=rng.uniform(1.9,3.0);distance=r['width']/2+extra
+    x=p.x+nx*distance*side;z=p.y+nz*distance*side;yaw=math.atan2(p.x-x,p.y-z)
+    b={'id':'annex_%02d'%(annex_count+1),'x':round(x,3),'z':round(z,3),'w':round(w,3),'d':round(d,3),'rot':round(yaw,5),
+       'height':round(rng.uniform(2.35,2.7),3),'floors':1,'wall':rng.choice(['brick','plaster','graybrick']),
+       'roof':'metal','seed':rng.randrange(999999),'kind':'annex','shop':0,'district':'first_case'}
+    shape=footprint(b)
+    if shape.buffer(.20).intersects(occupied) or shape.intersects(unary_union([protected,wall_buffer,shop_clearance])):continue
+    b['fx']=round(x+math.sin(yaw)*d/2,3);b['fz']=round(z+math.cos(yaw)*d/2,3)
+    infill.append(b);occupied=unary_union([occupied,shape]);annex_count+=1
+
 # Partition surfaces so road junctions and the old road/sidewalk planes cannot z-fight.
 road_surface=road.intersection(terrain).difference(occupied.buffer(.02))
 paving=unary_union([road.buffer(.65).difference(road),access]).intersection(terrain).difference(occupied.buffer(.02)).difference(road_surface)
@@ -119,7 +147,7 @@ surfaces['puddles']=puddles
 out={'version':1,'source':'town-layout.json preserved','seed':18420261023,'infill':infill,
      'surfaces':surfaces,'puddle_regions':puddle_regions,'grass':grass,'protected_fronts':[b['front'] for b in data['landmarks']],
      'validation':{'road_overlap_area':round(road_surface.intersection(paving).area,9),
-                   'infill_count':len(infill),'grass_count':len(grass),
+                   'infill_count':len(infill),'annex_count':annex_count,'grass_count':len(grass),
                    'infill_over_road':sum(footprint(b).intersection(road).area for b in infill)}}
 (output/'layout_additions.json').write_text(json.dumps({k:v for k,v in out.items() if k not in ['surfaces','puddle_regions']},ensure_ascii=False,indent=2),encoding='utf8')
 plan=root/'_tools/street_surface_plan.json'

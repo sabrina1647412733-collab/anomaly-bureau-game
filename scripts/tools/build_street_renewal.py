@@ -21,7 +21,7 @@ COLORS={'plaster':(.61,.60,.52,1),'brick':(.43,.29,.23,1),'graybrick':(.4,.43,.4
  'road':(.42,.42,.4,1),'paving':(.62,.61,.55,1),'ground':(.4,.41,.35,1),
  'puddle':(.11,.16,.17,1),'water':(.10,.17,.17,1),'lamp':(.9,.62,.28,1),'curtain':(.44,.40,.30,1)}
 manifest={'version':2,'chunks':[],'props':[],'lights':[],'signs':[],'drips':[],'counts':{},
- 'collision':PLAN['surfaces']['collision'],'river_bed':PLAN['surfaces']['river'],'surface_validation':PLAN['validation']}
+ 'collision':PLAN['surfaces']['collision'],'river_bed':PLAN['surfaces']['river'],'surface_validation':PLAN['validation'],'shop_recesses':[]}
 
 def place(x,z,yaw=0):
  global GROUP,CENTER,YAW
@@ -116,9 +116,28 @@ def building(b,special=''):
  shade=r.uniform(.83,1.10);palette=r.choice([(1.,.98,.92),(.87,.93,.94),(.96,.88,.73),(.80,.87,.83)])
  TINT=(shade*palette[0],shade*palette[1],shade*palette[2],1)
  if special=='laundry':h=15.8;floors=5 # Facade reflects the established F2 shop and upper story route.
- box(wall,(0,h/2,0),(w,h,d));box('graybrick',(0,.32,0),(w+.05,.64,d+.05))
+ recess=b.get('seed') in [551335,469787]
+ if recess:
+  opening=1.6;depth=1.65
+  box(wall,(0,h/2,-depth/2),(w,h,d-depth))
+  for side in [-1,1]:box(wall,(side*(w/4+opening/4),h/2,d/2-depth/2),((w-opening)/2,h,depth))
+  box(wall,(0,(h+2.3)/2,d/2-.10),(opening,h-2.3,.2))
+  box('paving',(0,.02,d/2-depth/2),(opening,.04,depth))
+  # A visible counter bounds the small vestibule; back wall is a real occluder.
+  box('wood',(0,.42,d/2-1.28),(opening-.12,.84,.42))
+  manifest['props'].append({'at':list(point((0,.42,d/2-1.28))),'size':[opening-.12,.84,.42],'yaw':b.get('rot',0)})
+  for yy in [1.,1.45,1.90]:
+   box('wood',(0,yy,d/2-1.5),(opening-.12,.055,.24))
+   for k in range(4):box('paper',(-.52+k*.34,yy+.13,d/2-1.49),(.21,.25,.18),(.5,.45,.3,1))
+  manifest['shop_recesses'].append({'seed':b['seed'],'depth':depth,'opening':opening})
+ else:
+  box(wall,(0,h/2,0),(w,h,d));box('graybrick',(0,.32,0),(w+.05,.64,d+.05))
  for level in range(1,floors):box('trim',(0,level*h/floors,0),(w+.12,.12,d+.12))
- roof(w,d,h,b.get('roof','tile'))
+ if b.get('kind')=='annex':
+  # Low weathered lean-to roof, with a narrow overhang inside the clearance mask.
+  face('roof_metal',[(-w/2-.08,h+.14,-d/2-.08),(w/2+.08,h+.14,-d/2-.08),(w/2+.08,h-.02,d/2+.08),(-w/2-.08,h-.02,d/2+.08)],[(3,2,1,0)])
+  for xx in [-w/2,w/2]:tube('metal',(xx,h,-d/2),(xx,h-.07,d/2),.025,6)
+ else:roof(w,d,h,b.get('roof','tile'))
  if b.get('roof')=='flat' and b.get('rooftop')=='tank':
   tx=-w*.23;tz=-d*.17
   for xx in [tx-.35,tx+.35]:tube('rust',(xx,h+.1,tz),(xx,h+1.0,tz),.032,6)
@@ -139,27 +158,42 @@ def building(b,special=''):
     box('metal',(xx+.65,y-.65,front+.27),(.6,.43,.5))
     for j in range(5):box('cable',(xx+.65,y-.8+j*.065,front+.53),(.48,.018,.014))
   # Complete rear facade; sides use the same window kit, rotated to their wall.
-  for k in range(max(2,bays//2)):
-   xx=-w*.36+k*(w*.72/max(1,bays//2-1));old=YAW
+  rear_bays=1 if b.get('kind')=='annex' else max(2,bays//2)
+  for k in range(rear_bays):
+   xx=0 if rear_bays==1 else -w*.36+k*(w*.72/max(1,bays//2-1));old=YAW
    # Back windows are built by temporarily rotating the coordinate system around this building.
-   place(x,z,b.get('rot',0)+math.pi);window(xx,y,d/2+.055,1.,1.15,r.random()<.12)
+   place(x,z,b.get('rot',0)+math.pi);window(xx,y,d/2+.055,min(1.,w-.6),1.15,r.random()<.12)
    place(x,z,b.get('rot',0))
   for side in [-1,1]:
    place(x,z,b.get('rot',0)+side*math.pi/2)
-   for zz in [-d*.27,d*.27]:window(zz,y,w/2+.055,.85,1.1,r.random()<.1,f==0)
+   for zz in ([0.] if b.get('kind')=='annex' else [-d*.27,d*.27]):window(zz,y,w/2+.055,min(.85,d-.6),1.1,r.random()<.1,f==0)
    place(x,z,b.get('rot',0))
- door(0,front,1.3 if special else 1.0);awning(min(w*.72,4.4),front,2.7)
+ if recess:
+  # Open shutter leaf has thickness and stays against the side jamb, not across
+  # the walkway. Its opening is backed by the actual lit shop vestibule above.
+  box('metal',(-.84,1.08,front-.42),(.10,2.16,.90))
+  for yy in [.18+i*.12 for i in range(16)]:box('rust',(-.90,yy,front-.42),(.018,.035,.85))
+  for xx in [-.84,.84]:box('trim',(xx,1.15,front),(.10,2.3,.18))
+  box('trim',(0,2.3,front),(1.78,.12,.18))
+  manifest['lights'].append({'position':list(point((0,2.0,front-.55))),'color':'efd2a2','energy':.75,'range':3.5})
+ else:door(0,front,1.3 if special else 1.0)
+ awning(min(w*.72,4.4),front,min(2.7,h-.05))
  if b.get('shop') and not special:
   box('sign',(0,2.98,front+.15),(max(2.,w-.45),.58,.12))
   index=int(b.get('sign',0))%len(DATA['signs'])
   manifest['signs'].append({'text':DATA['signs'][index],'position':list(point((0,2.98,front+.22))),
    'yaw':b.get('rot',0),'size':.09})
- meter(min(w/2-.6,1.5),1.55,front+.15)
+ # Tiny service annexes share their parent building's meter; a front meter would
+ # overlap the door on the narrowest 1.8m facade.
+ if b.get('kind')!='annex':meter(min(w/2-.6,1.5),1.55,front+.15)
  # Localized contact staining as thin wall panels; never a full checkerboard overlay.
  for k in range(max(2,int(w/2))):
   xx=r.uniform(-w*.46,w*.46);hh=r.uniform(.16,.54)
-  box('stain',(xx,hh/2,front+.006),(r.uniform(.3,1.2),hh,.008),(.32,.36,.24,1))
- if r.random()<.40:
+  sw=r.uniform(.3,1.2);left=max(-w/2,xx-sw/2);right=min(w/2,xx+sw/2)
+  spans=[(left,right)] if not recess else [(left,min(right,-opening/2-.06)),(max(left,opening/2+.06),right)]
+  for start,end in spans:
+   if end-start>.01:box('stain',((start+end)/2,hh/2,front+.006),(end-start,hh,.008),(.32,.36,.24,1))
+ if r.random()<.40 and b.get('kind')!='annex':
   xx=-w*.29
   box('metal',(xx,h/floors+ .3,front+.45),(1.7,.1,.9))
   for k in range(8):tube('metal',(xx-.8+k*.23,h/floors+.36,front+.88),(xx-.8+k*.23,h/floors+1.18,front+.88),.014,5)

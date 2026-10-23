@@ -157,6 +157,35 @@ func check_surface_support() -> void:
 		walls_solid=walls_solid and not game.get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 	check(walls_solid,"19段围墙都有与可见墙体相符的实体碰撞")
 
+func check_open_frontages() -> void:
+	var annexes := 0
+	for entry in game.town_bridge.layout.get("buildings", []):
+		if entry.get("kind", "") == "annex":
+			annexes += 1
+	check(annexes == 12, "新增12处低矮附房已进入游戏地图")
+	var recesses: Array = game.town_bridge.renewal.manifest.get("shop_recesses", [])
+	check(recesses.size() == 2, "两处原有店铺使用真实门洞")
+	for recess in recesses:
+		var building: Dictionary = {}
+		for entry in original.get("buildings", []):
+			if entry.get("seed") == recess.seed:
+				building = entry
+		if building.is_empty():
+			check(false, "开门店面对应原有建筑")
+			continue
+		var yaw := float(building.get("rot", 0.0))
+		var outward := Vector3(sin(yaw), 0, cos(yaw))
+		var front := Vector3(float(building.x), 0.08, float(building.z)) + outward*float(building.d)*0.5
+		var inside := front - outward*0.35
+		var label := str(recess.seed)
+		check(collider_clear(inside) and not support_at(inside).is_empty(), "门洞内有正常站位及实体地面 " + label)
+		check(not collider_clear(front-outward*1.28), "可见柜台阻止玩家穿过店内陈列 " + label)
+		var ray := PhysicsRayQueryParameters3D.create(
+			game.town_bridge.ORIGIN+front+Vector3(0,1.5,0),
+			game.town_bridge.ORIGIN+front-outward*(float(recess.depth)+0.2)+Vector3(0,1.5,0), 1)
+		ray.exclude = [game.player.get_rid()]
+		check(not game.get_world_3d().direct_space_state.intersect_ray(ray).is_empty(), "店面后墙封闭，不能通往空壳内部 " + label)
+
 func find_weather():
 	for property in game.town_bridge.get_property_list():
 		if String(property.name) in ["weather", "street_weather", "environment_controller"]:
@@ -317,6 +346,7 @@ func run() -> void:
 		await physics_frame
 	check_landmarks()
 	check_surface_support()
+	check_open_frontages()
 	check_weather()
 	for frame in range(5):
 		await physics_frame

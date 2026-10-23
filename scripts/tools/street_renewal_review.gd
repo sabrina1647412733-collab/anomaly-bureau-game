@@ -82,6 +82,23 @@ func phase_shots() -> void:
 	await capture("05_洗衣店侧墙",Vector3(129.7,0.10,124.3),Vector3(132.7,3.6,111.5))
 	await capture("06_沿街道路近景",Vector3(150.0,0.10,124.1),Vector3(165.0,0.5,126.5))
 
+func frontage_shots() -> void:
+	for recess in game.town_bridge.renewal.manifest.get("shop_recesses", []):
+		for entry in game.town_bridge.layout.get("buildings", []):
+			if entry.get("seed") != recess.seed:
+				continue
+			var yaw := float(entry.get("rot", 0.0))
+			var outward := Vector3(sin(yaw),0,cos(yaw))
+			var front := Vector3(float(entry.x),0.10,float(entry.z))+outward*float(entry.d)*0.5
+			await capture("开门店面_"+str(recess.seed),front+outward*1.9,front-outward*0.65+Vector3(0,1.25,0))
+	for entry in game.town_bridge.layout.get("buildings", []):
+		if entry.get("id", "") != "annex_02":
+			continue
+		var yaw := float(entry.get("rot", 0.0))
+		var outward := Vector3(sin(yaw),0,cos(yaw))
+		var front := Vector3(float(entry.x),0.10,float(entry.z))+outward*float(entry.d)*0.5
+		await capture("低附房_02",front+outward*2.4,front-outward*0.3+Vector3(0,2.1,0))
+
 func run() -> void:
 	create_timer(45 if OS.get_cmdline_user_args().has("--quick") else 220).timeout.connect(func():push_error("街道截图超时");quit(2))
 	for argument in OS.get_cmdline_user_args():
@@ -130,6 +147,8 @@ func run() -> void:
 	if quick:await capture("02_走近得利洗衣店",Vector3(146.65,0.10,130),Vector3(145.52,3.8,111.31))
 	else:await phase_shots()
 	set_phase("白天干燥",720.0,0.0)
+	if OS.get_cmdline_user_args().has("--frontages"):
+		await frontage_shots()
 	if quick:await capture("06_沿街道路近景",Vector3(150,0.10,124.1),Vector3(165,0.5,126.5))
 	else:
 		await phase_shots()

@@ -69,6 +69,28 @@ func _build_once() -> void:
 	renewal.setup(self)
 	for entry in layout.get("buildings", []):
 		var h := float(entry.get("height", 7.0))
+		var recess: Dictionary = {}
+		for frontage in renewal.manifest.get("shop_recesses", []):
+			if int(entry.get("seed", -1)) == int(frontage.seed):
+				recess = frontage
+				break
+		if not recess.is_empty():
+			# Use the same opening dimensions as the exported Blender geometry.
+			var yaw := float(entry.get("rot", 0.0))
+			var front_axis := Vector3(sin(yaw), 0, cos(yaw))
+			var side_axis := Vector3(cos(yaw), 0, -sin(yaw))
+			var center := Vector3(float(entry.x), h*0.5, float(entry.z))
+			var depth := float(recess.depth)
+			var opening := float(recess.opening)
+			var width := float(entry.w)
+			var length := float(entry.d)
+			_box(center-front_axis*depth*0.5, Vector3(width, h, length-depth), yaw)
+			for sign_value in [-1.,1.]:
+				var pier: Vector3 = center+front_axis*(length-depth)*0.5+side_axis*float(sign_value)*(width+opening)*0.25
+				_box(pier, Vector3((width-opening)*0.5, h, depth), yaw)
+			var lintel := Vector3(float(entry.x), (h+2.3)*0.5, float(entry.z))+front_axis*(length*0.5-0.10)
+			_box(lintel, Vector3(opening, h-2.3, 0.20), yaw)
+			continue
 		_box(Vector3(float(entry["x"]), h * 0.5, float(entry["z"])), Vector3(float(entry["w"]), h, float(entry["d"])), float(entry.get("rot", 0.0)))
 	for entry in layout.get("landmarks", []):
 		if String(entry.get("id", "")) in ["04","08","10"]:
