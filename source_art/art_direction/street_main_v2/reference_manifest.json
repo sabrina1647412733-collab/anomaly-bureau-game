@@ -66,5 +66,15 @@
     ]
   },
   "report": "../../../20261023_启动修复与主街二轮验收.md",
-  "roles": "paused, no new characters"
+  "roles": "paused, no new characters",
+  "supplements": [
+    {
+      "file": "05_after_weeds.png",
+      "kind": "actual Godot player-camera framebuffer, unedited",
+      "renderer": "Forward+",
+      "source": "20261023_主街小杂草/实机/白天干燥_近景_门旁藤椅搪瓷盆.png",
+      "sha256": "a66f1977f17adaf379e63b4066aae2c546ca02cfa1668a16a3e1c10acded2144",
+      "weed_clumps_added": 17
+    }
+  ]
 }

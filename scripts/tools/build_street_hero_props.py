@@ -26,7 +26,7 @@ ANCHOR = None
 GROUP = ''
 RAND = random.Random(95131)
 MANIFEST = {'version': 1, 'chunks': [], 'props': [], 'anchors': [],
-            'preserve_materials': ['wicker', 'enamel', 'enamel_flower', 'linen'],
+            'preserve_materials': ['wicker', 'enamel', 'enamel_flower', 'linen', 'verge_green'],
             'validation': {}, 'notes': [
                 'Authoring source uses existing town-layout building front/yaw.',
                 'No characters, gameplay, landmark names or entrance positions are changed.',
@@ -357,6 +357,30 @@ def weeds(x,z,seed):
         face('grass',vv,[(0,1,2,3,4)],(r.uniform(.6,1.),r.uniform(.75,1.15),.65,1))
 
 
+def small_weeds(x,z,seed,height=.14):
+    # Sparse wall-joint growth: bent leaves with a central fold, not crossed cards.
+    # Native vertex colours retain green/brown variation without a second dark tint.
+    r=random.Random(seed)
+    for k in range(14):
+        angle=r.random()*math.tau;dx,dz=math.cos(angle),math.sin(angle)
+        bx=x+r.uniform(-.022,.022);bz=z+r.uniform(-.016,.016)
+        leaf_height=height*r.uniform(.45,1.0)
+        reach=r.uniform(.025,.075);width=r.uniform(.003,.008)
+        verts=[]
+        for t,flare in [(0.,.35),(.43,1.),(.78,.60)]:
+            cx=bx+dx*reach*t*t;cz=max(.065,bz+dz*reach*t*t)
+            yy=.036+leaf_height*t
+            for side in [-1,0,1]:
+                verts.append((cx-side*dz*width*flare,yy+(.0018 if side==0 else 0.),cz+side*dx*width*flare))
+        verts.append((bx+dx*reach,.036+leaf_height,max(.065,bz+dz*reach)))
+        polys=[(a,a+1,a+4,a+3) for a in [0,1,3,4]]+[(6,7,9),(7,8,9)]
+        value=r.uniform(.75,1.15)
+        color=(.070*value,.105*value,.027*value,1) if k%5 else (.15*value,.13*value,.055*value,1)
+        face('verge_green',verts,polys,color,True)
+    MANIFEST.setdefault('small_weeds',[]).append({'seed':seed,'anchor_seed':ANCHOR['seed'],
+        'root':list(world((x,.036,z))),'height_m':round(height,3),'collision':False})
+
+
 def drying_rack():
     # A household drying rack is fixed above head height, within the facade strip.
     for x in [-1.05,1.05]:
@@ -383,17 +407,36 @@ set_anchor(579349,'doorstep_cane')
 wicker_chair(-1.20,.315)
 enamel_basin(-1.92,.285)
 weeds(-.80,.095,3271)
+for i,(x,z) in enumerate([(-3.02,.08),(-2.77,.10),(.96,.08),(1.32,.10),(1.85,.09),(3.04,.08)]):
+    small_weeds(x,z,8201+i,[.10,.16,.09,.13,.17,.12][i])
+# One tiny tuft at the outside edge of the existing foreground drain, derived
+# from the same road-point rule as the grate. Never cover its water opening.
+for road in DATA['roads']:
+    if road['id']!='r_main':continue
+    pts=road['points']
+    for j in range(3,len(pts)-1,11):
+        x,z=pts[j];xx,zz=pts[j+1];yaw=math.atan2(xx-x,zz-z)
+        offset=(1 if j%2 else -1)*(road['width']/2+.07)
+        wx,wz=x+offset*math.cos(yaw),z-offset*math.sin(yaw)
+        if not (150<wx<158 and 120<wz<128):continue
+        c,s=math.cos(ANCHOR['rot']),math.sin(ANCHOR['rot'])
+        dx,dz=wx-ANCHOR['fx'],wz-ANCHOR['fz']
+        small_weeds(dx*c-dz*s,dx*s+dz*c,8250,.08)
 
 set_anchor(551335,'electrical_shop')
 drawer_unit(-1.35,.225)
 wire_coil(-1.38,1.46,.105)
 weeds(-1.81,.10,4520)
+for i,(x,z) in enumerate([(-2.40,.08),(-2.12,.08),(1.12,.08),(1.43,.07)]):
+    small_weeds(x,z,8301+i,[.12,.17,.10,.14][i])
 
 set_anchor(993505,'tile_corner')
 tile_stack(-1.38,.28)
 weeds(-1.03,.08,4512)
 weeds(-1.77,.07,4513)
 drying_rack()
+for i,(x,z) in enumerate([(-3.05,.08),(-2.78,.10),(-2.02,.09),(.98,.08),(1.40,.10),(1.95,.09)]):
+    small_weeds(x,z,8401+i,[.16,.11,.14,.09,.18,.12][i])
 
 
 def segment_distance(p,a,b):
@@ -438,7 +481,7 @@ MANIFEST['validation']['clearances']=valid
 basecolors={'wood':(.38,.28,.16,1),'metal':(.28,.31,.28,1),
     'rust':(.38,.22,.12,1),'concrete':(.46,.44,.37,1),'paper':(.67,.60,.44,1),
     'grass':(.23,.30,.12,1),'leaf':(.18,.27,.13,1),
-    'wicker':(1,1,1,1),'enamel':(1,1,1,1),'enamel_flower':(1,1,1,1),'linen':(1,1,1,1)}
+    'wicker':(1,1,1,1),'enamel':(1,1,1,1),'enamel_flower':(1,1,1,1),'linen':(1,1,1,1),'verge_green':(1,1,1,1)}
 materials={}
 for kind in sorted(set(k[1] for k in GEOM)):
     m=bpy.data.materials.new(kind);m.use_nodes=True
@@ -448,10 +491,10 @@ for kind in sorted(set(k[1] for k in GEOM)):
     bsdf.inputs['Metallic'].default_value=1. if kind=='metal' else 0.
     if kind=='enamel':bsdf.inputs['Coat Weight'].default_value=.22
     col=m.node_tree.nodes.new('ShaderNodeVertexColor');col.layer_name='Color'
-    if kind in ['wicker','enamel','enamel_flower','linen']:
+    if kind in ['wicker','enamel','enamel_flower','linen','verge_green']:
         m.node_tree.links.new(col.outputs['Color'],bsdf.inputs['Base Color'])
     m.diffuse_color=basecolors[kind]
-    m.use_backface_culling=kind not in ['grass','leaf','linen']
+    m.use_backface_culling=kind not in ['grass','leaf','linen','verge_green']
     if kind=='linen':bsdf.inputs['Sheen Weight'].default_value=.22
     materials[kind]=m
 

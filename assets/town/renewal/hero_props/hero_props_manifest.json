@@ -124,7 +124,8 @@
     "wicker",
     "enamel",
     "enamel_flower",
-    "linen"
+    "linen",
+    "verge_green"
   ],
   "validation": {
     "clearances": [
@@ -161,11 +162,200 @@
     "Wicker and enamel use exported native PBR plus vertex colour; do not override.",
     "This layer is additive. Do not load it twice or merge into old town GLBs."
   ],
+  "small_weeds": [
+    {
+      "seed": 8201,
+      "anchor_seed": 579349,
+      "root": [
+        154.9128341846186,
+        0.036,
+        127.54277831131822
+      ],
+      "height_m": 0.1,
+      "collision": false
+    },
+    {
+      "seed": 8202,
+      "anchor_seed": 579349,
+      "root": [
+        154.66609295018137,
+        0.036,
+        127.49784766221991
+      ],
+      "height_m": 0.16,
+      "collision": false
+    },
+    {
+      "seed": 8203,
+      "anchor_seed": 579349,
+      "root": [
+        150.95283405849358,
+        0.036,
+        127.14428238776308
+      ],
+      "height_m": 0.09,
+      "collision": false
+    },
+    {
+      "seed": 8204,
+      "anchor_seed": 579349,
+      "root": [
+        150.5966455843896,
+        0.036,
+        127.08833803223484
+      ],
+      "height_m": 0.13,
+      "collision": false
+    },
+    {
+      "seed": 8205,
+      "anchor_seed": 579349,
+      "root": [
+        150.06830763813787,
+        0.036,
+        127.04522174122404
+      ],
+      "height_m": 0.17,
+      "collision": false
+    },
+    {
+      "seed": 8206,
+      "anchor_seed": 579349,
+      "root": [
+        148.88328625388556,
+        0.036,
+        126.93602321163375
+      ],
+      "height_m": 0.12,
+      "collision": false
+    },
+    {
+      "seed": 8250,
+      "anchor_seed": 579349,
+      "root": [
+        153.42967606486675,
+        0.036,
+        126.67959550886603
+      ],
+      "height_m": 0.08,
+      "collision": false
+    },
+    {
+      "seed": 8301,
+      "anchor_seed": 551335,
+      "root": [
+        167.68984741127883,
+        0.036,
+        118.99133071974883
+      ],
+      "height_m": 0.12,
+      "collision": false
+    },
+    {
+      "seed": 8302,
+      "anchor_seed": 551335,
+      "root": [
+        167.73901020743295,
+        0.036,
+        119.26698089564994
+      ],
+      "height_m": 0.17,
+      "collision": false
+    },
+    {
+      "seed": 8303,
+      "anchor_seed": 551335,
+      "root": [
+        168.3078939915018,
+        0.036,
+        122.45664721679131
+      ],
+      "height_m": 0.1,
+      "collision": false
+    },
+    {
+      "seed": 8304,
+      "anchor_seed": 551335,
+      "root": [
+        168.3721688792403,
+        0.036,
+        122.76007552596204
+      ],
+      "height_m": 0.14,
+      "collision": false
+    },
+    {
+      "seed": 8401,
+      "anchor_seed": 993505,
+      "root": [
+        164.7035379183739,
+        0.036,
+        129.6696021805062
+      ],
+      "height_m": 0.16,
+      "collision": false
+    },
+    {
+      "seed": 8402,
+      "anchor_seed": 993505,
+      "root": [
+        164.44446459338369,
+        0.036,
+        129.5909827663739
+      ],
+      "height_m": 0.11,
+      "collision": false
+    },
+    {
+      "seed": 8403,
+      "anchor_seed": 993505,
+      "root": [
+        163.70070853422993,
+        0.036,
+        129.4343720244942
+      ],
+      "height_m": 0.14,
+      "collision": false
+    },
+    {
+      "seed": 8404,
+      "anchor_seed": 993505,
+      "root": [
+        160.77128130580985,
+        0.036,
+        128.78741289642588
+      ],
+      "height_m": 0.09,
+      "collision": false
+    },
+    {
+      "seed": 8405,
+      "anchor_seed": 993505,
+      "root": [
+        160.36584607216338,
+        0.036,
+        128.67595765286134
+      ],
+      "height_m": 0.18,
+      "collision": false
+    },
+    {
+      "seed": 8406,
+      "anchor_seed": 993505,
+      "root": [
+        159.82699668512836,
+        0.036,
+        128.5653170721868
+      ],
+      "height_m": 0.12,
+      "collision": false
+    }
+  ],
   "counts": {
-    "vertices": 25627,
-    "triangles": 49382,
-    "material_batches": 17,
-    "glb_bytes": 2122936
+    "vertices": 28007,
+    "triangles": 51762,
+    "material_batches": 20,
+    "glb_bytes": 2274520
   },
   "geometry": {
     "doorstep_cane/enamel": {
@@ -179,6 +369,10 @@
     "doorstep_cane/grass": {
       "vertices": 95,
       "triangles": 57
+    },
+    "doorstep_cane/verge_green": {
+      "vertices": 980,
+      "triangles": 980
     },
     "doorstep_cane/wicker": {
       "vertices": 10296,
@@ -208,6 +402,10 @@
       "vertices": 70,
       "triangles": 132
     },
+    "electrical_shop/verge_green": {
+      "vertices": 560,
+      "triangles": 560
+    },
     "electrical_shop/wood": {
       "vertices": 880,
       "triangles": 1680
@@ -232,6 +430,10 @@
       "vertices": 64,
       "triangles": 112
     },
+    "tile_corner/verge_green": {
+      "vertices": 840,
+      "triangles": 840
+    },
     "tile_corner/wood": {
       "vertices": 248,
       "triangles": 472
@@ -240,38 +442,38 @@
   "bounds_godot": {
     "doorstep_cane": [
       [
-        152.50298917992234,
-        0.042802322655916214,
-        126.85031764512868
+        148.7999384699139,
+        0.036,
+        126.6297841229788
       ],
       [
-        154.10088674416107,
+        154.98305908885482,
         1.1037267446517944,
-        127.55956740080103
+        127.56204129931753
       ]
     ],
     "electrical_shop": [
       [
         167.43162060381775,
         0.032499998807907104,
-        119.28893424505812
+        118.92548081566399
       ],
       [
-        167.9845334800975,
+        168.38734648696615,
         1.7400000095367432,
-        120.43297252809333
+        122.81214435897607
       ]
     ],
     "tile_corner": [
       [
-        160.6765407356022,
-        0.046,
+        159.78680248927603,
+        0.036,
         128.2609801612896
       ],
       [
-        163.71732818447128,
+        164.77601265778148,
         3.682499885559082,
-        129.56443565278656
+        129.69052342115577
       ]
     ]
   }

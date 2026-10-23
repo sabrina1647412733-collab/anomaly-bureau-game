@@ -1,7 +1,7 @@
 extends RefCounted
 ## Scene-bound close-up props. Geometry and collider coordinates share one export.
 const BASE := "res://assets/town/renewal/hero_props/"
-const NATIVE_MATERIALS := ["wicker", "enamel", "enamel_flower", "linen"]
+const NATIVE_MATERIALS := ["wicker", "enamel", "enamel_flower", "linen", "verge_green"]
 var manifest: Dictionary = {}
 var holder: Node3D
 var town
@@ -36,6 +36,7 @@ func apply_materials(node: Node) -> void:
 				var native := material.duplicate() as StandardMaterial3D
 				native.vertex_color_use_as_albedo = true
 				node.set_surface_override_material(index, native)
+				if kind == "verge_green":node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			else:
 				node.set_surface_override_material(index, town.renewal._material(kind))
 		node.visibility_range_begin = 0.0
