@@ -123,7 +123,8 @@
   "preserve_materials": [
     "wicker",
     "enamel",
-    "enamel_flower"
+    "enamel_flower",
+    "linen"
   ],
   "validation": {
     "clearances": [
@@ -161,10 +162,10 @@
     "This layer is additive. Do not load it twice or merge into old town GLBs."
   ],
   "counts": {
-    "vertices": 25115,
-    "triangles": 48474,
-    "material_batches": 14,
-    "glb_bytes": 2062320
+    "vertices": 25627,
+    "triangles": 49382,
+    "material_batches": 17,
+    "glb_bytes": 2122936
   },
   "geometry": {
     "doorstep_cane/enamel": {
@@ -219,9 +220,21 @@
       "vertices": 190,
       "triangles": 114
     },
+    "tile_corner/linen": {
+      "vertices": 208,
+      "triangles": 336
+    },
+    "tile_corner/metal": {
+      "vertices": 16,
+      "triangles": 28
+    },
+    "tile_corner/rust": {
+      "vertices": 64,
+      "triangles": 112
+    },
     "tile_corner/wood": {
-      "vertices": 24,
-      "triangles": 40
+      "vertices": 248,
+      "triangles": 472
     }
   },
   "bounds_godot": {
@@ -251,13 +264,13 @@
     ],
     "tile_corner": [
       [
-        162.42716821623276,
+        160.6765407356022,
         0.046,
-        128.817619777972
+        128.2609801612896
       ],
       [
         163.71732818447128,
-        0.5227344036102295,
+        3.682499885559082,
         129.56443565278656
       ]
     ]

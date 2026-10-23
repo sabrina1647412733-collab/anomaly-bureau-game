@@ -26,7 +26,7 @@ ANCHOR = None
 GROUP = ''
 RAND = random.Random(95131)
 MANIFEST = {'version': 1, 'chunks': [], 'props': [], 'anchors': [],
-            'preserve_materials': ['wicker', 'enamel', 'enamel_flower'],
+            'preserve_materials': ['wicker', 'enamel', 'enamel_flower', 'linen'],
             'validation': {}, 'notes': [
                 'Authoring source uses existing town-layout building front/yaw.',
                 'No characters, gameplay, landmark names or entrance positions are changed.',
@@ -357,6 +357,28 @@ def weeds(x,z,seed):
         face('grass',vv,[(0,1,2,3,4)],(r.uniform(.6,1.),r.uniform(.75,1.15),.65,1))
 
 
+def drying_rack():
+    # A household drying rack is fixed above head height, within the facade strip.
+    for x in [-1.05,1.05]:
+        tube('rust',(x,3.65,.035),(x,3.65,.60),.017,8)
+        tube('rust',(x,3.30,.035),(x,3.65,.55),.013,8)
+    tube('metal',(-1.05,3.65,.58),(1.05,3.65,.58),.009,8)
+    for index,(cx,color) in enumerate([(-.43,(.47,.56,.53,1)),(.39,(.68,.60,.43,1))]):
+        verts=[];nx,ny=8,13;width=.57;height=.98 if index==0 else .79
+        for j in range(ny):
+            t=j/(ny-1)
+            for i in range(nx):
+                u=i/(nx-1);fold=math.sin(u*math.tau*2.4)*.032*(.25+.75*t)
+                verts.append((cx+(u-.5)*width,3.64-height*t-.018*math.sin(u*math.pi),.58+fold+.018*t*t))
+        polys=[]
+        for j in range(ny-1):
+            for i in range(nx-1):
+                a=j*nx+i;polys.append((a,a+1,a+1+nx,a+nx))
+        face('linen',verts,polys,color,True)
+        for dx in [-.19,.19]:
+            box('wood',(cx+dx,3.65,.582),(.018,.065,.026),(.7,.57,.37,1),.003)
+
+
 set_anchor(579349,'doorstep_cane')
 wicker_chair(-1.20,.315)
 enamel_basin(-1.92,.285)
@@ -371,6 +393,7 @@ set_anchor(993505,'tile_corner')
 tile_stack(-1.38,.28)
 weeds(-1.03,.08,4512)
 weeds(-1.77,.07,4513)
+drying_rack()
 
 
 def segment_distance(p,a,b):
@@ -415,7 +438,7 @@ MANIFEST['validation']['clearances']=valid
 basecolors={'wood':(.38,.28,.16,1),'metal':(.28,.31,.28,1),
     'rust':(.38,.22,.12,1),'concrete':(.46,.44,.37,1),'paper':(.67,.60,.44,1),
     'grass':(.23,.30,.12,1),'leaf':(.18,.27,.13,1),
-    'wicker':(1,1,1,1),'enamel':(1,1,1,1),'enamel_flower':(1,1,1,1)}
+    'wicker':(1,1,1,1),'enamel':(1,1,1,1),'enamel_flower':(1,1,1,1),'linen':(1,1,1,1)}
 materials={}
 for kind in sorted(set(k[1] for k in GEOM)):
     m=bpy.data.materials.new(kind);m.use_nodes=True
@@ -425,10 +448,11 @@ for kind in sorted(set(k[1] for k in GEOM)):
     bsdf.inputs['Metallic'].default_value=1. if kind=='metal' else 0.
     if kind=='enamel':bsdf.inputs['Coat Weight'].default_value=.22
     col=m.node_tree.nodes.new('ShaderNodeVertexColor');col.layer_name='Color'
-    if kind in ['wicker','enamel','enamel_flower']:
+    if kind in ['wicker','enamel','enamel_flower','linen']:
         m.node_tree.links.new(col.outputs['Color'],bsdf.inputs['Base Color'])
     m.diffuse_color=basecolors[kind]
-    m.use_backface_culling=kind not in ['grass','leaf']
+    m.use_backface_culling=kind not in ['grass','leaf','linen']
+    if kind=='linen':bsdf.inputs['Sheen Weight'].default_value=.22
     materials[kind]=m
 
 groups=defaultdict(list)

@@ -265,7 +265,11 @@ func _update_sky() -> void:
 	sky_material.set_shader_parameter("cloud_cover", cloud_cover)
 	sky_material.set_shader_parameter("weather_time", float(cloud_second))
 	environment.ambient_light_color = Color("8194aa").lerp(Color("c8c3b8"), daylight)
-	environment.ambient_light_energy = lerpf(0.38, 0.68, daylight)
+	# Weak sky-derived fill separates cool sheltered surfaces from warm direct sun.
+	# Keep the established readable colour fill at night; this is not static GI.
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if daylight>0.1 else Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_sky_contribution = 0.35*smoothstep(0.1,0.8,daylight)
+	environment.ambient_light_energy = lerpf(0.38, 0.72, daylight)
 	environment.fog_light_color = horizon
 	environment.fog_density = lerpf(0.0010, 0.0037, rain_amount) * lerpf(1.0, 0.65, daylight)
 	if sun != null:

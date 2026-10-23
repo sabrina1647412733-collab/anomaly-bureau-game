@@ -11,7 +11,8 @@ ROOT=Path(sys.argv[sys.argv.index('--')+1]); OUT=ROOT/'assets/town/renewal'
 PLAN=json.loads((ROOT/'_tools/street_surface_plan.json').read_text(encoding='utf8'))
 DATA=json.loads((ROOT/'assets/town/town-layout.json').read_text(encoding='utf8'))
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-GEOM={}; GROUP=(0,0); YAW=0.;CENTER=(0.,0.); TINT=(1,1,1,1);DETAIL=False
+GEOM={}; GROUP=(0,0); YAW=0.;CENTER=(0.,0.); TINT=(1,1,1,1);DETAIL=False;RECESSED=False
+SAMPLE_HOUSES={579349:'limewash',993505:'mint_plaster'}
 COLORS={'plaster':(.61,.60,.52,1),'brick':(.43,.29,.23,1),'graybrick':(.4,.43,.42,1),
  'concrete':(.5,.5,.46,1),'wood':(.32,.22,.13,1),'metal':(.26,.29,.28,1),
  'rust':(.36,.22,.13,1),'roof_tile':(.26,.30,.3,1),'roof_metal':(.36,.38,.35,1),
@@ -20,8 +21,8 @@ COLORS={'plaster':(.61,.60,.52,1),'brick':(.43,.29,.23,1),'graybrick':(.4,.43,.4
  'cable':(.045,.053,.051,1),'sign':(.14,.23,.24,1),'paper':(.65,.60,.45,1),
  'road':(.42,.42,.4,1),'paving':(.62,.61,.55,1),'ground':(.4,.41,.35,1),
  'puddle':(.11,.16,.17,1),'water':(.10,.17,.17,1),'lamp':(.9,.62,.28,1),'curtain':(.44,.40,.30,1)}
-COLORS.update({'hero_plaster':(.72,.69,.63,1),'galvanized':(.62,.64,.61,1),
- 'painted_metal':(.72,.70,.65,1),'road_patch':(.28,.29,.28,1)})
+COLORS.update({'limewash':(.89,.86,.78,1),'mint_plaster':(.70,.78,.72,1),'hero_plaster':(.72,.69,.63,1),'galvanized':(.62,.64,.61,1),
+ 'painted_metal':(.72,.70,.65,1),'road_patch':(.28,.29,.28,1),'wall_damp':(.24,.25,.20,1),'road_crack':(.07,.065,.055,1)})
 manifest={'version':2,'chunks':[],'props':[],'lights':[],'signs':[],'drips':[],'counts':{},
  'collision':PLAN['surfaces']['collision'],'river_bed':PLAN['surfaces']['river'],'surface_validation':PLAN['validation'],'shop_recesses':[],'hero_frontages':[]}
 
@@ -92,19 +93,25 @@ def roof(w,d,h,kind):
  for y in [1.,h*.5,h-.4]:box('rust',(x,y,z),(.13,.045,.13))
  manifest['drips'].append(list(point((x,h-.1,z))))
 def window(x,y,z,width=1.05,height=1.35,lit=False,bars=False):
+ glass_z=z-.235 if RECESSED else z+.029
  if DETAIL:
   # A dark inner reveal and four separate frame rails replace the solid backing
   # slab. Glass stays outside the existing solid building hull, never inside it.
-  box('cable',(x,y,z+.006),(width+.035,height+.035,.016))
+  box('cable',(x,y,glass_z-.025),(width+.035,height+.035,.016))
   for side in [-1,1]:
    bevel_box('trim',(x+side*(width/2+.065),y,z+.045),(.13,height+.24,.16))
    bevel_box('trim',(x,y+side*(height/2+.065),z+.045),(width+.26,.13,.16))
-  box('window_warm' if lit else 'glass',(x,y,z+.029),(width,height,.018))
+  box('window_warm' if lit else 'glass',(x,y,glass_z),(width,height,.018))
+  if RECESSED:
+   for side in [-1,1]:
+    box('trim',(x+side*(width/2+.022),y,z-.10),(.045,height+.09,.29),(.72,.71,.66,1))
+    box('trim',(x,y+side*(height/2+.022),z-.10),(width,.045,.29),(.75,.74,.69,1))
  else:
   box('trim',(x,y,z-.025),(width+.22,height+.22,.15))
   box('window_warm' if lit else 'glass',(x,y,z+.065),(width,height,.045))
- for dx in [-width/2,0,width/2]:box('wood',(x+dx,y,z+.12),(.055,height+.09,.07))
- for dy in [-height/2,height/2]:box('wood',(x,y+dy,z+.12),(width+.1,.055,.08))
+ joinery_z=glass_z+.045 if RECESSED else z+.12
+ for dx in [-width/2,0,width/2]:box('wood',(x+dx,y,joinery_z),(.055,height+.09,.07))
+ for dy in [-height/2,height/2]:box('wood',(x,y+dy,joinery_z),(width+.1,.055,.08))
  if DETAIL:bevel_box('trim',(x,y-height/2-.09,z+.12),(width+.35,.12,.37),.02)
  else:box('trim',(x,y-height/2-.08,z+.16),(width+.3,.10,.40))
  if lit:
@@ -112,11 +119,16 @@ def window(x,y,z,width=1.05,height=1.35,lit=False,bars=False):
   for side in [-1,1]:
    for k in range(3):
     xx=x+side*(width*.5-.035-k*.045)
-    box('curtain',(xx,y,z+.10+k*.002),(.055,height-.025,.018),(1.0-k*.08,1.0-k*.08,.92,1))
-  box('curtain',(x,y+height*.43,z+.103),(width,.14,.018))
+    box('curtain',(xx,y,glass_z+.025+k*.002),(.055,height-.025,.018),(1.0-k*.08,1.0-k*.08,.92,1))
+  box('curtain',(x,y+height*.43,glass_z+.03),(width,.14,.018))
  if bars:
-  for j in range(5):tube('metal',(x-width/2+j*width/4,y-height/2,z+.25),(x-width/2+j*width/4,y+height/2,z+.25),.014,5)
-  for yy in [y-height*.35,y+height*.35]:tube('metal',(x-width/2,yy,z+.25),(x+width/2,yy,z+.25),.016,5)
+  bars_z=z+.10 if RECESSED else z+.25
+  sides=7 if RECESSED else 5
+  for j in range(5):tube('metal',(x-width/2+j*width/4,y-height/2,bars_z),(x-width/2+j*width/4,y+height/2,bars_z),.014,sides)
+  for yy in [y-height*.35,y+height*.35]:
+   tube('metal',(x-width/2,yy,bars_z),(x+width/2,yy,bars_z),.016,sides)
+   if RECESSED:
+    for side in [-1,1]:tube('metal',(x+side*width/2,yy,bars_z),(x+side*(width/2+.10),yy,z+.015),.014,7)
 def door(x,z,w=1.05):
  if DETAIL:
   for side in [-1,1]:bevel_box('trim',(x+side*(w/2+.07),1.15,z),(.14,2.3,.18))
@@ -155,7 +167,7 @@ def meter(x,y,z):
 def frontage_detail(b,w,d,h,wall):
  front=d/2+.055;r=random.Random(int(b.get('seed',0))+27013)
  # Wall repair and exposed brick remain on the actual wall, outside the doorway.
- if wall in ['plaster','hero_plaster']:
+ if wall in ['plaster','hero_plaster','limewash','mint_plaster']:
   for side in [-1,1]:
    left,right=(-w/2+.025,-.72) if side<0 else (.72,w/2-.025)
    if right-left<.20:continue
@@ -165,6 +177,11 @@ def frontage_detail(b,w,d,h,wall):
    face('brick',vv,[tuple(range(6))],(.94,.90,.85,1))
    if right-left>1.1:
     a=left+.15;bb=min(right,a+.70);yy=r.uniform(.90,1.18)
+    if b.get('seed') in SAMPLE_HOUSES:
+     # A surface repair that used to sit behind flush glazing becomes visible
+     # inside a real window pocket. Keep the patch on the solid outer pier.
+     if side<0:a=left+.04;bb=a+.48
+     else:bb=right-.04;a=bb-.48
     face('concrete',[(a,yy,front-.028),(bb,yy+.08,front-.028),(bb-.08,yy+.48,front-.028),(a+.06,yy+.39,front-.028)],[(0,1,2,3)],(1.05,1.02,.96,1))
  # Galvanized rainwater pipe, collars and a joined elbow. Its horizontal reach
  # remains in the 22cm facade strip, not across a doorway or road.
@@ -193,13 +210,32 @@ def frontage_detail(b,w,d,h,wall):
    tube('rust',(xx+dx,yy-.32,front+.06),(xx+dx,yy-.32,zz+.18),.018,6)
   tube('galvanized',(xx-.39,yy-.12,zz),(xx-.48,yy-.29,front+.11),.035,8)
  manifest['hero_frontages'].append({'seed':b.get('seed',0),'id':b.get('id',''),'at':[b['x'],b['z']]})
+
+def recessed_house_shell(w,d,h,floors,wall):
+ # Actual 30cm-thick front masonry with sealed, recessed window pockets.
+ # Back/sides remain closed and the established wall collision is retained.
+ openings=[];bays=max(2,int(w/2.65));step=w/bays;ww=min(1.45,step*.64)
+ for f in range(floors):
+  for k in range(bays):
+   xx=-w/2+step*(k+.5);yy=f*h/floors+1.65
+   if f==0 and abs(xx)-ww*.5<.79:continue
+   openings.append((xx-ww/2-.035,xx+ww/2+.035,yy-.685,yy+.685))
+ box(wall,(0,h/2,-.15),(w,h,d-.30))
+ xs=sorted(set([-w/2,w/2]+[v for rect in openings for v in rect[:2]]))
+ ys=sorted(set([0,h]+[v for rect in openings for v in rect[2:]]))
+ for a,bb in zip(xs,xs[1:]):
+  for c,dd in zip(ys,ys[1:]):
+   if any(l<(a+bb)/2<r and bot<(c+dd)/2<top for l,r,bot,top in openings):continue
+   box(wall,((a+bb)/2,(c+dd)/2,d/2-.15),(bb-a,dd-c,.30))
+ return len(openings)
 def building(b,special=''):
- global TINT,DETAIL
+ global TINT,DETAIL,RECESSED
  x,z=b['x'],b['z'];place(x,z,b.get('rot',0));r=random.Random(b.get('seed',round(x*93+z)))
  w,d,h=b['w'],b['d'],b.get('height',7);floors=max(1,b.get('floors',round(h/3.3)))
  DETAIL=(140<x<185 and 112<z<140) or bool(special)
  wall=b.get('wall','plaster');wall=wall if wall in COLORS else 'plaster'
  if DETAIL and wall=='plaster' and int(b.get('seed',0))%3!=0:wall='hero_plaster'
+ wall=SAMPLE_HOUSES.get(b.get('seed'),wall)
  shade=r.uniform(.83,1.10);palette=r.choice([(1.,.98,.92),(.87,.93,.94),(.96,.88,.73),(.80,.87,.83)])
  TINT=(shade*palette[0],shade*palette[1],shade*palette[2],1)
  if special=='laundry':h=15.8;floors=5 # Facade reflects the established F2 shop and upper story route.
@@ -218,7 +254,10 @@ def building(b,special=''):
    for k in range(4):box('paper',(-.52+k*.34,yy+.13,d/2-1.49),(.21,.25,.18),(.5,.45,.3,1))
   manifest['shop_recesses'].append({'seed':b['seed'],'depth':depth,'opening':opening})
  else:
-  box(wall,(0,h/2,0),(w,h,d))
+  if b.get('seed') in SAMPLE_HOUSES:
+   count=recessed_house_shell(w,d,h,floors,wall)
+   manifest.setdefault('recessed_frontages',[]).append({'seed':b['seed'],'pockets':count,'depth_m':.18})
+  else:box(wall,(0,h/2,0),(w,h,d))
   if DETAIL:bevel_box('concrete',(0,.07,0),(w+.025,.14,d+.025),.012)
   else:box('graybrick',(0,.32,0),(w+.05,.64,d+.05))
  for level in range(1,floors):
@@ -245,7 +284,15 @@ def building(b,special=''):
    xx=-w/2+step*(k+.5)
    window_width=min(1.45,step*.64)
    if f==0 and (abs(xx)-window_width*.5 < (.94 if recess else .79) if DETAIL else abs(xx)<step*.62):continue
+   RECESSED=b.get('seed') in SAMPLE_HOUSES
    window(xx,y,front,window_width,1.3,r.random()<(.46 if special else .19),f==0 or r.random()<.25)
+   if RECESSED:
+    # Runoff starts at the sill corners, never as arbitrary full-wall dirt.
+    for side in [-1,1]:
+     dx=xx+side*(window_width*.43);top=y-.76;bottom=max(.12,top-.48-(f%2)*.24)
+     face('wall_damp',[(dx-.055,top,front-.049),(dx+.06,top,front-.049),
+       (dx+.028,bottom,front-.049),(dx-.019,bottom+.06,front-.049)],[(3,2,1,0)],(.25,.24,.18,.23))
+   RECESSED=False
    if r.random()<.12 and f>0 and not DETAIL:
     box('metal',(xx+.65,y-.65,front+.27),(.6,.43,.5))
     for j in range(5):box('cable',(xx+.65,y-.8+j*.065,front+.53),(.48,.018,.014))
@@ -267,7 +314,7 @@ def building(b,special=''):
   for yy in [.18+i*.12 for i in range(16)]:box('rust',(-.90,yy,front-.42),(.018,.035,.85))
   for xx in [-.84,.84]:box('trim',(xx,1.15,front),(.10,2.3,.18))
   box('trim',(0,2.3,front),(1.78,.12,.18))
-  manifest['lights'].append({'position':list(point((0,2.0,front-.55))),'color':'efd2a2','energy':.75,'range':3.5})
+  manifest['lights'].append({'position':list(point((0,2.0,front-.55))),'color':'efd2a2','energy':.75,'range':3.5,'shadow':b.get('seed')==551335})
  else:door(0,front,1.3 if special else 1.0)
  awning(min(w*.72,4.4),front,min(2.7,h-.05))
  if b.get('shop') and not special:
@@ -282,7 +329,7 @@ def building(b,special=''):
   # outer masonry pier, beyond the nearest window frame, rather than on glass.
   meter(w/2-.35 if DETAIL and w>4 else min(w/2-.6,1.5),1.55,front+.15)
  # Localized contact staining as thin wall panels; never a full checkerboard overlay.
- for k in range(max(2,int(w/2))):
+ for k in range(0 if b.get('seed') in SAMPLE_HOUSES else max(2,int(w/2))):
   xx=r.uniform(-w*.46,w*.46);hh=r.uniform(.16,.54)
   sw=r.uniform(.3,1.2);left=max(-w/2,xx-sw/2);right=min(w/2,xx+sw/2)
   spans=[(left,right)] if not recess else [(left,min(right,-opening/2-.06)),(max(left,opening/2+.06),right)]
@@ -309,17 +356,41 @@ def building(b,special=''):
  if DETAIL:frontage_detail(b,w,d,h,wall)
  TINT=(1,1,1,1);DETAIL=False
 
+MAIN_ROAD=next(r for r in DATA['roads'] if r.get('id')=='r_main')
+def in_grade_bounds(tri):
+ return max(p[0] for p in tri)>145 and min(p[0] for p in tri)<174 and max(p[1] for p in tri)>121 and min(p[1] for p in tri)<131
+def split_grade(tri,depth=0):
+ if not in_grade_bounds(tri) or depth>=10 or max(math.dist(tri[i],tri[(i+1)%3]) for i in range(3))<.85:
+  yield tri;return
+ a,b,c=tri;ab=[(a[i]+b[i])*.5 for i in range(2)];bc=[(b[i]+c[i])*.5 for i in range(2)];ca=[(c[i]+a[i])*.5 for i in range(2)]
+ for small in [(a,ab,ca),(ab,b,bc),(ca,bc,c),(ab,bc,ca)]:yield from split_grade(small,depth+1)
+def grade_height(x,z):
+ if not (145<x<174 and 121<z<131):return 0.
+ best=1.e9
+ for a,b in zip(MAIN_ROAD['points'],MAIN_ROAD['points'][1:]):
+  dx,dz=b[0]-a[0],b[1]-a[1];length=dx*dx+dz*dz
+  t=max(0.,min(1.,((x-a[0])*dx+(z-a[1])*dz)/max(length,.00001)))
+  best=min(best,math.hypot(x-a[0]-t*dx,z-a[1]-t*dz))
+ fade=min(1.,(x-145)/1.5,(174-x)/1.5,(z-121),(131-z))
+ return .022*max(0.,1.-(best/(MAIN_ROAD['width']*.5))**2)*max(0.,fade)
+manifest['graded_collision_indices']=[];manifest['graded_collision_triangles']=[]
+for index,tri in enumerate(PLAN['surfaces']['collision']):
+ if in_grade_bounds(tri):
+  manifest['graded_collision_indices'].append(index)
+  for small in split_grade(tri):manifest['graded_collision_triangles'].append([[p[0],grade_height(*p),p[1]] for p in small])
+manifest['road_grade']={'bounds':[145,121,174,131],'maximum_crown_m':.022,'same_source_collision':True}
+
 # Non-overlapping road/sidewalk junctions. Triangulated from polygons with river holes.
 for kind,tris in PLAN['surfaces'].items():
  if kind in ['collision','puddles']:continue
  mat={'river':'water','puddles':'puddle'}.get(kind,kind)
  y={'ground':-.024,'paving':.035,'road':0.,'river':-.42,'puddles':.006}[kind]
- for tri in tris:
-  place(sum(p[0] for p in tri)/3,sum(p[1] for p in tri)/3)
-  vv=[(p[0],y,p[1]) for p in tri]
-  # Ensure upward normal after Godot-to-Blender conversion.
-  if (vv[1][0]-vv[0][0])*(vv[2][2]-vv[0][2])-(vv[1][2]-vv[0][2])*(vv[2][0]-vv[0][0])>0:vv.reverse()
-  face(mat,vv,[(0,1,2)],world=True)
+ for source_tri in tris:
+  for tri in (split_grade(source_tri) if kind=='road' else [source_tri]):
+   place(sum(p[0] for p in tri)/3,sum(p[1] for p in tri)/3)
+   vv=[(p[0],y+(grade_height(*p) if kind=='road' else 0.),p[1]) for p in tri]
+   if (vv[1][0]-vv[0][0])*(vv[2][2]-vv[0][2])-(vv[1][2]-vv[0][2])*(vv[2][0]-vv[0][0])>0:vv.reverse()
+   face(mat,vv,[(0,1,2)],world=True)
 
 # Close the raised paving's boundary. Leaving a 3.5cm suspended single-sided
 # sheet produces bright/open seams at road edges from a normal eye-height view.
@@ -353,22 +424,25 @@ for road in DATA['roads']:
    if key not in GEOM:GEOM[key]=[[],[],[]]
    vv,ff,cc=GEOM[key];base=len(vv)
    for p in verts:
-    x2,y2,z2=point(p);vv.append((x2,-z2,y2))
+    x2,y2,z2=point(p);vv.append((x2,-z2,y2+grade_height(x2,z2)))
    for j in range(count):
     k=(j+1)%count
     ff.extend([(base,base+k+1,base+j+1),(base+j+1,base+k+1,base+count+k+1,base+count+j+1)])
    cc.extend([(1,1,1,1)]*(count+1)+[(1,1,1,0)]*count)
-  if i%2==0:
-   for side in [-1,1]:
-    at=point((side*(width*.5+.12),.02,0))
-    if any(math.hypot(at[0]-f['front'][0],at[2]-f['front'][1])<1.5 for f in DATA['landmarks']):continue
-    bevel_box('concrete',(side*(width*.5+.12),.018,0),(.18,.055,rr.uniform(.85,1.35)),.012,(.94,.93,.88,1))
+# Two branching asphalt edge cracks, following the crown instead of hovering.
+place(0,0)
+for path in [[(151.6,124.45),(151.88,124.62),(152.04,124.55),(152.28,124.83),(152.39,124.92)],
+             [(151.88,124.62),(151.93,124.91),(152.15,125.05)]]:
+ for a,b in zip(path,path[1:]):
+  dx,dz=b[0]-a[0],b[1]-a[1];length=math.hypot(dx,dz);nx,nz=-dz/length*.0008,dx/length*.0008
+  pts=[(a[0]-nx,a[1]-nz),(b[0]-nx,b[1]-nz),(b[0]+nx,b[1]+nz),(a[0]+nx,a[1]+nz)]
+  face('road_crack',[(x,.0015+grade_height(x,z),z) for x,z in pts],[(3,2,1,0)],(.8,.8,.8,1),world=True)
 for puddle in PLAN.get('puddle_regions',[]):
  cx,cz=puddle['center'];edge=puddle['edge'];place(cx,cz)
  # Inner fan plus alpha feather ring. Every edge fades back into the same road.
- count=len(edge);verts=[(cx,.008,cz)]
- verts.extend((cx+(x-cx)*.70,.008,cz+(z-cz)*.70) for x,z in edge)
- verts.extend((x,.008,z) for x,z in edge)
+ count=len(edge);verts=[(cx,.008+grade_height(cx,cz),cz)]
+ verts.extend((cx+(x-cx)*.70,.008+grade_height(cx+(x-cx)*.70,cz+(z-cz)*.70),cz+(z-cz)*.70) for x,z in edge)
+ verts.extend((x,.008+grade_height(x,z),z) for x,z in edge)
  ff=[]
  for i in range(count):
   j=(i+1)%count;ff.extend([(0,i+1,j+1),(i+1,count+i+1,count+j+1,j+1)])

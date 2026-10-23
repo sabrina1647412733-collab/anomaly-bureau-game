@@ -47,8 +47,18 @@ void fragment() {
 	fine = mix(0.5, fine, 1.0 - smoothstep(0.35, 1.05, footprint));
 	float variation = (broad - 0.5) * mottle_amount + (fine - 0.5) * 0.012;
 	float damp = clamp(wetness, 0.0, 1.0) * (0.20 + max(world_normal.y, 0.0) * 0.22);
-	ALBEDO = tint.rgb * (1.0 + variation - damp * 0.045);
-	METALLIC = metalness;
+	// Painted casing chips expose a different material; zinc has dielectric oxide
+	// islands over bare metal. Do not assign half-metallic paint to the entire prop.
+	float chip = smoothstep(0.84, 0.94, surface_noise(plane * 9.0 + vec2(43.0, 8.0)));
+	float oxide = smoothstep(0.25, 0.56, broad);
+	vec3 base = tint.rgb * (1.0 + variation - damp * 0.045);
+	if (metalness > 0.5) {
+		ALBEDO = mix(base, vec3(0.50, 0.52, 0.50), oxide);
+		METALLIC = 1.0 - oxide;
+	} else {
+		ALBEDO = mix(base, vec3(0.18, 0.14, 0.10), chip * 0.80);
+		METALLIC = chip;
+	}
 	ROUGHNESS = clamp(base_roughness + (fine - 0.5) * 0.045 + (broad - 0.5) * 0.025 - damp * 0.12, 0.48, 0.88);
 	SPECULAR = 0.38;
 }

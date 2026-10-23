@@ -206,6 +206,33 @@ func check_open_frontages() -> void:
 		ray.exclude = [game.player.get_rid()]
 		check(not game.get_world_3d().direct_space_state.intersect_ray(ray).is_empty(), "店面后墙封闭，不能通往空壳内部 " + label)
 
+func check_road_crown() -> void:
+	var samples := 0
+	var supported := true
+	var bounded := true
+	var drains := true
+	for road in original.get("roads", []):
+		if road.get("id") != "r_main":continue
+		var points: Array = road.points
+		for index in range(points.size()-1):
+			var point := Vector2(float(points[index][0]),float(points[index][1]))
+			if not (point.x>148.0 and point.x<171.0 and point.y>123.0 and point.y<129.0):continue
+			var next := Vector2(float(points[index+1][0]),float(points[index+1][1]))
+			var offset := (next-point).normalized().orthogonal()*1.65
+			var center := support_at(Vector3(point.x,0.1,point.y))
+			var left := support_at(Vector3(point.x+offset.x,0.1,point.y+offset.y))
+			var right := support_at(Vector3(point.x-offset.x,0.1,point.y-offset.y))
+			samples += 1
+			if center.is_empty() or left.is_empty() or right.is_empty():
+				supported = false
+				continue
+			var crown: float = center.position.y-game.town_bridge.ORIGIN.y
+			bounded = bounded and crown>0.004 and crown<0.025 and center.normal.y>0.98
+			drains = drains and center.position.y-(left.position.y+right.position.y)*0.5>0.005
+	check(samples>2 and supported,"样板排水路面中心与两侧都有实体支撑 (%d段)" % samples)
+	check(bounded,"实际路冠抬高受限在2.5厘米以内，无台阶尖峰")
+	check(drains,"实际碰撞路面从中心向两侧降低")
+
 func find_weather():
 	for property in game.town_bridge.get_property_list():
 		if String(property.name) in ["weather", "street_weather", "environment_controller"]:
@@ -367,6 +394,7 @@ func run() -> void:
 	check_landmarks()
 	check_surface_support()
 	check_open_frontages()
+	check_road_crown()
 	check_weather()
 	for frame in range(5):
 		await physics_frame

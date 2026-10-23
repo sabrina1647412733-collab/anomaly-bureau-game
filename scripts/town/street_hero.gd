@@ -1,7 +1,7 @@
 extends RefCounted
 ## Scene-bound close-up props. Geometry and collider coordinates share one export.
 const BASE := "res://assets/town/renewal/hero_props/"
-const NATIVE_MATERIALS := ["wicker", "enamel", "enamel_flower"]
+const NATIVE_MATERIALS := ["wicker", "enamel", "enamel_flower", "linen"]
 var manifest: Dictionary = {}
 var holder: Node3D
 var town

@@ -1,26 +1,32 @@
 @echo off
+setlocal
 chcp 65001 >nul
-title 得利洗衣店 · 第一案
+title 得利洗衣店 · 当前工程
 cd /d "%~dp0"
 
-REM ===================================================================
-REM  得利洗衣店 · 第一案 · 启动器
-REM
-REM  需要 Godot 4.7.2（必须 4.7，4.3 以下不兼容）
-REM  如果你的 Godot 不在下面这个路径，改这一行：
-REM ===================================================================
-set GODOT="C:\Users\Sabrina\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_win64.exe"
-
-if not exist %GODOT% (
-  echo.
-  echo  [!] 找不到 Godot： %GODOT%
-  echo.
-  echo  请改本文件里的 GODOT 变量为你的 Godot 4.7.2 路径。
-  echo  或者直接用 Godot 启动器：导入 -^> 选 project.godot -^> 按 F5
-  echo.
+REM Optional GODOT_EXE override; otherwise locate the installed matching engine.
+if defined GODOT_EXE if exist "%GODOT_EXE%" goto engine_ready
+set "GODOT_EXE="
+for /f "delims=" %%G in ('where Godot_v4.7.2-stable_win64.exe 2^>nul') do if not defined GODOT_EXE set "GODOT_EXE=%%G"
+if not defined GODOT_EXE (
+  echo 未找到 Godot 4.7.2。请在 Godot 中导入本目录的 project.godot。
+  echo 也可以将 GODOT_EXE 环境变量设为你的 Godot 4.7.2 程序路径。
   pause
   exit /b 1
 )
 
-echo 启动 得利洗衣店 · 第一案 ...
-%GODOT% --path "%~dp0" res://scenes/main.tscn
+:engine_ready
+if not exist "%~dp0project.godot" (
+  echo 本目录缺少 project.godot，请保留完整工程。
+  pause
+  exit /b 1
+)
+if not exist "%~dp0_预览" mkdir "%~dp0_预览"
+echo 正在打开当前工程：%~dp0
+"%GODOT_EXE%" --path "%~dp0." --log-file "%~dp0_预览\启动日志.log" %*
+set "GAME_EXIT=%ERRORLEVEL%"
+if not "%GAME_EXIT%"=="0" (
+  echo 启动失败，日志在本工程的 _预览\启动日志.log。
+  pause
+)
+exit /b %GAME_EXIT%

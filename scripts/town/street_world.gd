@@ -12,13 +12,15 @@ const TEXTURES := {
 	"metal":"metal_plate", "rust":"rusty_metal", "roof_tile":"dirty_tiles",
 	"roof_metal":"worn_corrugated_iron", "road":"asphalt_04", "paving":"concrete_floor",
 	"ground":"rough_concrete", "sign":"painted_concrete", "stain":"damaged_plaster",
-	"hero_plaster":"damaged_plaster", "road_patch":"asphalt_04"
+	"hero_plaster":"damaged_plaster", "road_patch":"asphalt_04",
+	"limewash":"painted_plaster_wall", "mint_plaster":"grey_plaster_02"
 }
 const TINTS := {
 	"glass":Color(.10,.17,.19),"window_warm":Color(.68,.44,.21),"window_cool":Color(.36,.52,.55),
 	"cable":Color(.055,.064,.062),"grass":Color(.24,.31,.14),"leaf":Color(.18,.27,.15),
 	"lamp":Color(.85,.53,.21),"paper":Color(.68,.61,.45),"curtain":Color(.38,.33,.24),
-	"painted_metal":Color(.72,.71,.66),"galvanized":Color(.59,.62,.63)
+	"painted_metal":Color(.72,.71,.66),"galvanized":Color(.59,.62,.63),
+	"wall_damp":Color(.24,.25,.20),"road_crack":Color(.14,.14,.13)
 }
 # Repetitions/metre and material response, calibrated against ordinary brick
 # courses, door planks and paving at the player's eye height. Vertex paint is
@@ -39,7 +41,9 @@ const SURFACE_PROFILES := {
 	"ground":{"tex_scale":.78,"normal_strength":.67,"minimum_roughness":.86,"vertex_tint_strength":.15,"wet_response":.70,"albedo_saturation":.48,"tint":Color(.86,.84,.79)},
 	"sign":{"tex_scale":.65,"normal_strength":.28,"minimum_roughness":.73,"vertex_tint_strength":1.0,"wet_response":.35},
 	"stain":{"tex_scale":.56,"normal_strength":.78,"minimum_roughness":.84,"vertex_tint_strength":.05,"wall_age":1.0,"wet_response":.38},
-	"hero_plaster":{"tex_scale":.54,"normal_strength":.82,"minimum_roughness":.80,"vertex_tint_strength":.10,"wall_age":.72,"wet_response":.36,"albedo_saturation":.65,"tint":Color(1.0,.98,.95)}
+	"hero_plaster":{"tex_scale":.54,"normal_strength":.82,"minimum_roughness":.80,"vertex_tint_strength":.10,"wall_age":.72,"wet_response":.36,"albedo_saturation":.65,"tint":Color(1.0,.98,.95)},
+	"limewash":{"tex_scale":.48,"normal_strength":.37,"minimum_roughness":.86,"vertex_tint_strength":.12,"wall_age":.58,"wet_response":.32,"albedo_saturation":.18,"macro_variation":.055,"tint":Color(1.02,.99,.90)},
+	"mint_plaster":{"tex_scale":.58,"normal_strength":.43,"minimum_roughness":.84,"vertex_tint_strength":.12,"wall_age":.86,"wet_response":.42,"albedo_saturation":.16,"macro_variation":.07,"tint":Color(.94,1.10,1.01)}
 }
 
 func setup(owner_town)->void:
@@ -50,10 +54,22 @@ func setup(owner_town)->void:
 		if packed==null:push_error("街道模块缺失: "+path);continue
 		var chunk=packed.instantiate();town.add_child(chunk);_materials(chunk)
 	var faces=PackedVector3Array()
-	for triangle in manifest.get("collision",[]):
+	var graded_indices: Dictionary = {}
+	for index in manifest.get("graded_collision_indices",[]):
+		graded_indices[int(index)] = true
+	var flat_triangles: Array = manifest.get("collision",[])
+	for index in flat_triangles.size():
+		if graded_indices.has(index):continue
+		var triangle: Array = flat_triangles[index]
 		var a=Vector3(triangle[0][0],0,triangle[0][1])
 		var b=Vector3(triangle[1][0],0,triangle[1][1])
 		var c=Vector3(triangle[2][0],0,triangle[2][1])
+		if (b-a).cross(c-a).y>0:faces.append_array([a,c,b])
+		else:faces.append_array([a,b,c])
+	for triangle in manifest.get("graded_collision_triangles",[]):
+		var a=Vector3(triangle[0][0],triangle[0][1],triangle[0][2])
+		var b=Vector3(triangle[1][0],triangle[1][1],triangle[1][2])
+		var c=Vector3(triangle[2][0],triangle[2][1],triangle[2][2])
 		if (b-a).cross(c-a).y>0:faces.append_array([a,c,b])
 		else:faces.append_array([a,b,c])
 	# The river is open at street level, with a shallow physical bed instead of an endless fall.
@@ -81,7 +97,7 @@ func setup(owner_town)->void:
 		light.light_color=Color(entry.color);light.light_energy=float(entry.energy)
 		light.set_meta("base_energy",light.light_energy);light.omni_range=float(entry.range)
 		light.distance_fade_enabled=true;light.distance_fade_begin=45.;light.distance_fade_length=15.
-		light.shadow_enabled=false;lights.append(light)
+		light.shadow_enabled=bool(entry.get("shadow",false));lights.append(light)
 	for entry in manifest.get("signs",[]):
 		var sign=Label3D.new();sign.name="LandmarkSign";sign.text=entry.text
 		sign.font=town.game.font;sign.font_size=72;sign.pixel_size=.0065
@@ -99,8 +115,8 @@ func _materials(node:Node)->void:
 				if kind.begins_with(candidate) and String(candidate).length()>match_kind.length():match_kind=candidate
 			if not match_kind.is_empty():kind=match_kind
 		node.material_override=_material(kind)
-		node.visibility_range_end=150. if kind in ["plaster","hero_plaster","brick","graybrick","roof_tile","roof_metal"] else 100.
-		if kind in ["leaf","grass","road_patch"]:node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.visibility_range_end=150. if kind in ["plaster","hero_plaster","limewash","mint_plaster","brick","graybrick","roof_tile","roof_metal"] else 100.
+		if kind in ["leaf","grass","road_patch","wall_damp","road_crack"]:node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for child in node.get_children():_materials(child)
 
 func _material(kind:String)->Material:
@@ -122,12 +138,15 @@ func _material(kind:String)->Material:
 			var filename={"base_tex":"albedo.jpg","normal_tex":"normal.jpg","rough_tex":"rough.jpg"}[slot]
 			patch.set_shader_parameter(slot,load("res://assets/textures/asphalt_04/"+filename))
 		materials[kind]=patch;return patch
+	if kind=="wall_damp":
+		var damp=ShaderMaterial.new();damp.shader=preload("res://scripts/town/street_wall_damp.gdshader")
+		materials[kind]=damp;return damp
 	if kind in ["painted_metal","galvanized"]:
 		# These are coated/oxidised service fixtures, not dark chequer-plate steel.
 		var finish=ShaderMaterial.new();finish.shader=preload("res://scripts/town/street_metal_finish.gdshader")
 		finish.set_shader_parameter("tint",TINTS[kind])
 		finish.set_shader_parameter("street_origin",town.global_position if is_instance_valid(town) else Vector3.ZERO)
-		finish.set_shader_parameter("metalness",.22 if kind=="galvanized" else 0.)
+		finish.set_shader_parameter("metalness",1.0 if kind=="galvanized" else 0.)
 		finish.set_shader_parameter("base_roughness",.61 if kind=="galvanized" else .72)
 		finish.set_shader_parameter("mottle_amount",.055 if kind=="galvanized" else .022)
 		materials[kind]=finish;return finish

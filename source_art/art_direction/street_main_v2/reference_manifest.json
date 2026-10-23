@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-23",
+  "baseline_commit": "2a4e2a1",
+  "before": {
+    "sha256": "46753597c87a06354004e0f504f04066152a4b5603813b12f1f5411023ce5f7b",
+    "kind": "actual previous Godot gameplay",
+    "file": "../street_main_v1/04_after_godot.png"
+  },
+  "target": "../street_main_v1/02_target_concept.png",
+  "target_kind": "approved AI concept, not gameplay",
+  "after": [
+    {
+      "file": "01_after_day.png",
+      "source": "白天干燥_06_沿街道路近景.png",
+      "kind": "actual Godot player-camera framebuffer, unedited",
+      "renderer": "Forward+",
+      "width": 1600,
+      "height": 900,
+      "sha256": "88cef934d160cd8a91b3fd1e2c53f042344dea4be1a494d6e6a829dc57684342"
+    },
+    {
+      "file": "02_after_closeup.png",
+      "source": "白天干燥_近景_门旁藤椅搪瓷盆.png",
+      "kind": "actual Godot player-camera framebuffer, unedited",
+      "renderer": "Forward+",
+      "width": 1600,
+      "height": 900,
+      "sha256": "010120ddaceb71ce450eabc72efe17547f3d0d593c7c958c3bb8a55396864a4a"
+    },
+    {
+      "file": "03_after_night.png",
+      "source": "夜雨_06_沿街道路近景.png",
+      "kind": "actual Godot player-camera framebuffer, unedited",
+      "renderer": "Forward+",
+      "width": 1600,
+      "height": 900,
+      "sha256": "79fe5a05c12bcdb42139e5970e7ecc9d558ad0bff97a218bb15dadb1b8897d9c"
+    },
+    {
+      "file": "04_after_drying.png",
+      "source": "白天干燥_近景_晾晒与窗洞.png",
+      "kind": "actual Godot player-camera framebuffer, unedited",
+      "renderer": "Forward+",
+      "width": 1600,
+      "height": 900,
+      "sha256": "87039c294ff95b75cf4a8aa5c8d4c002d8f82b58892e4b1811be234073b63fec"
+    }
+  ],
+  "camera": {
+    "viewport": [
+      1600,
+      900
+    ],
+    "time_minutes": 720,
+    "feet": [
+      150,
+      0.1,
+      124.1
+    ],
+    "eye_height": 1.66,
+    "fov": 74,
+    "target": [
+      165,
+      0.5,
+      126.5
+    ]
+  },
+  "report": "../../../20261023_启动修复与主街二轮验收.md",
+  "roles": "paused, no new characters"
+}
