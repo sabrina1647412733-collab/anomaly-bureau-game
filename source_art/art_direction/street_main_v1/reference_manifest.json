@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-23",
+  "baseline_commit": "0caace6",
+  "references": [
+    {
+      "file": "01_before_godot.png",
+      "kind": "actual Godot baseline",
+      "width": 1600,
+      "height": 900,
+      "sha256": "ac4768858b56ac067b58c392c22d650e480564ffa7f4b4a68d2992fdf0f64b2e"
+    },
+    {
+      "file": "02_target_concept.png",
+      "kind": "approved AI design reference, not gameplay",
+      "width": 1672,
+      "height": 941,
+      "sha256": "7015cae5e569faea80d99527f070e164d2d018ec6d572cc750adee384926a088"
+    }
+  ],
+  "camera": {
+    "feet": [
+      150,
+      0.1,
+      124.1
+    ],
+    "target": [
+      165,
+      0.5,
+      126.5
+    ],
+    "eye_height": 1.66,
+    "fov": 74,
+    "viewport": [
+      1600,
+      900
+    ],
+    "time_minutes": 720
+  },
+  "structural_truth": "existing town-layout plus shop_recesses and five-storey laundry override",
+  "image_generation": "built-in image_gen, original prompt and targeted revision in 03_prompt.md",
+  "coordinate_contract": "Godot x/up/z metres; Blender (x,-z,y); GLB export_yup once",
+  "roles": "paused by user; no new residents",
+  "approved": "User accepted target and authorized implementation",
+  "after_gameplay": [
+    {
+      "file": "04_after_godot.png",
+      "kind": "actual Godot player-camera framebuffer, unedited",
+      "renderer": "Forward+",
+      "width": 1600,
+      "height": 900,
+      "view": "same camera as baseline; 12:00 dry",
+      "source": "白天干燥_06_沿街道路近景.png",
+      "sha256": "46753597c87a06354004e0f504f04066152a4b5603813b12f1f5411023ce5f7b"
+    },
+    {
+      "file": "05_after_closeup.png",
+      "kind": "actual Godot player-camera framebuffer, unedited",
+      "renderer": "Forward+",
+      "width": 1600,
+      "height": 900,
+      "view": "standing player close-up; 12:00 dry",
+      "source": "白天干燥_近景_门旁藤椅搪瓷盆.png",
+      "sha256": "75d27460749717b61c81762a0a6da704c59ca4b629a30177f2dd0ab92fd10ee8"
+    },
+    {
+      "file": "06_after_night.png",
+      "kind": "actual Godot player-camera framebuffer, unedited",
+      "renderer": "Forward+",
+      "width": 1600,
+      "height": 900,
+      "view": "same street camera; night rain",
+      "source": "夜雨_06_沿街道路近景.png",
+      "sha256": "d888d617b94ffa509acd9fa8497a919d4f5d4824081dad7fbf2158b5eefa9904"
+    }
+  ]
+}

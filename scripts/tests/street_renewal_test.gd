@@ -13,9 +13,29 @@ var walk_frames := 0
 var supported_samples := 0
 var original: Dictionary = {}
 var environment_controller
+var movement_frame_ms: Array[float] = []
+var previous_frame_usec := 0
 
 func _initialize() -> void:
+	if OS.get_cmdline_user_args().has("--render-timing") and DisplayServer.get_name() != "headless":
+		root.size = Vector2i(1600,900)
+		Engine.max_fps = 0
+		previous_frame_usec = Time.get_ticks_usec()
+		process_frame.connect(record_movement_frame)
 	call_deferred("run")
+
+func record_movement_frame() -> void:
+	var now := Time.get_ticks_usec()
+	if is_instance_valid(game) and is_instance_valid(game.town_bridge) and game.town_bridge.active and walk_frames > 0 and Input.is_physical_key_pressed(KEY_W):
+		movement_frame_ms.append(float(now-previous_frame_usec)/1000.0)
+	previous_frame_usec = now
+
+func movement_timing() -> Dictionary:
+	if movement_frame_ms.size() < 40:
+		return {}
+	var samples: Array[float] = movement_frame_ms.slice(30)
+	samples.sort()
+	return {"method":"local actual W-input physical street return route; 1600x900; uncapped; first 30 moving frames excluded; not cross-PC benchmark", "frames":samples.size(), "median_ms":samples[samples.size()/2], "p95_ms":samples[int(samples.size()*0.95)], "p99_ms":samples[int(samples.size()*0.99)]}
 
 func check(ok: bool, label: String) -> void:
 	if ok:
@@ -370,6 +390,7 @@ func run() -> void:
 	for frame in range(85): await physics_frame
 	check(jumped and game.player.is_on_floor(),"门前跳跃并重新落在实体路面")
 	var result := {"passed":passed,"failed":failed,"errors":errors,"walked_metres":walked_metres,"physical_frames":walk_frames,"minimum_y":minimum_y,"road_support_samples":supported_samples,"method":"engine collision queries; actual keyboard movement; screenshot poses are a separate review"}
+	result["movement_timing"] = movement_timing()
 	var file := FileAccess.open(OUT+"street_test_result.json",FileAccess.WRITE)
 	if file != null: file.store_string(JSON.stringify(result,"\t"));file.close()
 	print("STREET_RENEWAL_RESULT ",JSON.stringify(result))

@@ -17,6 +17,7 @@ var town_map: Control
 var active := false
 var imported := false
 var renewal
+var hero
 var weather
 var indoor_camera_attributes:CameraAttributes
 var outdoor_camera_attributes:CameraAttributesPractical
@@ -67,6 +68,8 @@ func _build_once() -> void:
 	add_child(floor_body)
 	renewal=preload("res://scripts/town/street_world.gd").new()
 	renewal.setup(self)
+	hero = preload("res://scripts/town/street_hero.gd").new()
+	hero.setup(self)
 	for entry in layout.get("buildings", []):
 		var h := float(entry.get("height", 7.0))
 		var recess: Dictionary = {}

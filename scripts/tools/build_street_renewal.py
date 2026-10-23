@@ -2,16 +2,16 @@
 Run Blender -b --python this_file -- PROJECT (after prepare_street_renewal.py).
 Coordinates in construction helpers are Godot x/up/z; export converts only once.
 """
-import bpy, sys, json, math, random
+import bpy, bmesh, sys, json, math, random
 from pathlib import Path
-from collections import defaultdict
+from collections import defaultdict, Counter
 from mathutils import Vector
 
 ROOT=Path(sys.argv[sys.argv.index('--')+1]); OUT=ROOT/'assets/town/renewal'
 PLAN=json.loads((ROOT/'_tools/street_surface_plan.json').read_text(encoding='utf8'))
 DATA=json.loads((ROOT/'assets/town/town-layout.json').read_text(encoding='utf8'))
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-GEOM={}; GROUP=(0,0); YAW=0.;CENTER=(0.,0.); TINT=(1,1,1,1)
+GEOM={}; GROUP=(0,0); YAW=0.;CENTER=(0.,0.); TINT=(1,1,1,1);DETAIL=False
 COLORS={'plaster':(.61,.60,.52,1),'brick':(.43,.29,.23,1),'graybrick':(.4,.43,.42,1),
  'concrete':(.5,.5,.46,1),'wood':(.32,.22,.13,1),'metal':(.26,.29,.28,1),
  'rust':(.36,.22,.13,1),'roof_tile':(.26,.30,.3,1),'roof_metal':(.36,.38,.35,1),
@@ -20,8 +20,10 @@ COLORS={'plaster':(.61,.60,.52,1),'brick':(.43,.29,.23,1),'graybrick':(.4,.43,.4
  'cable':(.045,.053,.051,1),'sign':(.14,.23,.24,1),'paper':(.65,.60,.45,1),
  'road':(.42,.42,.4,1),'paving':(.62,.61,.55,1),'ground':(.4,.41,.35,1),
  'puddle':(.11,.16,.17,1),'water':(.10,.17,.17,1),'lamp':(.9,.62,.28,1),'curtain':(.44,.40,.30,1)}
+COLORS.update({'hero_plaster':(.72,.69,.63,1),'galvanized':(.62,.64,.61,1),
+ 'painted_metal':(.72,.70,.65,1),'road_patch':(.28,.29,.28,1)})
 manifest={'version':2,'chunks':[],'props':[],'lights':[],'signs':[],'drips':[],'counts':{},
- 'collision':PLAN['surfaces']['collision'],'river_bed':PLAN['surfaces']['river'],'surface_validation':PLAN['validation'],'shop_recesses':[]}
+ 'collision':PLAN['surfaces']['collision'],'river_bed':PLAN['surfaces']['river'],'surface_validation':PLAN['validation'],'shop_recesses':[],'hero_frontages':[]}
 
 def place(x,z,yaw=0):
  global GROUP,CENTER,YAW
@@ -40,6 +42,16 @@ def box(mat,at,size,color=None):
  x,y,z=at;a,b,c=[v/2 for v in size]
  vv=[(x+dx*a,y+dy*b,z+dz*c) for dx,dy,dz in [(-1,-1,-1),(1,-1,-1),(1,1,-1),(-1,1,-1),(-1,-1,1),(1,-1,1),(1,1,1),(-1,1,1)]]
  face(mat,vv,[(0,3,2,1),(4,5,6,7),(0,1,5,4),(3,7,6,2),(0,4,7,3),(1,2,6,5)],color)
+
+def bevel_box(mat,at,size,amount=.012,color=None):
+ # Only player-close joinery is chamfered, then batched into the same material.
+ bm=bmesh.new();bmesh.ops.create_cube(bm,size=1.)
+ for v in bm.verts:
+  v.co=Vector(tuple(v.co[i]*size[i] for i in range(3)))
+ bmesh.ops.bevel(bm,geom=list(bm.edges),offset=min(amount,min(size)*.22),segments=1,affect='EDGES')
+ bm.verts.ensure_lookup_table();bm.verts.index_update()
+ face(mat,[tuple(v.co+Vector(at)) for v in bm.verts],[tuple(v.index for v in f.verts) for f in bm.faces],color)
+ bm.free()
 def tube(mat,a,b,r,n=7,r2=None):
  a=Vector(a);b=Vector(b);d=(b-a).normalized();u=d.cross(Vector((0,1,0)))
  if u.length<.1:u=d.cross(Vector((1,0,0)))
@@ -80,11 +92,21 @@ def roof(w,d,h,kind):
  for y in [1.,h*.5,h-.4]:box('rust',(x,y,z),(.13,.045,.13))
  manifest['drips'].append(list(point((x,h-.1,z))))
 def window(x,y,z,width=1.05,height=1.35,lit=False,bars=False):
- box('trim',(x,y,z-.025),(width+.22,height+.22,.15))
- box('window_warm' if lit else 'glass',(x,y,z+.065),(width,height,.045))
+ if DETAIL:
+  # A dark inner reveal and four separate frame rails replace the solid backing
+  # slab. Glass stays outside the existing solid building hull, never inside it.
+  box('cable',(x,y,z+.006),(width+.035,height+.035,.016))
+  for side in [-1,1]:
+   bevel_box('trim',(x+side*(width/2+.065),y,z+.045),(.13,height+.24,.16))
+   bevel_box('trim',(x,y+side*(height/2+.065),z+.045),(width+.26,.13,.16))
+  box('window_warm' if lit else 'glass',(x,y,z+.029),(width,height,.018))
+ else:
+  box('trim',(x,y,z-.025),(width+.22,height+.22,.15))
+  box('window_warm' if lit else 'glass',(x,y,z+.065),(width,height,.045))
  for dx in [-width/2,0,width/2]:box('wood',(x+dx,y,z+.12),(.055,height+.09,.07))
  for dy in [-height/2,height/2]:box('wood',(x,y+dy,z+.12),(width+.1,.055,.08))
- box('trim',(x,y-height/2-.08,z+.16),(width+.3,.10,.40))
+ if DETAIL:bevel_box('trim',(x,y-height/2-.09,z+.12),(width+.35,.12,.37),.02)
+ else:box('trim',(x,y-height/2-.08,z+.16),(width+.3,.10,.40))
  if lit:
   # Folded curtain strips in front of frosted glass interrupt a uniform luminous rectangle.
   for side in [-1,1]:
@@ -96,23 +118,88 @@ def window(x,y,z,width=1.05,height=1.35,lit=False,bars=False):
   for j in range(5):tube('metal',(x-width/2+j*width/4,y-height/2,z+.25),(x-width/2+j*width/4,y+height/2,z+.25),.014,5)
   for yy in [y-height*.35,y+height*.35]:tube('metal',(x-width/2,yy,z+.25),(x+width/2,yy,z+.25),.016,5)
 def door(x,z,w=1.05):
- box('trim',(x,1.15,z),(w+.24,2.3,.16))
+ if DETAIL:
+  for side in [-1,1]:bevel_box('trim',(x+side*(w/2+.07),1.15,z),(.14,2.3,.18))
+  bevel_box('trim',(x,2.28,z),(w+.28,.14,.18))
+ else:box('trim',(x,1.15,z),(w+.24,2.3,.16))
  box('wood',(x,1.08,z+.09),(w,2.16,.08))
  for yy in [.45,1.08,1.72]:box('wood',(x,yy,z+.145),(w-.12,.48,.055),(.72,.7,.62,1))
+ if DETAIL:
+  for xx in [x-w*.36,x+w*.36]:bevel_box('wood',(xx,1.08,z+.18),(.075,2.02,.035),.005)
+  for yy in [.46,1.73]:bevel_box('metal',(x-w*.45,yy,z+.15),(.10,.15,.025),.005)
  tube('metal',(x+w*.32,.92,z+.21),(x+w*.32,1.12,z+.21),.024,8)
  box('trim',(x,.045,z+.27),(w+.3,.09,.55))
 def awning(w,z,y=2.65):
- face('roof_metal',[(-w/2,y,z),(w/2,y,z),(w/2,y-.14,z+.7),(-w/2,y-.14,z+.7)],[(3,2,1,0)])
+ if DETAIL:
+  # Corrugation has a real silhouette, edge thickness and a back flashing.
+  steps=max(12,int(w/.12)*4);verts=[]
+  for i in range(steps+1):
+   xx=-w/2+w*i/steps;wave=math.sin(i*math.pi/2)*.018
+   verts.extend([(xx,y+wave,z),(xx,y-.14+wave,z+.7)])
+  face('roof_metal',verts,[(2*i+1,2*i+3,2*i+2,2*i) for i in range(steps)])
+  bevel_box('metal',(0,y+.025,z+.025),(w,.10,.075),.01)
+  for xx in [-w/2,w/2]:
+   face('rust',[(xx,y,z),(xx,y-.14,z+.7),(xx,y-.19,z+.7),(xx,y-.05,z)],[(0,1,2,3)])
+ else:face('roof_metal',[(-w/2,y,z),(w/2,y,z),(w/2,y-.14,z+.7),(-w/2,y-.14,z+.7)],[(3,2,1,0)])
  for x in [-w/2,w/2]:tube('rust',(x,y-.55,z),(x,y-.14,z+.65),.022,6)
  box('rust',(0,y-.17,z+.71),(w,.1,.05))
 def meter(x,y,z):
- box('metal',(x,y,z),(.43,.58,.15));box('glass',(x,y+.1,z+.085),(.22,.2,.025))
+ if DETAIL:bevel_box('metal',(x,y,z),(.36,.50,.13),.02)
+ else:box('metal',(x,y,z),(.43,.58,.15))
+ box('glass',(x,y+.1,z+.085),(.22,.2,.025))
+ if DETAIL:
+  bevel_box('metal',(x,y-.12,z+.08),(.25,.035,.018),.004)
+  for xx in [x-.13,x+.13]:tube('rust',(xx,y-.19,z+.07),(xx,y-.19,z+.085),.014,8)
  for xx in [x-.12,x+.12]:tube('cable',(xx,y-.3,z),(xx,.15,z),.018,5)
+
+def frontage_detail(b,w,d,h,wall):
+ front=d/2+.055;r=random.Random(int(b.get('seed',0))+27013)
+ # Wall repair and exposed brick remain on the actual wall, outside the doorway.
+ if wall in ['plaster','hero_plaster']:
+  for side in [-1,1]:
+   left,right=(-w/2+.025,-.72) if side<0 else (.72,w/2-.025)
+   if right-left<.20:continue
+   top=r.uniform(.40,.82)
+   vv=[(left,.12,front-.032),(right,.12,front-.032),(right,top*.72,front-.032),
+       (right-(right-left)*.19,top,front-.032),(left+(right-left)*.40,top*.82,front-.032),(left,top*.94,front-.032)]
+   face('brick',vv,[tuple(range(6))],(.94,.90,.85,1))
+   if right-left>1.1:
+    a=left+.15;bb=min(right,a+.70);yy=r.uniform(.90,1.18)
+    face('concrete',[(a,yy,front-.028),(bb,yy+.08,front-.028),(bb-.08,yy+.48,front-.028),(a+.06,yy+.39,front-.028)],[(0,1,2,3)],(1.05,1.02,.96,1))
+ # Galvanized rainwater pipe, collars and a joined elbow. Its horizontal reach
+ # remains in the 22cm facade strip, not across a doorway or road.
+ px=-w/2+.13;pz=front+.12;head=h-.18
+ tube('galvanized',(px,head,pz),(px,.25,pz),.052,12)
+ tube('galvanized',(px,.25,pz),(px,.14,pz+.10),.052,12)
+ tube('galvanized',(px,.14,pz+.10),(px,.14,pz+.22),.052,12)
+ for yy in [.6,2.1]+[float(i) for i in range(4,int(head),3)]:
+  tube('rust',(px,yy-.022,pz),(px,yy+.022,pz),.064,12)
+  bevel_box('galvanized',(px,yy,pz-.045),(.16,.045,.13),.008)
+ # One clear functional service run, fixed to the facade, rather than random wires.
+ if h>4:
+  for yy in [3.10,3.17]:tube('cable',(-w/2+.14,yy,front+.10),(w/2-.14,yy,front+.10),.012,7)
+  for xx in [-w*.32,w*.32]:tube('paper',(xx,3.10,front+.06),(xx,3.10,front+.13),.032,8)
+ if h>5 and not b.get('shop'):
+  xx=w/2-.70;yy=3.40;zz=front+.22
+  bevel_box('painted_metal',(xx,yy,zz),(.82,.56,.30),.035,(1.05,1.04,1.0,1))
+  tube('cable',(xx+.12,yy,zz+.154),(xx+.12,yy,zz+.17),.205,20)
+  for radius in [.09,.14,.19]:
+   for k in range(20):
+    a=k*math.tau/20;bb=(k+1)*math.tau/20
+    tube('galvanized',(xx+.12+radius*math.cos(a),yy+radius*math.sin(a),zz+.181),(xx+.12+radius*math.cos(bb),yy+radius*math.sin(bb),zz+.181),.006,4)
+  for k in range(4):
+   y2=yy-.15+k*.10;box('cable',(xx-.26,y2,zz+.159),(.16,.022,.018))
+  for dx in [-.28,.28]:
+   tube('rust',(xx+dx,yy-.32,front+.06),(xx+dx,yy-.32,zz+.18),.018,6)
+  tube('galvanized',(xx-.39,yy-.12,zz),(xx-.48,yy-.29,front+.11),.035,8)
+ manifest['hero_frontages'].append({'seed':b.get('seed',0),'id':b.get('id',''),'at':[b['x'],b['z']]})
 def building(b,special=''):
- global TINT
+ global TINT,DETAIL
  x,z=b['x'],b['z'];place(x,z,b.get('rot',0));r=random.Random(b.get('seed',round(x*93+z)))
  w,d,h=b['w'],b['d'],b.get('height',7);floors=max(1,b.get('floors',round(h/3.3)))
+ DETAIL=(140<x<185 and 112<z<140) or bool(special)
  wall=b.get('wall','plaster');wall=wall if wall in COLORS else 'plaster'
+ if DETAIL and wall=='plaster' and int(b.get('seed',0))%3!=0:wall='hero_plaster'
  shade=r.uniform(.83,1.10);palette=r.choice([(1.,.98,.92),(.87,.93,.94),(.96,.88,.73),(.80,.87,.83)])
  TINT=(shade*palette[0],shade*palette[1],shade*palette[2],1)
  if special=='laundry':h=15.8;floors=5 # Facade reflects the established F2 shop and upper story route.
@@ -131,8 +218,12 @@ def building(b,special=''):
    for k in range(4):box('paper',(-.52+k*.34,yy+.13,d/2-1.49),(.21,.25,.18),(.5,.45,.3,1))
   manifest['shop_recesses'].append({'seed':b['seed'],'depth':depth,'opening':opening})
  else:
-  box(wall,(0,h/2,0),(w,h,d));box('graybrick',(0,.32,0),(w+.05,.64,d+.05))
- for level in range(1,floors):box('trim',(0,level*h/floors,0),(w+.12,.12,d+.12))
+  box(wall,(0,h/2,0),(w,h,d))
+  if DETAIL:bevel_box('concrete',(0,.07,0),(w+.025,.14,d+.025),.012)
+  else:box('graybrick',(0,.32,0),(w+.05,.64,d+.05))
+ for level in range(1,floors):
+  if DETAIL and level%2:continue
+  box('trim',(0,level*h/floors,0),(w+(.08 if DETAIL else .12),.075 if DETAIL else .12,d+(.08 if DETAIL else .12)))
  if b.get('kind')=='annex':
   # Low weathered lean-to roof, with a narrow overhang inside the clearance mask.
   face('roof_metal',[(-w/2-.08,h+.14,-d/2-.08),(w/2+.08,h+.14,-d/2-.08),(w/2+.08,h-.02,d/2+.08),(-w/2-.08,h-.02,d/2+.08)],[(3,2,1,0)])
@@ -152,9 +243,10 @@ def building(b,special=''):
   y=f*h/floors+1.65
   for k in range(bays):
    xx=-w/2+step*(k+.5)
-   if f==0 and abs(xx)<step*.62:continue
-   window(xx,y,front,min(1.45,step*.64),1.3,r.random()<(.46 if special else .19),f==0 or r.random()<.25)
-   if r.random()<.12 and f>0:
+   window_width=min(1.45,step*.64)
+   if f==0 and (abs(xx)-window_width*.5 < (.94 if recess else .79) if DETAIL else abs(xx)<step*.62):continue
+   window(xx,y,front,window_width,1.3,r.random()<(.46 if special else .19),f==0 or r.random()<.25)
+   if r.random()<.12 and f>0 and not DETAIL:
     box('metal',(xx+.65,y-.65,front+.27),(.6,.43,.5))
     for j in range(5):box('cable',(xx+.65,y-.8+j*.065,front+.53),(.48,.018,.014))
   # Complete rear facade; sides use the same window kit, rotated to their wall.
@@ -185,7 +277,10 @@ def building(b,special=''):
    'yaw':b.get('rot',0),'size':.09})
  # Tiny service annexes share their parent building's meter; a front meter would
  # overlap the door on the narrowest 1.8m facade.
- if b.get('kind')!='annex':meter(min(w/2-.6,1.5),1.55,front+.15)
+ if b.get('kind')!='annex':
+  # First-floor windows now occupy real facade bays. Keep the meter against the
+  # outer masonry pier, beyond the nearest window frame, rather than on glass.
+  meter(w/2-.35 if DETAIL and w>4 else min(w/2-.6,1.5),1.55,front+.15)
  # Localized contact staining as thin wall panels; never a full checkerboard overlay.
  for k in range(max(2,int(w/2))):
   xx=r.uniform(-w*.46,w*.46);hh=r.uniform(.16,.54)
@@ -211,7 +306,8 @@ def building(b,special=''):
   manifest['signs'].append({'text':'得利洗衣店  ·  二楼' if special=='laundry' else '出租公寓',
    'position':list(point((0,sy,front+.315))),'yaw':b.get('rot',0),'size':.15 if special=='laundry' else .11})
   manifest['lights'].append({'position':list(point((0,2.6,front+1.0))),'color':'edc587','energy':1.5,'range':8.})
- TINT=(1,1,1,1)
+ if DETAIL:frontage_detail(b,w,d,h,wall)
+ TINT=(1,1,1,1);DETAIL=False
 
 # Non-overlapping road/sidewalk junctions. Triangulated from polygons with river holes.
 for kind,tris in PLAN['surfaces'].items():
@@ -224,6 +320,49 @@ for kind,tris in PLAN['surfaces'].items():
   # Ensure upward normal after Godot-to-Blender conversion.
   if (vv[1][0]-vv[0][0])*(vv[2][2]-vv[0][2])-(vv[1][2]-vv[0][2])*(vv[2][0]-vv[0][0])>0:vv.reverse()
   face(mat,vv,[(0,1,2)],world=True)
+
+# Close the raised paving's boundary. Leaving a 3.5cm suspended single-sided
+# sheet produces bright/open seams at road edges from a normal eye-height view.
+paving_edges=Counter()
+for tri in PLAN['surfaces']['paving']:
+ for i in range(3):
+  a=tuple(tri[i]);b=tuple(tri[(i+1)%3]);paving_edges[tuple(sorted((a,b)))]+=1
+for (a,b),count in paving_edges.items():
+ if count!=1:continue
+ place((a[0]+b[0])*.5,(a[1]+b[1])*.5)
+ face('paving',[(a[0],-.018,a[1]),(b[0],-.018,b[1]),(b[0],.035,b[1]),(a[0],.035,a[1])],[(0,1,2,3)],world=True)
+
+# A few shallow asphalt repairs and individually edged drain-side stones only in
+# the accepted close-up street. The original triangulated collision floor stays
+# continuous; repairs sit below the existing .008m puddle surface.
+for road in DATA['roads']:
+ if road.get('id')!='r_main':continue
+ pts=road['points'];width=road['width'];rr=random.Random(191184)
+ for i in range(1,len(pts)-1):
+  x,z=pts[i]
+  if not (145<x<185 and 116<z<137):continue
+  xx,zz=pts[i+1];place(x,z,math.atan2(xx-x,zz-z))
+  if i%3==0:
+   cx=rr.choice([-.6,.7]);length=rr.uniform(1.25,2.30);span=rr.uniform(.28,.65);count=11
+   ring=[]
+   for j in range(count):
+    a=j*math.tau/count;scale=rr.uniform(.78,1.08)
+    ring.append((math.cos(a)*span*.5*scale,math.sin(a)*length*.5*scale))
+   verts=[(cx,.0035,0)]+[(cx+x*.72,.0035,z*.72) for x,z in ring]+[(cx+x,.0035,z) for x,z in ring]
+   key=(GROUP,'road_patch')
+   if key not in GEOM:GEOM[key]=[[],[],[]]
+   vv,ff,cc=GEOM[key];base=len(vv)
+   for p in verts:
+    x2,y2,z2=point(p);vv.append((x2,-z2,y2))
+   for j in range(count):
+    k=(j+1)%count
+    ff.extend([(base,base+k+1,base+j+1),(base+j+1,base+k+1,base+count+k+1,base+count+j+1)])
+   cc.extend([(1,1,1,1)]*(count+1)+[(1,1,1,0)]*count)
+  if i%2==0:
+   for side in [-1,1]:
+    at=point((side*(width*.5+.12),.02,0))
+    if any(math.hypot(at[0]-f['front'][0],at[2]-f['front'][1])<1.5 for f in DATA['landmarks']):continue
+    bevel_box('concrete',(side*(width*.5+.12),.018,0),(.18,.055,rr.uniform(.85,1.35)),.012,(.94,.93,.88,1))
 for puddle in PLAN.get('puddle_regions',[]):
  cx,cz=puddle['center'];edge=puddle['edge'];place(cx,cz)
  # Inner fan plus alpha feather ring. Every edge fades back into the same road.
@@ -359,7 +498,7 @@ for x,z,s,seed in PLAN['grass']:
 
 # Export chunks. Material names/nodes are a stable runtime contract for shared PBR overrides.
 materials={}
-for mat in set(k[1] for k in GEOM):
+for mat in sorted(set(k[1] for k in GEOM)):
  m=bpy.data.materials.new(mat);m.diffuse_color=COLORS.get(mat,(.35,.38,.32,1));m.use_nodes=True
  bsdf=m.node_tree.nodes.get('Principled BSDF');bsdf.inputs['Base Color'].default_value=m.diffuse_color;bsdf.inputs['Roughness'].default_value=.8
  materials[mat]=m

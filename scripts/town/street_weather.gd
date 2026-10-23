@@ -67,6 +67,7 @@ func activate() -> void:
 		sun.name = "TownWeatherSunMoon"
 		sun.shadow_enabled = true
 		sun.directional_shadow_max_distance = 90.0
+		sun.light_angular_distance = 1.5
 		add_child(sun)
 	# The original global moon is tiny but still leaks a blue fill into daytime.
 	# Temporarily hide it; never mutate its saved colour/energy or indoor state.
@@ -263,8 +264,8 @@ func _update_sky() -> void:
 	sky_material.set_shader_parameter("daylight", daylight)
 	sky_material.set_shader_parameter("cloud_cover", cloud_cover)
 	sky_material.set_shader_parameter("weather_time", float(cloud_second))
-	environment.ambient_light_color = Color("8194aa").lerp(Color("bac7ca"), daylight)
-	environment.ambient_light_energy = lerpf(0.38, 0.57, daylight)
+	environment.ambient_light_color = Color("8194aa").lerp(Color("c8c3b8"), daylight)
+	environment.ambient_light_energy = lerpf(0.38, 0.68, daylight)
 	environment.fog_light_color = horizon
 	environment.fog_density = lerpf(0.0010, 0.0037, rain_amount) * lerpf(1.0, 0.65, daylight)
 	if sun != null:
@@ -272,7 +273,7 @@ func _update_sky() -> void:
 		var celestial_direction := direction if daylight > 0.1 else Vector3(0.28, 0.52, -0.72).normalized()
 		sun.look_at(sun.global_position - celestial_direction, Vector3.UP)
 		sun.light_color = Color("7f9cbe").lerp(Color("fff1d4").lerp(Color("ffd4a3"), warm), daylight)
-		sun.light_energy = lerpf(0.22, 2.15, daylight) * (1.0 - cloud_cover * 0.58)
+		sun.light_energy = lerpf(0.22, 1.65, daylight) * (1.0 - cloud_cover * 0.58)
 
 func _index_roofs() -> void:
 	_roof_bins.clear()

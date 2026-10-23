@@ -1,0 +1,265 @@
+{
+  "version": 1,
+  "chunks": [
+    "res://assets/town/renewal/hero_props/doorstep_cane.glb",
+    "res://assets/town/renewal/hero_props/electrical_shop.glb",
+    "res://assets/town/renewal/hero_props/tile_corner.glb"
+  ],
+  "props": [
+    {
+      "id": "bent_cane_chair",
+      "group": "doorstep_cane",
+      "anchor_seed": 579349,
+      "at": [
+        153.12400726844638,
+        0.56,
+        127.14165705287152
+      ],
+      "size": [
+        0.53,
+        1.07,
+        0.55
+      ],
+      "yaw": 3.0413,
+      "local_at": [
+        -1.2,
+        0.56,
+        0.3
+      ]
+    },
+    {
+      "id": "basin_stool",
+      "group": "doorstep_cane",
+      "anchor_seed": 579349,
+      "at": [
+        153.83888733175206,
+        0.29,
+        127.22867139127644
+      ],
+      "size": [
+        0.54,
+        0.51,
+        0.54
+      ],
+      "yaw": 3.0413,
+      "local_at": [
+        -1.92,
+        0.29,
+        0.285
+      ]
+    },
+    {
+      "id": "electrical_drawer_unit",
+      "group": "electrical_shop",
+      "anchor_seed": 551335,
+      "at": [
+        167.7068488614882,
+        0.49,
+        120.05486771990012
+      ],
+      "size": [
+        0.73,
+        0.91,
+        0.5
+      ],
+      "yaw": -1.3943,
+      "local_at": [
+        -1.35,
+        0.49,
+        0.25
+      ]
+    },
+    {
+      "id": "old_clay_tile_stack",
+      "group": "tile_corner",
+      "anchor_seed": 993505,
+      "at": [
+        163.1178231079109,
+        0.28,
+        129.1088807346186
+      ],
+      "size": [
+        0.49,
+        0.48,
+        0.52
+      ],
+      "yaw": 2.9209,
+      "local_at": [
+        -1.38,
+        0.28,
+        0.28
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "seed": 579349,
+      "group": "doorstep_cane",
+      "front": [
+        151.9,
+        127.32
+      ],
+      "yaw": 3.0413
+    },
+    {
+      "seed": 551335,
+      "group": "electrical_shop",
+      "front": [
+        168.19,
+        121.34
+      ],
+      "yaw": -1.3943
+    },
+    {
+      "seed": 993505,
+      "group": "tile_corner",
+      "front": [
+        161.71,
+        129.08
+      ],
+      "yaw": 2.9209
+    }
+  ],
+  "preserve_materials": [
+    "wicker",
+    "enamel",
+    "enamel_flower"
+  ],
+  "validation": {
+    "clearances": [
+      {
+        "id": "bent_cane_chair",
+        "door_clearance_m": 0.9353,
+        "road_edge_clearance_m": 0.2842
+      },
+      {
+        "id": "basin_stool",
+        "door_clearance_m": 1.6501,
+        "road_edge_clearance_m": 0.2825
+      },
+      {
+        "id": "electrical_drawer_unit",
+        "door_clearance_m": 0.985,
+        "road_edge_clearance_m": 0.2436
+      },
+      {
+        "id": "old_clay_tile_stack",
+        "door_clearance_m": 1.1352,
+        "road_edge_clearance_m": 0.407
+      }
+    ],
+    "zero_area_polygons": 0,
+    "door_protection_m": 0.65,
+    "road_volume_overlap": false
+  },
+  "notes": [
+    "Authoring source uses existing town-layout building front/yaw.",
+    "No characters, gameplay, landmark names or entrance positions are changed.",
+    "Boxes are declared alongside the geometry that they bound.",
+    "Door protection is 0.65 m; road volumes are never narrowed by these props.",
+    "Wicker and enamel use exported native PBR plus vertex colour; do not override.",
+    "This layer is additive. Do not load it twice or merge into old town GLBs."
+  ],
+  "counts": {
+    "vertices": 25115,
+    "triangles": 48474,
+    "material_batches": 14,
+    "glb_bytes": 2062320
+  },
+  "geometry": {
+    "doorstep_cane/enamel": {
+      "vertices": 960,
+      "triangles": 1916
+    },
+    "doorstep_cane/enamel_flower": {
+      "vertices": 839,
+      "triangles": 1246
+    },
+    "doorstep_cane/grass": {
+      "vertices": 95,
+      "triangles": 57
+    },
+    "doorstep_cane/wicker": {
+      "vertices": 10296,
+      "triangles": 20152
+    },
+    "doorstep_cane/wood": {
+      "vertices": 260,
+      "triangles": 484
+    },
+    "electrical_shop/enamel": {
+      "vertices": 2880,
+      "triangles": 5736
+    },
+    "electrical_shop/grass": {
+      "vertices": 95,
+      "triangles": 57
+    },
+    "electrical_shop/metal": {
+      "vertices": 7750,
+      "triangles": 15408
+    },
+    "electrical_shop/paper": {
+      "vertices": 152,
+      "triangles": 252
+    },
+    "electrical_shop/rust": {
+      "vertices": 70,
+      "triangles": 132
+    },
+    "electrical_shop/wood": {
+      "vertices": 880,
+      "triangles": 1680
+    },
+    "tile_corner/concrete": {
+      "vertices": 624,
+      "triangles": 1200
+    },
+    "tile_corner/grass": {
+      "vertices": 190,
+      "triangles": 114
+    },
+    "tile_corner/wood": {
+      "vertices": 24,
+      "triangles": 40
+    }
+  },
+  "bounds_godot": {
+    "doorstep_cane": [
+      [
+        152.50298917992234,
+        0.042802322655916214,
+        126.85031764512868
+      ],
+      [
+        154.10088674416107,
+        1.1037267446517944,
+        127.55956740080103
+      ]
+    ],
+    "electrical_shop": [
+      [
+        167.43162060381775,
+        0.032499998807907104,
+        119.28893424505812
+      ],
+      [
+        167.9845334800975,
+        1.7400000095367432,
+        120.43297252809333
+      ]
+    ],
+    "tile_corner": [
+      [
+        162.42716821623276,
+        0.046,
+        128.817619777972
+      ],
+      [
+        163.71732818447128,
+        0.5227344036102295,
+        129.56443565278656
+      ]
+    ]
+  }
+}

@@ -149,6 +149,9 @@ func run() -> void:
 	set_phase("白天干燥",720.0,0.0)
 	if OS.get_cmdline_user_args().has("--frontages"):
 		await frontage_shots()
+	if OS.get_cmdline_user_args().has("--hero-details"):
+		await capture("近景_门旁藤椅搪瓷盆",Vector3(154,0.10,124.7),Vector3(151.8,1.0,127.3))
+		await capture("近景_反向立面管线",Vector3(155.3,0.10,127.3),Vector3(177.7,6.2,102.8))
 	if quick:await capture("06_沿街道路近景",Vector3(150,0.10,124.1),Vector3(165,0.5,126.5))
 	else:
 		await phase_shots()

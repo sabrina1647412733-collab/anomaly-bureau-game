@@ -11,12 +11,35 @@ const TEXTURES := {
 	"concrete":"rough_concrete", "trim":"chipped_concrete", "wood":"wood_planks_dirt",
 	"metal":"metal_plate", "rust":"rusty_metal", "roof_tile":"dirty_tiles",
 	"roof_metal":"worn_corrugated_iron", "road":"asphalt_04", "paving":"concrete_floor",
-	"ground":"rough_concrete", "sign":"painted_concrete", "stain":"damaged_plaster"
+	"ground":"rough_concrete", "sign":"painted_concrete", "stain":"damaged_plaster",
+	"hero_plaster":"damaged_plaster", "road_patch":"asphalt_04"
 }
 const TINTS := {
 	"glass":Color(.10,.17,.19),"window_warm":Color(.68,.44,.21),"window_cool":Color(.36,.52,.55),
 	"cable":Color(.055,.064,.062),"grass":Color(.24,.31,.14),"leaf":Color(.18,.27,.15),
-	"lamp":Color(.85,.53,.21),"paper":Color(.68,.61,.45),"curtain":Color(.38,.33,.24)
+	"lamp":Color(.85,.53,.21),"paper":Color(.68,.61,.45),"curtain":Color(.38,.33,.24),
+	"painted_metal":Color(.72,.71,.66),"galvanized":Color(.59,.62,.63)
+}
+# Repetitions/metre and material response, calibrated against ordinary brick
+# courses, door planks and paving at the player's eye height. Vertex paint is
+# palette variation, not a second flat albedo pass over photographed materials.
+const SURFACE_PROFILES := {
+	"plaster":{"tex_scale":.54,"normal_strength":.68,"minimum_roughness":.79,"vertex_tint_strength":.30,"wall_age":1.0,"wet_response":.30},
+	"brick":{"tex_scale":1.05,"normal_strength":.80,"minimum_roughness":.77,"vertex_tint_strength":.35,"wall_age":.75,"wet_response":.40},
+	"graybrick":{"tex_scale":1.04,"normal_strength":.72,"minimum_roughness":.80,"vertex_tint_strength":.30,"wall_age":.85,"wet_response":.40,"albedo_saturation":.72},
+	"concrete":{"tex_scale":.68,"normal_strength":.56,"minimum_roughness":.82,"vertex_tint_strength":.22,"wall_age":.45,"wet_response":.32},
+	"trim":{"tex_scale":.85,"normal_strength":.54,"minimum_roughness":.80,"vertex_tint_strength":.25,"wall_age":.35,"wet_response":.35},
+	"wood":{"tex_scale":.62,"normal_strength":.56,"minimum_roughness":.76,"vertex_tint_strength":.45,"wet_response":.35,"albedo_saturation":.78},
+	"metal":{"tex_scale":.65,"normal_strength":.24,"minimum_roughness":.48,"vertex_tint_strength":.45,"wet_response":.50,"metalness":.68,"base_roughness":.92},
+	"rust":{"tex_scale":.85,"normal_strength":.58,"minimum_roughness":.75,"vertex_tint_strength":.35,"wet_response":.42,"metalness":.12},
+	"roof_tile":{"tex_scale":.52,"normal_strength":.62,"minimum_roughness":.78,"vertex_tint_strength":.40,"wet_response":.65},
+	"roof_metal":{"tex_scale":.74,"normal_strength":.46,"minimum_roughness":.65,"vertex_tint_strength":.40,"wet_response":.68,"metalness":.28},
+	"road":{"tex_scale":.75,"normal_strength":.88,"minimum_roughness":.82,"vertex_tint_strength":.10,"wet_response":.90,"macro_variation":.17,"tint":Color(.86,.87,.88)},
+	"paving":{"tex_scale":.95,"normal_strength":.68,"minimum_roughness":.83,"vertex_tint_strength":.18,"wet_response":.72,"albedo_saturation":.32,"tint":Color(.94,.95,.95)},
+	"ground":{"tex_scale":.78,"normal_strength":.67,"minimum_roughness":.86,"vertex_tint_strength":.15,"wet_response":.70,"albedo_saturation":.48,"tint":Color(.86,.84,.79)},
+	"sign":{"tex_scale":.65,"normal_strength":.28,"minimum_roughness":.73,"vertex_tint_strength":1.0,"wet_response":.35},
+	"stain":{"tex_scale":.56,"normal_strength":.78,"minimum_roughness":.84,"vertex_tint_strength":.05,"wall_age":1.0,"wet_response":.38},
+	"hero_plaster":{"tex_scale":.54,"normal_strength":.82,"minimum_roughness":.80,"vertex_tint_strength":.10,"wall_age":.72,"wet_response":.36,"albedo_saturation":.65,"tint":Color(1.0,.98,.95)}
 }
 
 func setup(owner_town)->void:
@@ -71,11 +94,13 @@ func _materials(node:Node)->void:
 		var kind=String(node.name).get_slice(".",0)
 		# Imported names can have a suffix when multiple spatial chunks share a material.
 		if not TEXTURES.has(kind) and not TINTS.has(kind) and kind not in ["puddle","water"]:
+			var match_kind=""
 			for candidate in TEXTURES.keys()+TINTS.keys()+["puddle","water"]:
-				if kind.begins_with(candidate):kind=candidate;break
+				if kind.begins_with(candidate) and String(candidate).length()>match_kind.length():match_kind=candidate
+			if not match_kind.is_empty():kind=match_kind
 		node.material_override=_material(kind)
-		node.visibility_range_end=150. if kind in ["plaster","brick","graybrick","roof_tile","roof_metal"] else 100.
-		if kind in ["leaf","grass"]:node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.visibility_range_end=150. if kind in ["plaster","hero_plaster","brick","graybrick","roof_tile","roof_metal"] else 100.
+		if kind in ["leaf","grass","road_patch"]:node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for child in node.get_children():_materials(child)
 
 func _material(kind:String)->Material:
@@ -87,6 +112,25 @@ func _material(kind:String)->Material:
 		var glass=ShaderMaterial.new();glass.shader=preload("res://scripts/town/street_glass.gdshader")
 		glass.set_shader_parameter("tint",TINTS[kind]);glass.set_shader_parameter("lit",1. if kind!="glass" else 0.)
 		materials[kind]=glass;return glass
+	if kind=="road_patch":
+		# Alpha is supplied by the maintenance mesh's inner/outer vertex ring.
+		# Draw before puddles; transparent feathering never writes a depth outline.
+		var patch=ShaderMaterial.new();patch.shader=preload("res://scripts/town/street_road_patch.gdshader")
+		patch.render_priority=-1
+		patch.set_shader_parameter("street_origin",town.global_position if is_instance_valid(town) else Vector3.ZERO)
+		for slot in ["base_tex","normal_tex","rough_tex"]:
+			var filename={"base_tex":"albedo.jpg","normal_tex":"normal.jpg","rough_tex":"rough.jpg"}[slot]
+			patch.set_shader_parameter(slot,load("res://assets/textures/asphalt_04/"+filename))
+		materials[kind]=patch;return patch
+	if kind in ["painted_metal","galvanized"]:
+		# These are coated/oxidised service fixtures, not dark chequer-plate steel.
+		var finish=ShaderMaterial.new();finish.shader=preload("res://scripts/town/street_metal_finish.gdshader")
+		finish.set_shader_parameter("tint",TINTS[kind])
+		finish.set_shader_parameter("street_origin",town.global_position if is_instance_valid(town) else Vector3.ZERO)
+		finish.set_shader_parameter("metalness",.22 if kind=="galvanized" else 0.)
+		finish.set_shader_parameter("base_roughness",.61 if kind=="galvanized" else .72)
+		finish.set_shader_parameter("mottle_amount",.055 if kind=="galvanized" else .022)
+		materials[kind]=finish;return finish
 	if not TEXTURES.has(kind):
 		var simple=StandardMaterial3D.new();simple.albedo_color=TINTS.get(kind,Color(.45,.45,.4))
 		simple.vertex_color_use_as_albedo=true;simple.cull_mode=BaseMaterial3D.CULL_DISABLED
@@ -96,14 +140,12 @@ func _material(kind:String)->Material:
 		materials[kind]=simple;return simple
 	var material=ShaderMaterial.new();material.shader=preload("res://scripts/town/street_surface.gdshader")
 	var folder="res://assets/textures/"+TEXTURES[kind]+"/"
-	for slot in ["base_tex","normal_tex","rough_tex"]:
-		var filename={"base_tex":"albedo.jpg","normal_tex":"normal.jpg","rough_tex":"rough.jpg"}[slot]
+	for slot in ["base_tex","normal_tex","rough_tex","ao_tex"]:
+		var filename={"base_tex":"albedo.jpg","normal_tex":"normal.jpg","rough_tex":"rough.jpg","ao_tex":"ao.jpg"}[slot]
 		material.set_shader_parameter(slot,load(folder+filename))
-	material.set_shader_parameter("tex_scale",.38 if kind in ["plaster","concrete","trim"] else (.7 if kind in ["road","paving","ground"] else .6))
-	material.set_shader_parameter("wet_response",.9 if kind in ["road","paving","ground"] else .35)
-	material.set_shader_parameter("metalness",.55 if kind in ["metal","rust","roof_metal"] else 0.)
-	material.set_shader_parameter("base_roughness",.8 if kind in ["metal","roof_metal"] else 1.)
-	material.set_shader_parameter("tint",Color(.68,.72,.69) if kind=="ground" else Color.WHITE)
+	material.set_shader_parameter("street_origin",town.global_position if is_instance_valid(town) else Vector3.ZERO)
+	for parameter in SURFACE_PROFILES.get(kind,{}):
+		material.set_shader_parameter(parameter,SURFACE_PROFILES[kind][parameter])
 	materials[kind]=material;return material
 
 func set_weather(wet:float,rain:float,elapsed:float)->void:
