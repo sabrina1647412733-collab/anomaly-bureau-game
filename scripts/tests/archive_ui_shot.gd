@@ -3,7 +3,7 @@ extends SceneTree
 
 const Archive := preload("res://scripts/archive.gd")
 const OUT := "res://_预览/截图/"
-const PATHS := ["user://archive.json", "user://archive_export.json", "user://save_1.json", "user://save_2.json", "user://save_3.json"]
+static var PATHS := [Archive.PATH,Archive.EXPORT_PATH,preload("res://scripts/storage_paths.gd").file("save_1.json"),preload("res://scripts/storage_paths.gd").file("save_2.json"),preload("res://scripts/storage_paths.gd").file("save_3.json")]
 
 var game
 var backup := {}

@@ -71,7 +71,7 @@ func setup(f: Font) -> void:
 
 # ------------------------------------------------------------------ 设置读写
 func _load_settings() -> void:
-    if cfg.load("user://settings.cfg") != OK:
+    if cfg.load(preload("res://scripts/storage_paths.gd").file("settings.cfg")) != OK:
         cfg.set_value("audio", "music", 0.8)
         cfg.set_value("audio", "sfx", 1.0)
         cfg.set_value("input", "sens", 1.0)
@@ -88,7 +88,7 @@ func _save_settings() -> void:
     cfg.set_value("render", "fog", fog_slider.value / 100.0)
     cfg.set_value("render", "bright", bright_slider.value / 100.0)
     cfg.set_value("text", "speed", sub_slider.value / 100.0)
-    cfg.save("user://settings.cfg")
+    cfg.save(preload("res://scripts/storage_paths.gd").file("settings.cfg"))
 
 func get_cfg() -> Dictionary:
     return {
@@ -1073,7 +1073,7 @@ func set_archive_note(text: String) -> void:
 
 func _export_archive() -> void:
     var text := Archive.export_text()
-    # 始终留一份在 user://，便于排查；桌面端再让玩家选路径。
+    # 留一份在当前数据目录；桌面端再让玩家选择导出路径。
     Archive.export_to_file()
     if OS.has_feature("web"):
         var jb = Engine.get_singleton("JavaScriptBridge")

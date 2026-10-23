@@ -171,7 +171,7 @@ var dialog_npc: Variant = null
 var choice: Variant = null            # {text, key_a, label_a, key_b, label_b}
 var chooser_a = null
 var chooser_b = null
-const SLOT_PATHS := ["user://save_1.json", "user://save_2.json", "user://save_3.json"]
+var SLOT_PATHS := [preload("res://scripts/storage_paths.gd").file("save_1.json"),preload("res://scripts/storage_paths.gd").file("save_2.json"),preload("res://scripts/storage_paths.gd").file("save_3.json")]
 var menu_layer: CanvasLayer
 var menu
 var ambient: AudioStreamPlayer
@@ -231,6 +231,13 @@ var ITEM_DEFS := [
 	{"id":"log", "short":"00:16:43 手动进路","name":"巡检簿","where":"站台 · 长椅上","desc":"巡检簿被撕掉的一页。上面记着 00:16:43 那道手动进路。","pos":Vector3(-14.72, 0.516, 17.00),"col":Color(0.72,0.82,0.95),"round":2},
 	{"id":"relay5", "short":"反馈慢了半拍","name":"五号继电器","where":"信号室 · 继电器柜","desc":"五号继电器的反馈慢半拍。隔离它，进路才锁得死。","pos":Vector3(-17.150, 2.071, 26.700),"col":Color(0.25,0.75,0.56),"round":3},
 ]
+
+func _exit_tree() -> void:
+	# The original ambient generator owns its playback outside field_audio.
+	for child in get_children():
+		if child is AudioStreamPlayer:
+			child.stop()
+			child.stream=null
 
 func _ready() -> void:
 	if OS.has_feature("web"):
@@ -389,8 +396,8 @@ func _apply_laundry_environment(on: bool) -> void:
 	var e := env_node.environment
 	if on:
 		e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-		e.ambient_light_color = Color(0.26, 0.28, 0.34)
-		e.ambient_light_energy = 0.72
+		e.ambient_light_color = Color(0.44, 0.48, 0.46)
+		e.ambient_light_energy = 0.62
 		e.tonemap_exposure = 1.02
 		e.fog_density = 0.008
 		e.fog_light_color = Color(0.040, 0.048, 0.062)
@@ -1893,6 +1900,7 @@ func _start_prologue(with_intro := true) -> void:
 	if player.sitting:
 		player.stand_up()
 	player.cam_mode = 0
+	player.flash.visible=false
 	player.body.visible = false
 	player.show_view_arm = false
 	player.lock_look = false
@@ -2220,6 +2228,7 @@ func _step_exit_to_town(delta: float) -> void:
 	_exit_town_t += delta
 	if _exit_town_t >= LEAVE_FADE and prologue_stage != "town":
 		town_bridge.enter()
+		state = "prologue_transition"
 		player.can_move = false
 		player.allow_capture = false
 		_fade_to(0.0, LEAVE_FADE)
@@ -2251,6 +2260,7 @@ func _step_laundry_to_town(delta: float) -> void:
 		case_mode = ""
 		_apply_laundry_environment(false)
 		town_bridge.enter(true)
+		state = "prologue_transition"
 		player.can_move = false
 		player.allow_capture = false
 		_fade_to(0.0, LEAVE_FADE)
@@ -4345,7 +4355,7 @@ func _fade_to(a: float, dur: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	# Modal controls own their input; stale world prompts and shortcuts stay inert.
-	var modal_input := state in ["menu","paused","case_dialogue","case_reader","clock_ui","prologue_ui"] or phone_open or bag_open or nb_open
+	var modal_input := state in ["menu","paused","case_dialogue","case_reader","case_cinematic","clock_ui","prologue_ui"] or phone_open or bag_open or nb_open
 	if modal_input and event is InputEventKey and event.physical_keycode!=KEY_ESCAPE:
 		return
 	# ── 字幕：点鼠标左键 / 按空格 / 回车，一下推进一句 ──
@@ -4987,6 +4997,7 @@ func _apply_settings() -> void:
 func _hide_menu() -> void:
 	menu.visible = false
 	player.physics_frozen = false
+	if state=="case_cinematic":player.physics_frozen=true
 	if hud != null: hud.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	player.allow_capture = true
@@ -5097,8 +5108,7 @@ func delete_slot(i: int) -> bool:
 		return false
 	if not FileAccess.file_exists(SLOT_PATHS[i]):
 		return false
-	# 用 user:// 目录相对删除，桌面端与 Web（IndexedDB 虚拟文件系统）都能生效
-	var dir := DirAccess.open("user://")
+	var dir := DirAccess.open(SLOT_PATHS[i].get_base_dir())
 	if dir == null:
 		return false
 	return dir.remove(SLOT_PATHS[i].get_file()) == OK
@@ -5138,6 +5148,7 @@ func _on_resume() -> void:
 	if hud != null: hud.visible = true
 	menu.hide_all()
 	player.physics_frozen = false
+	if state=="case_cinematic":player.physics_frozen=true
 	player.can_move = state in ["play", "prologue"]
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if player.can_move else Input.MOUSE_MODE_VISIBLE
 	player.allow_capture = player.can_move
@@ -5253,6 +5264,7 @@ func _discard_laundry() -> void:
 	hud_end.size = Vector2(920,378)
 	prologue_spots = prologue_spots.filter(func(sp): return sp.get("id","") != "case_rest")
 	if laundry != null and is_instance_valid(laundry.campaign):
+		laundry.campaign.cinematic.cancel()
 		laundry.campaign.queue_free()
 	if laundry != null and is_instance_valid(laundry.world):
 		_set_tree_visible(laundry.world, false)

@@ -32,6 +32,30 @@ func route_for(goal: Dictionary, p: Vector3) -> Dictionary:
  if point.is_empty():return {}
  var destination:Vector3=point.pos
  var current=floor_index(p.y+.22);var target=floor_index(destination.y+.1)
+ if goal.id=="c1_sandal" and p.x<3.05 and absf(p.z+6.1)>.20:return waypoint(Vector3(2.58,-1.6,-6.1),"沿步道对准竖井侧面的开口，再向下查看布鞋")
+ # Leave the current room through its real door before routing to another room/floor.
+ # Without this, a target in 304 points straight through 303's partition wall.
+ if current==3 and p.x<-.60 and p.z<6.35 and goal.id not in ["c1_drawer","c1_photo"]:
+  if absf(p.x+1.25)>.16 and p.z<6.0:return waypoint(Vector3(-1.25,8.1,5.65),"先在303内对准卧室门")
+  return waypoint(Vector3(-1.25,8.1,6.95),"经303门回到三楼走廊")
+ if current==3 and p.x>.60 and p.z<5.35 and goal.id not in ["c1_cert","c1_homework","c1_stones","c1_shoe_room"]:
+  if absf(p.x-1.55)>.16 and p.z<5.1:return waypoint(Vector3(1.55,8.1,4.7),"先在304内对准儿童房门")
+  return waypoint(Vector3(1.55,8.1,6.1),"经304门回到三楼走廊")
+ if current==2 and p.z<1.7 and (target!=2 or destination.z>1.8):
+  if absf(p.x+1.65)>.18:return waypoint(Vector3(-1.65,4.8,.9),"先对准后房外门")
+  return waypoint(Vector3(-1.65,4.8,2.65),"从后房门回店堂")
+ if current==2 and p.x>3.3 and goal.id!="c1_mail_letter" and (p.z>8.3 or p.x>6):
+  if p.x>13.2 and absf(p.z-9.5)>.2:return waypoint(Vector3(13.8,4.8,9.5),"先从存档间走回廊桥门口")
+  if p.x>3.8:return waypoint(Vector3(3.6,4.8,9.5),"沿廊桥返回洗衣楼")
+  return waypoint(Vector3(2.65,4.8,9.5),"经廊桥入口回店堂")
+ if current==2 and p.x>3.2 and p.z<8.3 and goal.id!="c1_power":return waypoint(Vector3(2.6,4.8,6.95),"先离开配电房")
+ if current==2 and p.x>2.25 and p.z>6.4 and p.z<7.7 and goal.id!="c1_power":return waypoint(Vector3(2.6,4.8,7.85),"从长椅背后绕到南端过道")
+ if current==5 and p.z<5.35 and target!=5:
+  if p.x>.6 and not story.flag("503_open"):return waypoint(Vector3(-1.7,13.9,4.35),"沿共用维修通道退回502")
+  var exit_x:float=1.7 if p.x>.6 and story.flag("503_open") else -1.7
+  if absf(p.x-exit_x)>.15:return waypoint(Vector3(exit_x,13.9,4.65),"对准房门，准备回走廊")
+  return waypoint(Vector3(exit_x,13.9,6.1),"经房门回到五楼走廊")
+ if current==1 and p.x>1.0 and p.z<-7.3 and target!=0:return waypoint(Vector3(-.55,1.,-7.3),"先从检修口回到门厅中央，绕开电梯杂物")
  var in_stair:bool=p.x>.25 and p.x<2.85 and p.z>10.65
  var on_segment:bool=p.y>LEVELS[current]+.23
  if in_stair and (current!=target or on_segment):
@@ -47,7 +71,9 @@ func route_for(goal: Dictionary, p: Vector3) -> Dictionary:
   return waypoint(Vector3(.89,LEVELS[low]+1.2,10.45),"沿左侧梯跑继续下楼")
  if p.x>.25 and p.x<2.85 and p.z>9.85 and current==target:return waypoint(Vector3(.89 if p.x<1.5 else 2.21,LEVELS[current]+1.2,9.65),"离开楼梯间，进入本层走廊")
  if current!=target:
-  if current==1 and target==0:return waypoint(Vector3(2.65,1,-8.1),"到1F北侧检修口，按 E 下到 B1")
+  if current==1 and target==0:
+   if p.z>-7.3:return waypoint(Vector3(-.55,1.,-7.5),"先沿门厅中央走到北端，绕开废电梯杂物")
+   return waypoint(Vector3(2.65,1,-8.1),"到1F北侧检修口，按 E 下到 B1")
   if current==0:return waypoint(Vector3(2.55,-1.5,-8.1),"回到检修梯，按 E 上到1F")
   var stair_x:float=.89 if target>current else 2.21
   if absf(p.x-stair_x)>.18:
@@ -70,10 +96,10 @@ func route_for(goal: Dictionary, p: Vector3) -> Dictionary:
  if goal.id=="c1_cert" and p.z>5.2:
   return waypoint(Vector3(1.55,8.1,4.95),"经304门进入，书桌在房间东侧")
  if goal.id=="c1_tools" and p.z>5.7:return waypoint(Vector3(0,11,5.3),"先到403维修间门口")
- if goal.id=="c1_keybox" and p.z>5.3:
+ if goal.id in ["c1_keybox","c1_unlock503"] and p.z>5.3:
   if story.flag("503_open"):return waypoint(Vector3(1.7,13.9,4.9),"503捷径已开，从房门进入")
   return waypoint(Vector3(-1.7,13.9,4.35),"先进入502，找东侧维修通道")
- if goal.id=="c1_keybox" and p.x<.5:
+ if goal.id in ["c1_keybox","c1_unlock503"] and p.x<.5:
   if p.x<-.6 and absf(p.z-4.35)>.18:return waypoint(Vector3(-1.7,13.9,4.35),"沿502空屋走到维修通道前")
   return waypoint(Vector3(.9,13.9,4.35),"穿过维修通道，进入503")
  return waypoint(destination,"看向标记，走近后按 E 交互",true)

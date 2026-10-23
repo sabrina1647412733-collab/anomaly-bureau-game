@@ -1,5 +1,7 @@
 # 场景与动作可编辑源文件
 
+2026-10-23新增：`view_hands_v1.blend`为独立近景手部七种握姿及外套袖口，CC0解剖拓扑起点与重建参数见`assets/models/view_hands/SOURCES.md`和`build_view_hands.py`；`laundry_detail_v1.blend`为现有店堂的壁架、洗涤瓶、衣篮、灯具、风扇与管线，脚本为`build_laundry_dressing.py`。两者已导出到assets，游戏不运行Blender。`first_person_hands_legacy.gd.txt`保留上一版程序手部，原全身角色、原白模和动作来源未覆盖。
+
 - `laundry_repaired.blend`：以用户提供的洗衣楼白模为基础，修复楼梯、井体外壳、502/503通道和家具位置后的源文件。
 - `xuyan_motion_repaired.blend`：沿用许砚骨架，修复七段跳跃/蹲下动作的双脚互穿。
 - `.gdignore`：源文件不参与Godot导入，运行只使用assets中的GLB；其他机器不需要安装Blender。

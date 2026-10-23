@@ -17,12 +17,24 @@ func dress(node:Node)->void:
 				if id.contains("木"):node.set_surface_override_material(i,a.pbr("oak_wood_planks",1.6,Color("9c8a6b"),.9,0,.2))
 				elif id.contains("绿漆"):node.set_surface_override_material(i,a.pbr("painted_concrete",.85,Color("687d70"),.85,.08,.12))
 	for c in node.get_children():dress(c)
+func _dress_detail(node:Node)->void:
+	if node is MeshInstance3D:
+		for i in node.mesh.get_surface_count():
+			var source=node.get_active_material(i)
+			if source==null:continue
+			match String(source.resource_name):
+				"Oak":node.set_surface_override_material(i,a.pbr("wood_planks_dirt",1.4,Color("a39377"),.85,0,.25))
+				"Linen":node.set_surface_override_material(i,a.pbr("rough_linen",4,Color("bab5a1"),1,0,.3))
+				"PaintedSteel":node.set_surface_override_material(i,a.pbr("painted_concrete",1.4,Color("879888"),.74,.12,.12))
+	for c in node.get_children():_dress_detail(c)
 func wall(floor:String)->ShaderMaterial:
 	var key="finish_wall_"+floor
 	if a.mats.has(key):return a.mats[key]
 	var m=ShaderMaterial.new();m.shader=preload("res://shaders/aged_wall.gdshader")
 	var y={"B1":-3.,"F1":0.,"F2":3.5,"F3":6.9,"F4":9.8,"F5":12.7,"ROOF":15.6,"BRIDGE":3.5}
 	m.set_shader_parameter("floor_y",y.get(floor,0.))
+	m.set_shader_parameter("plaster_tex",load("res://assets/textures/damaged_plaster/albedo.jpg"))
+	m.set_shader_parameter("tile_tex",load("res://assets/textures/long_white_tiles/albedo.jpg"))
 	if floor=="B1":m.set_shader_parameter("lower_color",Color("35423d"));m.set_shader_parameter("upper_color",Color("74796a"))
 	elif floor in ["F3","F4","F5"]:m.set_shader_parameter("lower_color",Color("656d58"));m.set_shader_parameter("upper_color",Color("b2ad93"))
 	a.mats[key]=m;return m
@@ -33,6 +45,11 @@ func plaque(text:String,p:Vector3,size:Vector2,yaw:=0.,font_size:=.042)->void:
 	label.no_depth_test=false;label.double_sided=false
 	a.pop_group()
 func build()->void:
+	var dressing: Node3D=load("res://assets/models/laundry_detail/shop_detail.glb").instantiate()
+	dressing.name="ShopDetail_Blender";a.root.add_child(dressing)
+	_dress_detail(dressing)
+	var task_light=a.omni(Vector3(-2.24,4.99,9.1),Color("ffcf88"),1.3,3.2,true)
+	task_light.light_size=.18;task_light.shadow_bias=.035;task_light.shadow_normal_bias=.3
 	prop("bench",Vector3(1.93,3.5,6.65))
 	var steel=a.pbr("metal_plate",1.4,Color("737b73"),.78,.55,.22)
 	var oak=a.pbr("oak_wood_planks",1.8,Color("87775b"),.9,0,.22)

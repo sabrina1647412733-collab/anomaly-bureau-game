@@ -15,12 +15,14 @@ foreach ($name in @('开始游玩说明.txt','兼容模式启动.bat','Godot-LIC
 foreach ($name in @('credits.txt','CC-BY-4.0.txt','CC0-1.0.txt')) {
     Copy-Item -LiteralPath (Join-Path $projectRoot ('assets\audio\finish\'+$name)) -Destination $windowsDir -Force
 }
+Copy-Item -LiteralPath (Join-Path $projectRoot 'assets\models\view_hands\SOURCES.md') -Destination (Join-Path $windowsDir '第一人称手部来源.md') -Force
+Copy-Item -LiteralPath (Join-Path $projectRoot 'assets\audio\polish\SOURCES.md') -Destination (Join-Path $windowsDir '新增音效来源.md') -Force
 & $InnoCompiler (Join-Path $PSScriptRoot 'windows_installer.iss')
 if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compilation failed.' }
-$portable = Join-Path $releaseDir 'AnomalyBureau-Windows-0.3.2.zip'
+$portable = Join-Path $releaseDir 'AnomalyBureau-Windows-0.4.0.zip'
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $windowsDir -File).FullName -DestinationPath $portable -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot '开始游玩说明.txt') -Destination $releaseDir -Force
-$hashLines = Get-ChildItem -LiteralPath $releaseDir -File | Where-Object { $_.Name -match '0\.3\.2\.(exe|zip)$' } | ForEach-Object {
+$hashLines = Get-ChildItem -LiteralPath $releaseDir -File | Where-Object { $_.Name -match '0\.4\.0\.(exe|zip)$' } | ForEach-Object {
     $digest = Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256
     '{0}  {1}' -f $digest.Hash.ToLowerInvariant(), $_.Name
 }

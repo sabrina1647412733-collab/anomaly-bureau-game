@@ -29,7 +29,7 @@ func _process(_delta: float) -> void:
 	dot.queue_redraw()
 
 func radius_for(id: String) -> float:
-	if id in ["c1_lady","lb_exit","door","l_backdoor","l_locked_402","l_locked_503"]:return .48
+	if id in ["c1_lady","lb_exit","door","l_backdoor","l_locked_402","l_locked_503","case_rest"]:return .48
 	if id in ["phone","envelope","envelope2","wclock","c1_cert","c1_homework","c1_sandal","c1_shoe_room","c1_stones"]:return .15
 	if id.begins_with("l_m"):return .35
 	return .24

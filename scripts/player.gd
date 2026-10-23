@@ -83,6 +83,7 @@ func _ready() -> void:
 	flash = SpotLight3D.new()
 	flash.light_color = Color(0.85, 0.90, 1.0)
 	flash.light_energy = 3.2
+	flash.visible = false
 	flash.spot_range = 26.0
 	flash.spot_angle = 33.0
 	flash.spot_angle_attenuation = 1.1
@@ -473,7 +474,7 @@ func _input(event: InputEvent) -> void:
 			if event.pressed and allow_capture and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event is InputEventKey and event.pressed and not event.echo:
-		if event.physical_keycode == KEY_F and can_move and allow_capture:
+		if event.physical_keycode in [KEY_F,KEY_L] and can_move and allow_capture:
 			flash.visible = not flash.visible
 		elif event.physical_keycode == KEY_ESCAPE:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

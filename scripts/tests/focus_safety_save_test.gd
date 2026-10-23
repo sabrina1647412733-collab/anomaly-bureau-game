@@ -2,7 +2,7 @@ extends SceneTree
 var game
 var passed := 0
 var failed := 0
-const TEMP="user://verify_focus_autosave.json"
+static var TEMP=preload("res://scripts/storage_paths.gd").file("verify_focus_autosave.json")
 func _initialize() -> void:call_deferred("run")
 func check(value: bool, text: String) -> void:
 	if value:passed+=1;print("PASS ",text)
@@ -53,7 +53,7 @@ func run() -> void:
 	game.start_laundry_case();game._clear_sub()
 	await physics_frame;await process_frame
 	game.player.set_physics_process(false)
-	expect("lb_booth",Vector3(-.55,.06,7.25),Vector3(-.75,1.3,9))
+	expect("lb_booth",Vector3(-1.8,.06,6.35),game.laundry.rebuilt.POINTS.lb_booth)
 	expect("l_m9",Vector3(.65,3.55,4.1),Vector3(2.35,4.2,4.1))
 	expect("l_m7",Vector3(0,3.55,4.35),Vector3(0,4.25,2.75))
 	expect("l_price",Vector3(-1,3.55,3),Vector3(-2.2,5.4,2.1))

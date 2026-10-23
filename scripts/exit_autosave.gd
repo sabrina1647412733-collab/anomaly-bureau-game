@@ -1,7 +1,7 @@
 extends Node
 ## 独立自动存档，不覆盖玩家的三个手动槽位。
 const Save := preload("res://scripts/case_save.gd")
-const PATH := "user://autosave.json"
+static var PATH := preload("res://scripts/storage_paths.gd").file("autosave.json")
 var game
 var fallback: Dictionary={}
 var elapsed := 0.0
@@ -28,6 +28,7 @@ func snapshot() -> Dictionary:
 	elif normal=="prologue_choice":normal="prologue"
 	elif normal=="case_reader":normal=game.laundry.campaign.return_state
 	elif normal=="case_dialogue":normal=game.laundry.campaign.dialogue.return_state
+	elif normal=="case_cinematic":normal=game.laundry.campaign.cinematic.return_state if game.laundry!=null and game.laundry.campaign.cinematic.active else game.field_kit.letter_camera.return_state
 	game.state=normal
 	var data=Save.capture(game)
 	game.state=original

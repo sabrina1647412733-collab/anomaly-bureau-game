@@ -1,7 +1,7 @@
 extends RefCounted
 ## 本案版本化现场；不把运行时 Node/Vector3 直接写进 JSON。
 const VERSION := 2
-const PROGRESS_PATH := "user://laundry_archive.json"
+static var PROGRESS_PATH := preload("res://scripts/storage_paths.gd").file("laundry_archive.json")
 
 static func read_progress() -> Dictionary:
 	if FileAccess.file_exists(PROGRESS_PATH):
@@ -37,6 +37,8 @@ static func capture(g) -> Dictionary:
 	var resume: String = g._pre_pause_state if g.state == "paused" else g.state
 	if resume=="case_dialogue" and g.laundry!=null:
 		resume=g.laundry.campaign.dialogue.return_state
+	if resume=="case_cinematic":
+		resume=g.laundry.campaign.cinematic.return_state if g.laundry!=null and g.laundry.campaign.cinematic.active else g.field_kit.letter_camera.return_state
 	if resume not in ["prologue", "play", "case_choice", "case_end"]:
 		return {}
 	var room := {}
@@ -47,6 +49,7 @@ static func capture(g) -> Dictionary:
 		"state": resume, "stage": g.prologue_stage, "room": room, "bag": g.case_bag.duplicate(true),
 		"position": [p.x, p.y, p.z], "yaw": g.player.rotation.y, "pitch": g.player.pitch,
 		"camera_mode":g.player.cam_mode,
+		"flashlight":g.player.flash.visible,
 		"clock": g.clock_min, "time": Time.get_datetime_string_from_system(false, false),
 		"objective": g.case_objective, "objective_done": g.case_obj_done.duplicate(true),
 		"clock_appeared": g.clock_appeared}
@@ -65,6 +68,8 @@ static func capture(g) -> Dictionary:
 			lc[key] = g.laundry.get(key)
 		# JSON 字典键只能是字符串；恢复时还原滚筒编号。
 		lc["spinning"] = g.laundry.spinning.duplicate()
+		var cine=g.laundry.campaign.cinematic
+		if cine.active and cine.event_id=="seven":lc["spinning"][7]=cine.prior_seven
 		if g.laundry.night != null and g.laundry.lady != null:
 			lc["lady_walk"] = g.laundry.night._lady_walk_t
 			lc["lady_state"] = g.laundry.night.lady_state
@@ -160,6 +165,7 @@ static func restore(g, d: Dictionary) -> bool:
 	g.player.pitch = float(d.get("pitch", 0.0))
 	g.player.cam.rotation.x = g.player.pitch
 	g.player.cam_mode = clampi(int(d.get("camera_mode",g.player.cam_mode)),0,2)
+	g.player.flash.visible=bool(d.get("flashlight",false))
 	g.player.body.visible = g.player.cam_mode!=0
 	g.player._update_camera(0.0,0.0,false)
 	g.player.velocity = Vector3.ZERO

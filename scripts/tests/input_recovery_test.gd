@@ -4,7 +4,7 @@ var game
 var passed := 0
 var failed := 0
 var callbacks := 0
-const TEMP := "user://verify_input_recovery.json"
+static var TEMP := preload("res://scripts/storage_paths.gd").file("verify_input_recovery.json")
 
 func _initialize() -> void:
 	call_deferred("run")

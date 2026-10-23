@@ -1,14 +1,14 @@
 class_name ArchiveStore
 extends RefCounted
-## 存档档案：跨槽位的长期记录（user://archive.json）
+## 存档档案：跨槽位的长期记录（桌面_玩家数据，Web user://）
 ##
 ## - 三个槽位仍然只存「单局现场」（save_1..3.json）；档案单独保存每案的通关状态、
 ##   已见结局、最佳轮次/最佳时钟与游玩次数。删除槽位不会删除档案。
 ## - 档案按案子编号索引，后续案卷接入时只需把 CASES 里的 open 打开。
 ## - schema_version 用于以后迁移；读取时会补齐缺失字段，不会覆盖未知字段之外的内容。
 
-const PATH := "user://archive.json"
-const EXPORT_PATH := "user://archive_export.json"
+static var PATH := preload("res://scripts/storage_paths.gd").file("archive.json")
+static var EXPORT_PATH := preload("res://scripts/storage_paths.gd").file("archive_export.json")
 const SCHEMA_VERSION := 1
 const ENDING_KEYS := ["A", "B", "C"]
 const CASE_TOTAL := 6   # 第一季正片六案：0017–0022（终章不计入分母）
@@ -221,7 +221,8 @@ static func export_text() -> String:
 	return JSON.stringify(d, "\t")
 
 
-static func export_to_file(path := EXPORT_PATH) -> bool:
+static func export_to_file(path := "") -> bool:
+	if path.is_empty():path=EXPORT_PATH
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	if f == null:
 		return false
@@ -233,7 +234,10 @@ static func export_to_file(path := EXPORT_PATH) -> bool:
 ## 导入并合并（幂等）：结局取并集，轮次/时钟取更远，游玩次数取较大值。
 ## 返回 {ok, error, added_endings, data}
 static func import_text(text: String) -> Dictionary:
-	var raw = JSON.parse_string(text)
+	var parser := JSON.new()
+	if parser.parse(text)!=OK:
+		return {"ok": false, "error": "不是有效的 JSON 档案", "added_endings": 0}
+	var raw = parser.data
 	if typeof(raw) != TYPE_DICTIONARY:
 		return {"ok": false, "error": "不是有效的 JSON 档案", "added_endings": 0}
 	if not raw.has("cases") or typeof(raw.get("cases")) != TYPE_DICTIONARY:

@@ -1,6 +1,7 @@
 extends Node
 ## 第一案三夜调查。剧情结果唯一；调查顺序和可选线索自由。
 const Props := preload("res://scripts/case1_prop.gd")
+const REST_POINT := Vector3(-3.10,12.88,320.55)
 const DOCS := {
 	"slip": ["未取洗衣单", "秀兰干洗 · 留存联\n2004-11-07\n顾客：周秀兰\n七号机 · 童装一套\n状态：未取\n\n许砚：单子在，衣服就不会丢。"],
 	"registry": ["旧顾客登记簿", "2004-11-07，周秀兰，七号机，童装一套，未取。\n店主签字：周秀兰。\n\n她和这家店同名。"],
@@ -49,11 +50,17 @@ var power_lamp: MeshInstance3D
 var power_lever: MeshInstance3D
 var power_caption: Label3D
 var pump: AudioStreamPlayer3D
+var workbench
+var cinematic
 
 func setup(case_world) -> void:
 	lc = case_world
 	game = lc.game
 	_build_reader()
+	workbench=preload("res://scripts/evidence_workbench.gd").new()
+	modal.add_child(workbench);workbench.setup(self)
+	cinematic=preload("res://scripts/case_cinematic.gd").new()
+	add_child(cinematic);cinematic.setup(game,self)
 	dialogue=preload("res://scripts/spoken_dialogue.gd").new()
 	add_child(dialogue);dialogue.setup(game)
 	_build_evidence()
@@ -64,7 +71,7 @@ func setup(case_world) -> void:
 	# 阿七此时不可见；旧测试用童年秀兰替身不作为本案现场角色。
 	lc.cast.aqi.visible = false
 	if lc.cast.xiulan != null: lc.cast.xiulan.visible = false
-	game.prologue_spots.append({"id":"case_rest","stage":"room","pos":Vector3(-2.35,12.65,319.0),"r":3.0,"label":"查看夜班回执 / 休息"})
+	game.prologue_spots.append({"id":"case_rest","stage":"room","pos":REST_POINT,"r":3.0,"label":"查看夜班回执 / 休息"})
 	update_objective()
 	guidance=preload("res://scripts/case_guidance.gd").new()
 	add_child(guidance);guidance.setup(self)
@@ -86,7 +93,7 @@ func _build_reader() -> void:
 	modal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(modal)
 	game.field_kit.shade(modal)
-	var panel: Panel = game.phone_ui.box(modal,Vector2(200,70),Vector2(1200,760),Color("17272a"),14)
+	var panel: Panel = game.phone_ui.box(modal,Vector2(200,70),Vector2(1200,760),Color("1b1c19"),4)
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]: margin.add_theme_constant_override("margin_"+side,30)
@@ -107,7 +114,7 @@ func _build_reader() -> void:
 	body = RichTextLabel.new()
 	body.add_theme_font_override("normal_font",game.font)
 	body.add_theme_font_size_override("normal_font_size",23)
-	body.add_theme_color_override("default_color",Color("e3e8dd"))
+	body.add_theme_color_override("default_color",Color("ddd5c3"))
 	body.add_theme_constant_override("line_separation",10)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.bbcode_enabled = false
@@ -127,6 +134,7 @@ func _build_reader() -> void:
 	hud.add_child(chapter)
 
 func show_page(title: String, text: String, buttons: Array = []) -> void:
+	if workbench!=null:workbench.close()
 	if not modal.visible:
 		return_state = game.state
 		if game.phone_open: game._close_phone()
@@ -164,6 +172,7 @@ func invoke(index: int) -> void:
 		callback.call()
 
 func close_page() -> void:
+	if workbench!=null:workbench.close()
 	modal.visible = false
 	game.state = return_state if return_state in ["play","prologue"] else "play"
 	game.player.can_move = true
@@ -183,9 +192,13 @@ func _input(event: InputEvent) -> void:
 	else: return
 	get_viewport().set_input_as_handled()
 
-func doc(id: String) -> void:
+func doc(id: String, physical_check := true) -> void:
 	if not DOCS.has(id): return
 	var data: Array = DOCS[id]
+	if id=="discharge" and physical_check and not lc.has_clue(id):
+		show_page(String(data[0]),"先将封套编号与退件卡核对。")
+		workbench.open(id)
+		return
 	if not lc.has_clue(id):
 		lc._claim(id)
 		game.bag_add(id,String(data[0]),String(data[1]),"物")
@@ -193,11 +206,13 @@ func doc(id: String) -> void:
 		game.audio_system.sfx("paper",-12)
 		if physical.has(id): physical[id].visible = false
 	show_page(String(data[0]),String(data[1]))
+	if physical_check and id in workbench.SUPPORTED:workbench.open(id)
 	update_objective()
 
 func inspect_item(id: String) -> bool:
 	if DOCS.has(id):
 		show_page(String(DOCS[id][0]),String(DOCS[id][1]))
+		if id in workbench.SUPPORTED:workbench.open(id)
 		return true
 	return false
 
@@ -359,7 +374,8 @@ func interact(id: String) -> bool:
 				game.feedback.notify("排水完成","水位已经下降。先放下竖井检修梯，再取蓝布鞋。")
 				mark("drained")
 				lc.buildings.b1.water.position.y -= .8
-				game.audio_system.sfx("door",-14)
+				game.audio_system.spatial_sfx("valve_turn",Vector3(2.7,-2.15,.52),-12)
+				game.audio_system.spatial_sfx("water_recede",Vector3(3.5,-2.4,-5.7),-13)
 				show_page("排水泵启动","独立回路运转，排水阀方向与图一致。水位下降，露出通向竖井的安全步道。\n先在边缘放下检修梯，再拿童鞋。")
 			else: blocked(id,"排水阀 · 泵未就绪","独立排水泵尚未接通，转阀门不能安全排水。","回2F控制盘，先隔离浸水回路，再接通独立泵，最后回B1开阀。","device_blocked")
 		"c1_notice": doc("notice")
@@ -374,7 +390,7 @@ func interact(id: String) -> bool:
 		"c1_sandal":
 			if flag("drained") and flag("ladder"):
 				doc("sandal")
-				game.audio_system.speak("flood_memory")
+				game.audio_system.spatial_sfx("water_recede",Vector3(3.65,-2.7,-6.1),-20)
 			else: blocked(id,"蓝布鞋 · 暂时够不到","取鞋前必须排水，并固定竖井边的检修梯。","先完成配电和排水，再检查竖井边的检修梯。","device_blocked")
 		"c1_accident": combine()
 		_: return false
@@ -510,7 +526,8 @@ func combine() -> void:
 	if not missing.is_empty():
 		show_page("还有记录需要核对","尚缺：\n"+"\n".join(missing)+"\n\n已取证据全部保留，不会因为到04:00而丢失。")
 		return
-	doc("accident")
+	show_page("事故证据复核","按物证核对事故经过与人员去向。")
+	workbench.open("accident")
 
 func ready_to_claim() -> bool:
 	if night_number() != 3: return false
@@ -662,6 +679,8 @@ func current_goal() -> Dictionary:
 		if not lc.has_clue("sign"):return goal("l_sign","核对后房旧招牌，查清她和店的关系。","看到的文字会保存到背包，F可重读。")
 		return goal("c1_terminal","今晚还没找到原衣：到柜台申请续查。","提交后领取工资，回出租屋休息，下一夜再找住户核实。")
 	if night_number()==2:
+		if lc.has_clue("photo") and not flag("examined_photo"):
+			return goal("c1_photo","翻看303照片背面，记录留下的题字。","打开检查页后点击翻面，再记录题字。")
 		for row in [
 			["zhou_open","l_locked_402","去4F402找老周，询问洗衣单上的住户。","门边维修牌提示两短一长。"],
 			["marriage","c1_drawer","用老周的钥匙打开303抽屉。","找能核实周秀兰身份的原始材料。"],
@@ -676,6 +695,7 @@ func current_goal() -> Dictionary:
 				if row[1]=="c1_lady" and not lc.fired.has("oldlady"):return goal("c1_lady","身份材料已核实，等候周秀兰到店。","留在2F，可按 T 推进到来客事件。","wait")
 				return goal(row[1],row[2],row[3])
 		return goal("c1_terminal","本夜材料已齐，等待03:40后再交班。" if lc.t<240*60 else "到2F柜台申请续查，领取本夜工资。","可按 T 推进时间；交班后回出租公寓休息。","wait" if lc.t<240*60 else "act")
+	if lc.has_clue("machine_key") and not flag("503_open"):return goal("c1_unlock503","从503门内解除插销，打开回走廊的捷径。","面对房门内侧按 E，之后不必再绕维修通道。")
 	for row in [
 		["machine_key","c1_keybox","从502穿维修通道到503，打开检修盒。","房门从内反锁；先取七号机专用钥匙。"],
 		["roof_copy","c1_roof_copy","到屋顶核对重复出现的童装。","重复品能提供线索，不能代替原衣。"],
@@ -703,9 +723,10 @@ func update_objective() -> void:
 	var text := objective()
 	if game.case_mode == "laundry" and game.case_objective != text: game.set_case_objective(text)
 	chapter.text = "10月%d日  ·  第%d夜  ·  现场证据 %d/%d" % [17+night_number(),night_number(),required_count(),REQUIRED.size()]
-	chapter.visible = game.case_mode == "laundry" and game.state not in ["menu","case_end","case_title"]
+	chapter.visible = game.case_mode == "laundry" and game.state not in ["menu","case_end","case_title","case_cinematic"]
 
 func next_event() -> Array:
+	if cinematic.active:return [1420.0+lc.t/60.0,"先看完现场变化，空格可跳过"]
 	if lc.night != null and lc.night.lady_state=="walk":return [1420.0+lc.t/60.0,"等来客坐稳，再继续拨时"]
 	if game.audio_system.is_busy() or dialogue.panel.visible or not game.sub_queue.is_empty():return [1420.0+lc.t/60.0,"先听完当前对白，再继续拨时"]
 	if night_number()==1 and (not flag("signed") or not flag("rules_seen") or not lc.has_clue("slip") or not flag("seven_seen")):
@@ -798,12 +819,27 @@ func restore(data: Dictionary) -> void:
 
 func _build_evidence() -> void:
 	var a = lc.art
+	# Replace the approved roof's flat garment placeholders with the same detailed
+	# garment used by the evidence chain. Geometry/rope locations remain unchanged.
+	for original in lc.rebuilt.roots.ROOF.find_children("*童装*","MeshInstance3D",true,false):
+		var bounds:AABB=original.global_transform*original.get_aabb()
+		original.visible=false
+		var at:Vector3=bounds.get_center();at.y=bounds.end.y-.43
+		var copy=Props.place(lc.world,"sweater",at,.34,0.)
+		if copy!=null:damp_garment(copy)
 	var positions := {"slip":Vector3(2.33,4.24,4.1),"marriage":Vector3(-.83,7.08,3.15),"photo":Vector3(-3.045,7.76,3.75),"cert":Vector3(2.70,7.60,4.05),"return_card":Vector3(-2.8,1.34,4.62),"discharge":Vector3(13.8,4.5,12),"tool_key":Vector3(.45,10.8,4.65),"machine_key":Vector3(2.8,13.48,4.6)}
 	for id in positions:
 		var node: MeshInstance3D = a.box(positions[id],Vector3(.19,.009,.13),a.plain(Color("d7c9a5")),false)
 		physical[id] = node
+		if id!="photo":
+			var label=Label3D.new();label.font=game.font;label.font_size=48;label.pixel_size=.00028;label.outline_size=0;label.shaded=true;label.double_sided=false
+			label.text={"slip":"秀兰干洗\n7号机 · 未取","marriage":"结 婚 证\n周秀兰","cert":"接种记录\n周小满","return_card":"挂号件退存\n27—503—1107","discharge":"出院小结\n2004-11-06","tool_key":"检修盒","machine_key":"七号机专用"}.get(id,"")
+			label.modulate=Color("3e392b");label.position=Vector3(0,.006,0);label.rotation.x=-PI/2;node.add_child(label)
 	physical["slip"].rotation.z=PI/2
 	physical["photo"].rotation.z=PI/2
+	var photograph=MeshInstance3D.new();var photo_mesh=QuadMesh.new();photo_mesh.size=Vector2(.16,.22);photograph.mesh=photo_mesh
+	var photo_mat=StandardMaterial3D.new();photo_mat.albedo_texture=load("res://assets/ui/inventory/materials/family_photo_v1.png");photo_mat.roughness=.62;photograph.material_override=photo_mat
+	photograph.position=Vector3(0,-.006,0);photograph.rotation.x=PI/2;physical.photo.add_child(photograph)
 	a.bev(Vector3(-3.065,7.76,3.75),Vector3(.025,.24,.18),a.plain(Color("695c43")),.005)
 	# 新模型按实际尺度归一化，保持源文件不变。
 	var other_shoe := Props.place(lc.world,"shoe",Vector3(1.70,6.93,4.35),.19,0.3)
@@ -825,9 +861,19 @@ func _build_evidence() -> void:
 			fold.reparent(bag_model,true)
 	a.box(Vector3(13.8,3.98,12),Vector3(.68,.96,.48),a.plain(Color("59695a")),true)
 	a.label("邮政存档间（楼内） →",Vector3(3.0,5.35,9.65),.06,Color("ded5ac"),-PI/2)
-	a.label("27—503—1107",Vector3(13.8,4.78,12),.045,Color("e4d1a2"),0)
-	a.label("排水阀 →",Vector3(2.7,-1.3,.5),.06,Color("d8c487"),0)
+	a.label("27—503—1107",Vector3(13.8,4.78,12),.045,Color("e4d1a2"),PI)
+	a.label("排水阀 →",Vector3(2.7,-1.3,.5),.06,Color("d8c487"),PI)
 	a.label("502 ↔ 503 共用维修通道",Vector3(-.22,14.45,4.3),.04,Color("b4c5aa"),-PI/2)
+
+func damp_garment(node: Node) -> void:
+	if node is MeshInstance3D:
+		for i in node.mesh.get_surface_count():
+			var source=node.get_active_material(i)
+			if source is StandardMaterial3D:
+				var material:StandardMaterial3D=source.duplicate()
+				material.albedo_color*=Color(.72,.76,.80);material.roughness=.32
+				node.set_surface_override_material(i,material)
+	for child in node.get_children():damp_garment(child)
 
 func _build_power_feedback() -> void:
 	var a=lc.art

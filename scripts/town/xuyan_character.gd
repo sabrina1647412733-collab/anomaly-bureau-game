@@ -156,7 +156,7 @@ func update_motion(delta: float, speed: float, airborne: bool, rising: bool, cro
 
 func _attach_model_arms(held_rig: Node3D) -> void:
 	# 全身模型继续用于第三人称；第一人称采用同服装风格的近景持物网格。
-	held_rig.set("use_xuyan_arms", true)
+	held_rig.set("use_xuyan_arms", false)
 	held_rig.call("set_item", held_rig.get("item_id"))
 
 func _extract_arms_mesh(mesh: Mesh, skel: Skeleton3D) -> ArrayMesh:

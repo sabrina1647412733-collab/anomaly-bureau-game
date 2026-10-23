@@ -113,4 +113,5 @@ func run():
  check(story.power_caption.text.contains("已隔离") and not story.pump.playing,"读档恢复电路指示与水泵声音状态")
  game.field_kit.generation+=1;game._discard_laundry();game.queue_free()
  await process_frame;await process_frame
+ await create_timer(.12).timeout
  print("RESULT: %d passed / %d failed"%[passed,failed]);quit(0 if failed==0 else 1)

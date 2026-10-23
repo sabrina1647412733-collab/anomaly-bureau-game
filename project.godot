@@ -9,6 +9,7 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 
 [debug]
 
+file_logging/enable_file_logging=false
 gdscript/warnings/inference_on_variant=1
 
 [display]

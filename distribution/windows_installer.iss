@@ -3,7 +3,7 @@
 [Setup]
 AppId={{8E86F0AA-FE1C-4DDD-AD31-6239674835D9}
 AppName=诡异事务局 · 得利洗衣店
-AppVersion=0.3.2
+AppVersion=0.4.0
 AppPublisher=诡异事务局项目组
 AppPublisherURL=https://github.com/sabrina1647412733-collab/anomaly-bureau-game
 DefaultDirName={localappdata}\Programs\AnomalyBureau
@@ -13,7 +13,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=..\build\release
-OutputBaseFilename=AnomalyBureau-Setup-0.3.2
+OutputBaseFilename=AnomalyBureau-Setup-0.4.0
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -42,6 +42,8 @@ Source: "NotoSansSC-LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\build\windows\credits.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\build\windows\CC-BY-4.0.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\build\windows\CC0-1.0.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\build\windows\第一人称手部来源.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\build\windows\新增音效来源.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\诡异事务局 · 得利洗衣店"; Filename: "{app}\AnomalyBureau.exe"; WorkingDir: "{app}"

@@ -11,9 +11,19 @@ func shot(name:String):
  for i in range(12):await process_frame
  await RenderingServer.frame_post_draw
  root.get_texture().get_image().save_png(out+name+".png")
+ if name=="01_二楼店堂":await sample_performance()
+func sample_performance():
+ var timings:Array[float]=[]
+ for i in range(150):
+  var start=Time.get_ticks_usec();await process_frame
+  if i>=30:timings.append((Time.get_ticks_usec()-start)/1000.0)
+ timings.sort()
+ var data={"probe":"stationary in-game camera; not a full-route or cross-PC benchmark","gpu":RenderingServer.get_video_adapter_name(),"renderer":RenderingServer.get_current_rendering_method(),"resolution":"1600x900","frames":timings.size(),"frame_ms_median":timings[60],"frame_ms_p95":timings[114],"draw_calls":Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),"video_memory_mb":Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)/1048576.0}
+ var file=FileAccess.open(out+"performance.json",FileAccess.WRITE);file.store_string(JSON.stringify(data,"\t"));file.close()
+ print("ART_PERFORMANCE ",JSON.stringify(data))
 func run():
  create_timer(100).timeout.connect(func():push_error("art review timeout");quit(2))
- var group="before/" if OS.get_cmdline_user_args().has("--baseline") else ("after_OpenGL/" if OS.get_cmdline_args().has("gl_compatibility") else "after/")
+ var group="before/" if OS.get_cmdline_user_args().has("--baseline") else ("after_OpenGL/" if RenderingServer.get_current_rendering_method()=="gl_compatibility" else "after/")
  out="res://_预览/20261022_美术声音/"+group
  DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out));root.size=Vector2i(1600,900)
  game=load("res://scenes/main.tscn").instantiate();root.add_child(game);await process_frame

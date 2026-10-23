@@ -295,8 +295,9 @@ func label(text: String, pos: Vector3, height := 0.12, color := Color(0.9, 0.9, 
 	l.position = pos
 	l.rotation.y = rot_y
 	l.modulate = color
-	l.shaded = false
-	l.double_sided = true
+	l.shaded = true
+	l.outline_size = 0
+	l.double_sided = false
 	root.add_child(l)
 	stats["meshes"] = int(stats["meshes"]) + 1
 	return l

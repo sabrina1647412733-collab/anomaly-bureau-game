@@ -36,6 +36,7 @@ func climb(down: bool) -> void:
 	p.can_move = false
 	p.set_physics_process(false)
 	p.velocity = Vector3.ZERO
+	if lc.rebuilt.service_cover!=null:lc.rebuilt.service_cover.visible=false
 	g.audio_system.sfx("ladder", -5)
 	var tween: Tween = g.create_tween()
 	var enter := Vector3(2.65, .08, -8.1) if down else Vector3(2.55, -2.82, -8.1)
@@ -45,6 +46,7 @@ func climb(down: bool) -> void:
 	tween.tween_callback(func(): g.audio_system.sfx("ladder", -6))
 	tween.tween_property(p, "global_position", Vector3(2.55, leave.y, -8.1 if down else -7.05), .55)
 	await tween.finished
+	if lc.rebuilt.service_cover!=null:lc.rebuilt.service_cover.visible=true
 	p.velocity = Vector3.ZERO
 	p.set_physics_process(true)
 	p.can_move = true

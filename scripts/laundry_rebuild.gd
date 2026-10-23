@@ -6,7 +6,9 @@ var lc:
 	get:return case_ref.get_ref()
 var a
 var roots := {}
+var service_cover: Node3D
 const POINTS := {
+	"lb_booth":Vector3(-1.8,1.22,7.855),
 	"l_m9":Vector3(2.35,4.2,4.1),"l_m7":Vector3(0,4.25,2.75),
 	"l_backdoor":Vector3(-1.65,4.5,1.9),"l_sign":Vector3(-2.1,4.1,-.2),
 	"l_registry":Vector3(-2.6,4.1,.36),"l_boiler":Vector3(-.55,4.4,.6),
@@ -31,6 +33,13 @@ func build() -> void:
 		finish(model,floor)
 	# 天窗可站立；使用检修梯时由禁用物理的攀爬过渡穿过。
 	a.col(Vector3(-1.7,15.57,3.5),Vector3(1.2,.05,1.2))
+	# The 1F service opening needs a walkable lid. Approaching its interaction
+	# point must not make the player fall into the shaft before pressing E.
+	a.col(Vector3(2.65,-.025,-8.1),Vector3(.95,.06,1.25))
+	service_cover=a.push_group(Vector3(2.65,.015,-8.1))
+	a.bev(Vector3.ZERO,Vector3(.93,.035,1.20),a.pbr("metal_grate_rusty",2,Color("748175"),.82,.6,.2),.005)
+	for z in [-.51,.51]:a.box(Vector3(0,.023,z),Vector3(.83,.025,.035),a.plain(Color("596b5f"),.65,.4))
+	a.pop_group()
 	lc.f2=preload("res://scripts/laundry/floor2_laundry.gd").new(a)
 	lc.f2._materials()
 	for i in range(6):
@@ -54,9 +63,12 @@ func build() -> void:
 	door("401",Vector3(1.65,9.8,5.4),.9,2.05,0)
 	# 有实体、可辨识的调查对象，避免凭空的交互点。
 	a.label("得利自助洗衣店",Vector3(1.55,6.0,9.92),.12,Color("dfd0a1"),PI)
-	var handover=a.label("夜班交接簿",Vector3(-.7,1.65,9),.045,Color("e4d6b7"),0)
-	handover.billboard=BaseMaterial3D.BILLBOARD_ENABLED
-	a.label("交班终端",Vector3(-2.1,4.8,8.35),.055,Color("d8ceae"),0)
+	# Put the signing surface on the public side of the booth glass, not inside its frame.
+	a.bev(Vector3(-1.8,1.22,7.872),Vector3(.48,.58,.025),a.plain(Color("514a37")),.008)
+	a.box(Vector3(-1.8,1.22,7.855),Vector3(.42,.52,.008),a.plain(Color("cdc4a9")),false)
+	var handover=a.label("夜班交接簿\n\n到岗请签名\n上一班：____",Vector3(-1.8,1.22,7.847),.035,Color("302e25"),PI)
+	handover.no_depth_test=false;handover.double_sided=false
+	a.label("交班终端",Vector3(-2.1,4.8,8.35),.055,Color("d8ceae"),PI/2)
 	a.label("9",Vector3(2.32,4.52,4.1),.05,Color("dfd2b6"),-PI/2)
 	a.label("配电房 →",Vector3(2.0,5.4,8.03),.06,Color("e4d6b7"),0)
 	a.label("秀 兰 干 洗",Vector3(-2.1,4.1,-.2),.09,Color("bcb99c"),0)
@@ -69,8 +81,8 @@ func build() -> void:
 		var y: float=[0,3.5,6.9,9.8,12.7][floor-1]
 		a.label("%dF  ↑ 下一层  /  ↓ 门厅"%floor,Vector3(.36,y+1.5,10.3),.065,Color("d9cfae"),PI/2)
 		for z in [4.4,8.6,13.7]:
-			var light=a.omni(Vector3(.0 if z<10 else 1.55,y+2.25,z),Color("e8d8b1") if floor in [1,4] else Color("b9d2d0"),.75,5.5,z==8.6)
-			light.shadow_bias=.08;light.shadow_normal_bias=1.2
+			var light=a.omni(Vector3(.0 if z<10 else 1.55,y+2.25,z),Color("e8d8b1") if floor in [1,4] else Color("d5e1db"),1.20 if floor==2 else .85,5.5,z==8.6)
+			light.light_size=.30;light.shadow_bias=.035;light.shadow_normal_bias=.32
 	preload("res://scripts/laundry_finish.gd").new(lc).build()
 	for pos in [Vector3(2.6,-.7,-6),Vector3(2.6,-.7,-1),Vector3(16,6,9)]:a.omni(pos,Color("b3c8c4"),.85,7,false)
 func finish(node: Node, floor: String) -> void:
@@ -82,18 +94,19 @@ func finish(node: Node, floor: String) -> void:
 			node.visible=false
 		else:
 			var mat: Material
-			if text.contains("地面") or text.contains("地板") or text.contains("踏步") or text.contains("平台") or text.contains("通道"):
-				var surface=a.tile_mat(.3,Color("949b8d"),Color("667268"),2) if floor=="F2" else a.pbr("concrete_floor",.6,Color("a3aaa0"))
+			if text.contains("地面") or text.contains("地板") or text.contains("踏步") or text.contains("平台") or text.contains("通道") or text.contains("池底"):
+				var surface=a.pbr("terrazzo_tiles",1.0,Color("c3ba9f"),.82,0,.3) if floor=="F2" else a.pbr("concrete_floor",.6,Color("a3aaa0"))
 				var fm=ShaderMaterial.new();fm.shader=preload("res://shaders/building_floor.gdshader")
 				fm.set_shader_parameter("floor_tex",surface.albedo_texture)
-				fm.set_shader_parameter("scale_uv",1./.3 if floor=="F2" else .6)
+				fm.set_shader_parameter("rough_tex",surface.roughness_texture)
+				fm.set_shader_parameter("scale_uv",1.0 if floor=="F2" else .6)
 				fm.set_shader_parameter("tint",Color.WHITE if floor=="F2" else Color("a3aaa0"))
 				mat=fm
 			elif text.contains("玻璃"):
 				mat=a.glass(Color(.25,.35,.36,.35))
 			elif text.contains("天花") or text.contains("顶板") or text.contains("顶棚"):
-				mat=a.pbr("grey_plaster_02",.55,Color("bebcac"),1,0,.18)
-			elif text.contains("墙") or text.contains("隔"):
+				mat=a.pbr("painted_plaster_wall",.45,Color("b4b0a0"),1,0,.12)
+			elif text.contains("墙") or text.contains("隔") or text.contains("壁") or text.contains("井体") or text.contains("井筒"):
 				mat=preload("res://scripts/laundry_finish.gd").new(lc).wall(floor)
 			elif text.contains("长椅"):mat=a.plain(Color("516d69"),.72)
 			elif text.contains("CRT"):mat=a.plain(Color("363e35"),.7)

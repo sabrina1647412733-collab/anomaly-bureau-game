@@ -1,0 +1,30 @@
+{
+  "phone": {
+    "hands": 1,
+    "source_vertices_per_hand": 1629
+  },
+  "paper": {
+    "hands": 2,
+    "source_vertices_per_hand": 1629
+  },
+  "photo": {
+    "hands": 2,
+    "source_vertices_per_hand": 1629
+  },
+  "clock": {
+    "hands": 1,
+    "source_vertices_per_hand": 1629
+  },
+  "cloth": {
+    "hands": 2,
+    "source_vertices_per_hand": 1629
+  },
+  "shoe": {
+    "hands": 1,
+    "source_vertices_per_hand": 1629
+  },
+  "key": {
+    "hands": 1,
+    "source_vertices_per_hand": 1629
+  }
+}

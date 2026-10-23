@@ -356,10 +356,20 @@ func _blackout(sec: float) -> void:
 	var saved_amb: float = e.ambient_light_energy
 	var saved_exp: float = e.tonemap_exposure
 	var blackout_night: int = campaign.night_number() if campaign != null else 1
+	var lamps := {}
+	for lamp in world.find_children("*","Light3D",true,false):
+		if lamp.global_position.y>3.5 and lamp.global_position.y<6.9 and lamp.global_position.distance_to(Vector3(0,4.2,2.6))>1.0:
+			lamps[lamp]=lamp.light_energy;lamp.light_energy=0.
+	var tubes=world.find_children("Detail_Tube*","MeshInstance3D",true,false)
+	for tube in tubes:tube.visible=false
 	e.ambient_light_energy = 0.02
 	e.tonemap_exposure = 0.35
 	await game.get_tree().create_timer(sec).timeout
 	if not is_instance_valid(world): return
+	for lamp in lamps:
+		if is_instance_valid(lamp):lamp.light_energy=lamps[lamp]
+	for tube in tubes:
+		if is_instance_valid(tube):tube.visible=true
 	if campaign != null and (not is_instance_valid(campaign) or campaign.night_number()!=blackout_night or bool(campaign.progress.rest_pending) or fired.has("dawn4")): return
 	if game != null and game.env_node != null:
 		e.ambient_light_energy = saved_amb

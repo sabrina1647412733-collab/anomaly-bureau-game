@@ -120,10 +120,9 @@ func enter(from_laundry := false) -> void:
 	var laundry := _landmark("01")
 	var dest: Array = laundry.get("front", [145.88, 120.8])
 	game.player.look_at(ORIGIN + Vector3(float(dest[0]), 0.12, float(dest[1])), Vector3.UP)
-	game.player.cam_mode = 1
 	game.player.can_move = true
 	game.player.allow_capture = true
-	game.player.body.visible = true
+	game.player.body.visible = game.player.cam_mode!=0
 	if from_laundry:
 		game._prologue_set_objective("夜班还没结束。可返回洗衣店继续调查，或沿街回出租公寓。M 地图。")
 		game._say_seq("旁白", "你推开门回到老街。店里的钟仍在走。")

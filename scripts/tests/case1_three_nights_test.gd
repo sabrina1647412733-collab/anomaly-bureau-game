@@ -125,6 +125,10 @@ func run() -> void:
 	check(lc.has_clue("marriage") and lc.has_clue("photo") and lc.has_clue("cert"),"303、304身份材料齐备")
 	act("lb_box503")
 	act("c1_mail_letter")
+	check(story.workbench.visible and not lc.has_clue("discharge"),"挂号件先按退件卡编号核对")
+	story.workbench.choose_parcel("27—503—1106")
+	check(not lc.has_clue("discharge"),"错误封套放回，不提前取得医院材料")
+	story.workbench.choose_parcel("27—503—1107")
 	check(lc.has_clue("return_card") and lc.has_clue("discharge"),"信箱退件卡引到医院挂号件")
 	act("l_locked_402")
 	check(lc.has_clue("testimony") and lc.has_clue("pipe_map"),"医院材料换取口述与管线图")
@@ -170,6 +174,11 @@ func run() -> void:
 	check(lc.has_clue("sandal"),"排水后放梯取到童鞋")
 	act("l_boiler")
 	act("c1_accident")
+	check(story.workbench.visible,"事故需要实际复核，不直接领取结论")
+	story.workbench.compare_values=[1,1,2]
+	check(not story.workbench.submit_conclusions() and not lc.has_clue("accident"),"把童鞋当死亡证明会提示复查")
+	story.workbench.compare_values=[1,1,1]
+	check(story.workbench.submit_conclusions(),"按物证完成唯一结论复核")
 	check(lc.has_clue("accident"),"口述与现场相互核实")
 	check(story.ready_to_claim(),"第三夜证据齐备才可认领")
 	clock_to(10000)

@@ -3,7 +3,7 @@ extends Node
 const RATE := 10.0
 const ROOM_START := 23.0 * 60.0 + 10.0
 const JOB := "临江里17号（老街27号院）二楼，得利自助洗衣店。今晚23:40报到，04:00交班，夜班报酬800元。工作：观察店内异常、记录线索，交班前留在店里。通知书已由本人确认。"
-const EVENTS := [[1420.0,"23:40 到洗衣店报到"],[1441.0,"00:01 店内广播"],[1460.0,"00:20 再听一次广播"],[1530.0,"01:30 来客"],[1590.0,"02:30 停电"],[1630.0,"03:10 数衣服"],[1660.0,"03:40 回应她"],[1675.0,"03:55 交班"],[1676.0,"03:56 领取报酬"],[1678.0,"03:58 广播"],[1680.0,"04:00 天亮"],[1681.0,"04:01 长椅"],[1682.0,"04:02 归档"]]
+const EVENTS := [[1420.0,"23:40 到洗衣店报到"],[1441.0,"00:01 店内广播"],[1460.0,"00:20 再听一次广播"],[1510.0,"01:10 来客"],[1590.0,"02:30 停电"],[1630.0,"03:10 数衣服"],[1660.0,"03:40 回应她"],[1675.0,"03:55 交班"],[1676.0,"03:56 领取报酬"],[1678.0,"03:58 广播"],[1680.0,"04:00 天亮"],[1681.0,"04:01 长椅"],[1682.0,"04:02 归档"]]
 var game
 var room_minutes := ROOM_START
 var sent := {}
@@ -44,8 +44,9 @@ func setup(g) -> void:
 	notification_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	notification_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	notifications.add_child(notification_root)
-	toast = ui.btn(notification_root,"",Vector2(740,130),Vector2(810,94),open_message,Color("253e3e"))
-	toast.add_theme_font_size_override("font_size",17)
+	toast = ui.btn(notification_root,"",Vector2(1050,125),Vector2(500,90),open_message,Color("29352e"))
+	toast.add_theme_font_size_override("font_size",16)
+	toast.alignment=HORIZONTAL_ALIGNMENT_LEFT
 	toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast.visible = false
 
@@ -71,10 +72,10 @@ func send_once(id: String, who: String, text: String) -> void:
 	sent[id] = true
 	game.phone_ui.receive(who,text)
 	toast_sender = who
-	toast.text = who + " · 新消息\n" + text.left(68) + "  [点击查看]"
-	toast_time = 9.0
+	toast.text = who + " · 新消息  [点击查看]\n" + text.left(48)
+	toast_time = 6.5
 	sync_toast(0)
-	game.audio_system.sfx("ui_tap",-6)
+	if not game.phone_ui.quiet:game.audio_system.sfx("phone_notice",-13)
 
 func sync_toast(delta: float) -> void:
 	var available: bool = game.state in ["prologue","play"] and not game.phone_open and not game.bag_open and not game.nb_open and not game.field_kit.letter_ui.visible and not modal.visible and game.choice==null and not game.sub_pause
@@ -138,7 +139,7 @@ func step(delta: float) -> void:
 			return
 		var t: float = game.laundry.t / 60.0
 		if t >= 21: send_once("bc1","派遣科","广播已经响了。先看清七号机、价目表和后房。信息可用Tab记在记事本里，之后用T跳到下一事件。")
-		if t >= 40: send_once("bc2","派遣科","第二遍广播少了一个字。留意七号机里的衣服；钥匙在后房附近，先搜集线索，再等01:30的来客。")
+		if t >= 40: send_once("bc2","派遣科","第二遍广播少了一个字。留意七号机里的衣服；专用钥匙须核实楼内维修记录，先搜集线索，再等01:10的来客。")
 		if t >= 110: send_once("visitor","派遣科","有客人进来了。先观察她，不要急着答话。03:10她会清点衣物，看看还缺少什么。")
 		if t >= 210: send_once("count","派遣科","她停在第五件。检查七号机里的童装毛衣，03:40她会向你要一个回答。")
 		if game.laundry.selected_ending != "": send_once("handover","派遣科","处置已记录。接下来03:55交班、03:56领报酬、04:00天亮。你可以继续探索，也可以用T拨到交班。")

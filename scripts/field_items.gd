@@ -25,6 +25,7 @@ var generation := 0
 var desk_top := .805
 var desk_letter_position := Vector3(2.55,.8125,2.0)
 var desk_clock_position := Vector3(2.68,12.805,324.42)
+var letter_camera
 
 func setup(g) -> void:
 	game = g
@@ -45,6 +46,8 @@ func setup(g) -> void:
 	viewmodel = preload("res://scripts/viewmodel_view.gd").new()
 	viewmodel.setup(game.player,game.font)
 	rig = viewmodel.rig
+	letter_camera=preload("res://scripts/case_cinematic.gd").new()
+	add_child(letter_camera);letter_camera.setup(game,null)
 	measure_desk()
 	decorate_envelope()
 	ui.stow_requested.connect(stow)
@@ -127,7 +130,7 @@ func _build_letter() -> void:
 
 func equip(id: String) -> void:
 	held_id = id
-	rig.set_item(id)
+	rig.transition_to(id)
 	game.audio_system.sfx("paper" if id == "envelope" else "stow")
 
 func pickup_phone() -> void:
@@ -167,7 +170,7 @@ func stow() -> void:
 	rig.set_item("")
 	game.audio_system.sfx("stow")
 	sync_world()
-	if previous != "":game.feedback.notify("物品已收纳","手持模型已收起。空手按 B 打开背包，可再次取出。")
+	if previous != "":game.feedback.notify("物品已收纳","空手按 B 打开背包，可再次取出。")
 
 func open_inventory(on: bool) -> void:
 	game.bag_open = on
@@ -308,6 +311,7 @@ func pickup_clock() -> void:
 	game.director.open_clock()
 
 func reset() -> void:
+	if letter_camera!=null:letter_camera.cancel()
 	if game.feedback != null:game.feedback.reset()
 	generation += 1
 	held_id = ""
@@ -371,6 +375,7 @@ func _input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	if rig == null:
 		return
+	rig.freeze(game.state=="paused")
 	game.player.show_view_arm = false
 	game.player.view_arm.visible = false
 	ui.set_time(game.clock_min)

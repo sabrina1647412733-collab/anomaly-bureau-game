@@ -48,6 +48,7 @@ func _process(delta: float) -> void:
 	picture.visible = rig.visible
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if rig.visible else SubViewport.UPDATE_DISABLED
 	if not rig.visible or not player.is_inside_tree(): return
+	if player.physics_frozen:return
 	var eye: Vector3 = player.cam.global_position
 	var query := PhysicsRayQueryParameters3D.create(eye,eye-player.cam.global_basis.z*.85)
 	query.exclude = [player.get_rid()]

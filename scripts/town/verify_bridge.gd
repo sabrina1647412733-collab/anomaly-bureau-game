@@ -16,7 +16,7 @@ func _run() -> void:
 	for i in range(5):
 		await process_frame
 	check(game.xuyan_avatar != null and game.xuyan_avatar.mesh_node != null, "许砚模型有可见网格")
-	check(bool(game.field_kit.rig.use_xuyan_arms), "第一人称使用许砚网格手臂")
+	check(not bool(game.field_kit.rig.use_xuyan_arms), "第一人称独立持物网格不复用全身角色手臂")
 	check(game.xuyan_avatar.animator.has_animation("town/walk") and game.xuyan_avatar.animator.has_animation("town/run"), "走路和奔跑动作已接入 Godot 骨架")
 	var leg: int = game.xuyan_avatar.skeleton.find_bone("mixamorig_LeftUpLeg")
 	game.xuyan_avatar.animator.play("Idle_11")
@@ -41,13 +41,13 @@ func _run() -> void:
 	check(game.prologue_stage == "town" and game.town_bridge.active, "街道场景已进入")
 	check(game.town_bridge.layout.get("landmarks", []).size() == 10, "十个命名地标保留")
 	check(game.town_bridge.town_map.visible, "小地图可见")
-	check(game.player.cam_mode == 1, "街道初始第三人称")
-	game.player.toggle_cam()
-	check(game.player.cam_mode == 0, "V 切到第一人称")
+	check(game.player.cam_mode == 0, "街道保留进入前的第一人称")
 	game.player.toggle_cam()
 	check(game.player.cam_mode == 2, "V 切到第二人称")
 	game.player.toggle_cam()
-	check(game.player.cam_mode == 1, "V 切回第三人称")
+	check(game.player.cam_mode == 1, "V 切到第三人称")
+	game.player.toggle_cam()
+	check(game.player.cam_mode == 0, "V 切回第一人称")
 	game.town_bridge.toggle_map()
 	check(game.town_bridge.town_map.big_open, "M 打开大地图")
 	var place: Dictionary = game.town_bridge._landmark("01")
@@ -64,6 +64,10 @@ func _run() -> void:
 	check(game._exit_to_laundry, "洗衣店门触发独立场景转场")
 	game._step_exit_to_laundry(2.25)
 	check(game.case_mode == "laundry" and game.laundry != null, "街道进入洗衣房独立空间")
+	# A 00:10 snapshot must have completed onboarding; otherwise the intentional
+	# evidence gate holds the first shift at midnight during re-entry.
+	for flag_name in ["signed","rules_seen","seven_seen"]:game.laundry.campaign.mark(flag_name)
+	game.laundry.clues["slip"]=true
 	game.laundry.t = 30.0 * 60.0
 	game.laundry.clues["sweater"] = true
 	game.laundry.interact("lb_exit")

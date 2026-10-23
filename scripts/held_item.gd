@@ -1,11 +1,16 @@
 extends Node3D
-## 摄像机空间的袖口、手掌与分节手指；不修改角色 GLB。
+## 独立第一人称网格与持物过渡；第三人称仍使用许砚原角色。
 const SHAPE := preload("res://scripts/charbody.gd")
 var item_id := ""
 var content: Node3D
 var font: Font
 var motion := 0.0
 var use_xuyan_arms := false
+var switch_tween: Tween
+var switching := false
+var lift_tween: Tween
+var frozen := false
+var paused_tweens: Array[Tween] = []
 
 func setup(camera: Camera3D, f: Font) -> void:
 	font = f
@@ -17,10 +22,10 @@ func material(color: Color, roughness := .7, glow := false) -> StandardMaterial3
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
 	m.roughness = roughness
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.emission_enabled = false
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	m.emission_enabled = glow
 	m.emission = color
-	m.emission_energy_multiplier = .65 if glow else .12
+	m.emission_energy_multiplier = .35 if glow else 0.
 	return m
 
 func block(pos: Vector3, extent: Vector3, mat: Material, bevel := .008) -> MeshInstance3D:
@@ -71,6 +76,9 @@ func update_time(minutes: float) -> void:
 			node.text = "%02d:%02d" % [value/60,value%60]
 
 func set_item(id: String) -> void:
+	if switch_tween!=null:switch_tween.kill()
+	if lift_tween!=null:lift_tween.kill()
+	switching=false
 	item_id = id
 	var model_arms := get_node_or_null("XuYanActualArms")
 	if model_arms != null:
@@ -94,6 +102,11 @@ func set_item(id: String) -> void:
 	elif id == "envelope":
 		block(Vector3(.075, -.19, -.60), Vector3(.30, .205, .004), material(Color("e2d4b3")), .002)
 		text("诡异事务局\n\n入职通知书\n\n许砚  收", Vector3(.065, -.181, -.595), .00037, Color("302e29"))
+	elif id == "photo":
+		block(Vector3(.075,-.19,-.60),Vector3(.30,.205,.004),material(Color("d4c4a0")),.002)
+		var image_mat=material(Color.WHITE,.85)
+		image_mat.albedo_texture=load("res://assets/ui/inventory/materials/family_photo_v1.png")
+		var picture=MeshInstance3D.new();var plane=QuadMesh.new();plane.size=Vector2(.278,.182);picture.mesh=plane;picture.position=Vector3(.075,-.19,-.596);picture.material_override=image_mat;content.add_child(picture)
 	elif id == "weird_clock":
 		block(Vector3(.19,-.20,-.57),Vector3(.19,.25,.065),material(Color("9f844a")),.012)
 		block(Vector3(.19,-.18,-.534),Vector3(.16,.17,.005),material(Color("dfd8b5")),.001)
@@ -102,18 +115,58 @@ func set_item(id: String) -> void:
 	elif id in ["sweater","sandal","roof_copy"]:
 		var prop := "shoe" if id == "sandal" else "sweater"
 		preload("res://scripts/case1_prop.gd").place(content,prop,Vector3(.10,-.34,-.62),.21 if prop=="shoe" else .34,.25 if prop=="shoe" else 0.0)
-	elif id in ["slip","registry","photo","marriage","cert","homework","return_card","discharge","testimony","pipe_map","notice","waterline","back_water","accident","sign"]:
-		block(Vector3(.10,-.19,-.60),Vector3(.28,.20,.004),material(Color("dfd1ae")),.002)
-		text("案卷 00184\n\n调查记录",Vector3(.10,-.18,-.594),.00036,Color("26332e"))
+	elif id in ["slip","registry","marriage","cert","homework","return_card","discharge","testimony","pipe_map","notice","waterline","back_water","accident","sign"]:
+		block(Vector3(.075,-.19,-.60),Vector3(.30,.205,.004),material(Color("dfd1ae")),.002)
+		var docs=preload("res://scripts/laundry_campaign.gd").DOCS
+		var label:String=String(docs[id][0])+"\n\n"+String(docs[id][1]).split("\n\n")[0] if docs.has(id) else "案卷00184\n\n调查记录"
+		text(wrap_caption(label,1080.),Vector3(.075,-.18,-.594),.00023,Color("26332e"))
 	elif id.ends_with("key"):
 		segment(Vector3(.22,-.17,-.53),Vector3(.22,-.26,-.53),.007,material(Color("a38c58")))
 		block(Vector3(.23,-.25,-.53),Vector3(.03,.025,.01),material(Color("a38c58")),.002)
 	elif id != "":
 		block(Vector3(.22, -.17, -.53), Vector3(.10, .14, .022), material(Color("b7ad90")), .007)
 		text("随身物", Vector3(.22, -.17, -.514), .00028, Color("222f2d"))
-	position.y = -.15
-	create_tween().tween_property(self, "position:y", 0.0, .24).set_trans(Tween.TRANS_SINE)
+	if id!="":
+		content.position.y=-.24
+		lift_tween=create_tween()
+		lift_tween.tween_property(content,"position:y",0.,.24).set_trans(Tween.TRANS_SINE)
+
+func transition_to(id: String) -> void:
+	if id==item_id and not switching:return
+	if switch_tween!=null:switch_tween.kill()
+	if lift_tween!=null:lift_tween.kill()
+	if content==null or item_id=="":set_item(id);return
+	switching=true
+	switch_tween=create_tween()
+	switch_tween.tween_property(content,"position:y",-.36,.14).set_trans(Tween.TRANS_SINE)
+	switch_tween.tween_callback(func():set_item(id))
+
+func freeze(on: bool) -> void:
+	if frozen==on:return
+	frozen=on
+	if on:
+		paused_tweens.clear()
+		for tween in [switch_tween,lift_tween]:
+			if tween!=null and tween.is_valid() and tween.is_running():
+				tween.pause()
+				paused_tweens.append(tween)
+	else:
+		for tween in paused_tweens:
+			if tween!=null and tween.is_valid():tween.play()
+		paused_tweens.clear()
+
+func wrap_caption(value: String,max_width: float) -> String:
+	var output:PackedStringArray=[]
+	for original in value.split("\n"):
+		var line=""
+		for character in original:
+			if font.get_string_size(line+character,HORIZONTAL_ALIGNMENT_LEFT,-1,48).x>max_width:
+				output.append(line);line=""
+			line+=character
+		output.append(line)
+	return "\n".join(output.slice(0,11))
 
 func _process(delta: float) -> void:
+	if frozen:return
 	motion += delta
 	rotation.z = sin(motion * 1.4) * .006

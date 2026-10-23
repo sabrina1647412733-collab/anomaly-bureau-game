@@ -19,8 +19,10 @@ var step_index := 0
 var last_step := 0
 var performance_actor
 var voice_profiles:Dictionary={}
+var room_reverb: AudioEffectReverb
 const PERFORMANCE := "res://assets/audio/performance/"
 const FINISH := "res://assets/audio/finish/"
+const POLISH := "res://assets/audio/polish/"
 const LOOPS := ["room_theme","memory_theme","depth_theme","suspense_theme","washer_loop","rain_inside","rain_outside"]
 
 func _exit_tree() -> void:
@@ -66,6 +68,14 @@ func setup(g) -> void:
 		if AudioServer.get_bus_index(bus) < 0:
 			AudioServer.add_bus()
 			AudioServer.set_bus_name(AudioServer.bus_count - 1, bus)
+	var world_bus=AudioServer.get_bus_index("WorldSFX")
+	if world_bus<0:
+		AudioServer.add_bus();world_bus=AudioServer.bus_count-1
+		AudioServer.set_bus_name(world_bus,"WorldSFX")
+		AudioServer.set_bus_send(world_bus,"SFX")
+		var effect=AudioEffectReverb.new();effect.room_size=.55;effect.damping=.7;effect.dry=1.;effect.wet=.12
+		AudioServer.add_bus_effect(world_bus,effect)
+	room_reverb=AudioServer.get_bus_effect(world_bus,0)
 	music = player("night_music", "Music", -15, true)
 	music_alt=player("room_theme","Music",-80,true)
 	atmosphere = player("rain_inside", "Ambience", -25, true)
@@ -87,6 +97,7 @@ func stream(id: String, loop := false) -> AudioStream:
 	if sources.has(key):
 		return sources[key]
 	var path=FINISH+id+(".ogg" if id in LOOPS else (".mp3" if id=="lightless_dawn" else ".wav"))
+	if ResourceLoader.exists(POLISH+id+".wav"):path=POLISH+id+".wav"
 	if not ResourceLoader.exists(path):path=BASE+id+".wav"
 	var sound = load(path)
 	if sound is AudioStreamWAV and loop:
@@ -192,7 +203,7 @@ func footstep(running:bool)->void:
 	sfx("step_"+surface+str(step_index),-16. if running else -23.)
 
 func spatial_sfx(id:String,at:Vector3,volume:=-12.0)->void:
-	var p=AudioStreamPlayer3D.new();p.stream=stream(id);p.bus="SFX";p.volume_db=volume
+	var p=AudioStreamPlayer3D.new();p.stream=stream(id);p.bus="WorldSFX";p.volume_db=volume
 	p.max_distance=14;p.unit_size=2.;add_child(p);p.global_position=at
 	p.add_to_group("case_one_shot");p.finished.connect(p.queue_free);p.play()
 
@@ -218,6 +229,9 @@ func _process(delta: float) -> void:
 	var active:bool=game.state!="menu"
 	var paused:bool=game.state=="paused"
 	var zone="laundry" if game.case_mode=="laundry" else ("town" if game.prologue_stage in ["town","street"] else "room")
+	if room_reverb!=null:
+		var wet=.30 if game.case_mode=="laundry" and game.player.global_position.y<0 else (.12 if zone=="laundry" else (.06 if zone=="room" else 0.))
+		room_reverb.wet=move_toward(room_reverb.wet,wet,delta*.3)
 	if game.case_mode=="laundry" and game.player.global_position.y>15:zone="roof"
 	if zone!=current_zone:
 		current_zone=zone;atmosphere.stream=stream("rain_outside" if zone in ["town","roof"] else "rain_inside",true)

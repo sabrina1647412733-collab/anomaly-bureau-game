@@ -30,12 +30,15 @@ func run() -> void:
 				if arrays[Mesh.ARRAY_NORMAL]==null or arrays[Mesh.ARRAY_NORMAL].size()!=arrays[Mesh.ARRAY_VERTEX].size(): normals_ok=false
 		check(normals_ok,id+"有完整平滑法线")
 		check(bounds_ok,id+"网格有限且无异常拉伸")
-		check(meshes.size()>=10,id+"袖筒、袖口、掌部、四指及拇指齐全")
+		check(meshes.size()>=2,id+"采用独立Blender手部与袖筒网格")
+		var pose:String=hands.pose
+		check(pose in ["phone","paper","photo","clock","cloth","shoe","key"],id+"使用对应持物姿势")
 	kit.rig.set_item("")
 	await process_frame
 	check(kit.rig.content.get_child_count()==0,"收起物品后手部与物品一同消失")
 	game.queue_free()
 	await process_frame
 	await process_frame
+	await create_timer(.12).timeout
 	print("RESULT: %d passed / %d failed"%[passed,failed])
 	quit(0 if failed==0 else 1)

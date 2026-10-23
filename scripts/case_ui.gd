@@ -50,7 +50,7 @@ func setup(g) -> void:
 	g.hud_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	g.hud_prompt.add_theme_color_override("font_shadow_color", Color.BLACK)
 	g.hud_prompt.add_theme_constant_override("shadow_offset_y", 2)
-	controls = _text(self, "E  交互    F  查看持物    B  收纳 / 背包    T  随身时钟    H  任务提示    F8  脱困    TAB  记事本    ESC  暂停", Vector2(40, 860), Vector2(1300, 24), 13, MUTED)
+	controls = _text(self, "E  交互    F  查看持物    L  手电    B  收纳 / 背包    T  时钟    H  任务提示    F8  位置修正    TAB  记事本    ESC  暂停", Vector2(40, 860), Vector2(1480, 24), 13, MUTED)
 	rate_label = _text(self,"24H  ·  时间×10",Vector2(1338,80),Vector2(220,24),12,MUTED)
 	_build_choice()
 	_build_result()
