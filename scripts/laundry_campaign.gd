@@ -41,6 +41,7 @@ var return_state := "play"
 var actions: Array = []
 var physical := {}
 var chapter: Label
+var climb_tween:Tween
 var danger := 0.0
 var bag_model: Node3D
 var dawn_node: Node3D
@@ -128,7 +129,8 @@ func _build_reader() -> void:
 	hud.layer = 5
 	add_child(hud)
 	chapter = Label.new()
-	chapter.position = Vector2(38,105)
+	chapter.position = Vector2(1248,130)
+	chapter.size=Vector2(308,28);chapter.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 	chapter.add_theme_font_override("font",game.font)
 	chapter.add_theme_font_size_override("font_size",16)
 	chapter.modulate = Color("c5b687")
@@ -477,15 +479,21 @@ func climb_skylight(down: bool) -> void:
 	game.player.set_physics_process(false)
 	game.audio_system.sfx("ladder",-8)
 	var tween: Tween = game.create_tween()
+	climb_tween=tween
 	tween.tween_property(game.player,"global_position",Vector3(-1.7,12.78 if down else 15.68,3.5),1.5)
 	tween.tween_property(game.player,"global_position",Vector3(-1.7 if down else -.6,12.78 if down else 15.68,3.5),.5)
 	await tween.finished
+	climb_tween=null
 	game.player.velocity = Vector3.ZERO
 	game.player.set_physics_process(true)
 	game.player.can_move = true
 	game.player.allow_capture = true
 	game.safe_pos = game.player.global_position
 	game.state = "play"
+
+func stop_motion() -> void:
+	if climb_tween!=null and climb_tween.is_valid():climb_tween.kill()
+	climb_tween=null
 
 func power_page() -> void:
 	if lc.buildings.power_room.door != null: lc.buildings.power_room.door.rotation.y = -PI/2-1.5
@@ -724,8 +732,8 @@ func update_objective() -> void:
 	if dialogue != null and dialogue.panel.visible:return
 	var text := objective()
 	if game.case_mode == "laundry" and game.case_objective != text: game.set_case_objective(text)
-	chapter.text = "10月%d日  ·  第%d夜  ·  现场证据 %d/%d" % [17+night_number(),night_number(),required_count(),REQUIRED.size()]
-	chapter.visible = game.case_mode == "laundry" and game.state not in ["menu","case_end","case_title","case_cinematic"]
+	chapter.text = "现场证据 %d/%d" % [required_count(),REQUIRED.size()]
+	chapter.visible = false # Counts are available in H / field records, not a permanent HUD row.
 
 func timed_events() -> Array[Dictionary]:
 	return Pacing.events_for(night_number(),flag("recognized") or lc.selected_ending!="")

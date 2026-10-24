@@ -4196,7 +4196,7 @@ func _update_hud() -> void:
 		return
 	if state.begins_with("prologue") or (state == "clock_ui" and case_mode != "laundry"):
 		hud_clock.visible = state != "prologue_intro"
-		if director != null: hud_clock.text = director.hhmm(director.now(),true)
+		if director != null: hud_clock.text = director.hhmm(director.now())
 		hud_cam.visible = false
 		hud_map.visible = false
 		# 通知书 / 过场 / 结束卡期间只留字幕与时钟
@@ -4218,7 +4218,7 @@ func _update_hud() -> void:
 	var m := int(floor(clock_min))
 	var mm := ((m % 1440) + 1440) % 1440
 	var ss := int((clock_min - floor(clock_min)) * 60.0)
-	hud_clock.text = "%02d:%02d:%02d" % [mm / 60, mm % 60, ss]
+	hud_clock.text = "%02d:%02d" % [mm / 60, mm % 60] if case_mode in ["laundry","case2"] else "%02d:%02d:%02d" % [mm / 60, mm % 60, ss]
 	hud_cam.visible = (player.cam_mode >= 2)
 	if player.cam_mode == 2:
 		hud_cam.text = "● 第二人称 · 正面看着你     [V] 切换视角"
@@ -4299,6 +4299,10 @@ func _clear_sub() -> void:
 	hud_sub_title.text = ""
 
 func _show_sub(who: String, text: String, hold: float, pause := false) -> void:
+	var pages:Array[String]=preload("res://scripts/field_ui_style.gd").pages(text,font,1100,32)
+	if pages.size()>1:
+		for index in range(pages.size()-1,0,-1):sub_queue.push_front({"who":who,"text":pages[index],"hold":hold,"pause":pause})
+		text=pages[0]
 	if audio_system != null:
 		audio_system.line(who, text)
 	hud_sub_title.text = who
@@ -5122,19 +5126,16 @@ func _on_load_slot(i: int) -> void:
 		menu.hide_all()
 		_hide_menu()
 		_say("旁白", "接着上一班继续。")
+	else:
+		menu.set_archive_note(preload("res://scripts/case_save.gd").last_error)
 
 func _on_save_slot(i: int) -> void:
 	if game_save(i):
-		_say("调度台", "已存入槽位 %d。" % (i + 1))
 		menu.set_slots(slots_info(), "load")
-		menu.hide_all()
-		state = _pre_pause_state if _pre_pause_state != "" else state
-		_pre_pause_state = ""
-		player.can_move = state in ["play", "prologue"]
-		player.allow_capture = player.can_move
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if player.can_move else Input.MOUSE_MODE_VISIBLE
+		_on_resume()
+		feedback.notify("已保存至槽位 %d" % (i+1),"调查进度已写入，可继续调查。")
 	else:
-		menu.set_archive_note("暂时无法保存，请关闭当前对话或过场后重试。")
+		menu.set_archive_note(preload("res://scripts/case_save.gd").last_error)
 
 func _on_delete_slot(i: int) -> void:
 	var ok := delete_slot(i)
@@ -5148,40 +5149,31 @@ func _on_delete_slot(i: int) -> void:
 func delete_slot(i: int) -> bool:
 	if i < 0 or i >= SLOT_PATHS.size():
 		return false
-	if not FileAccess.file_exists(SLOT_PATHS[i]):
-		return false
-	var dir := DirAccess.open(SLOT_PATHS[i].get_base_dir())
-	if dir == null:
-		return false
-	return dir.remove(SLOT_PATHS[i].get_file()) == OK
+	var removed:=false
+	for suffix in ["",".bak",".tmp",".bak.tmp"]:
+		var path:String=SLOT_PATHS[i]+suffix
+		if FileAccess.file_exists(path):
+			if DirAccess.remove_absolute(path)!=OK:return false
+			removed=true
+	return removed
 
 func slots_info() -> Array:
 	var out := []
 	for i in range(3):
-		var d := {"exists": FileAccess.file_exists(SLOT_PATHS[i]), "round": "", "clock": "", "time": ""}
-		if d["exists"]:
-			var f := FileAccess.open(SLOT_PATHS[i], FileAccess.READ)
-			if f != null:
-				var j = JSON.parse_string(f.get_as_text())
-				f.close()
-				if typeof(j) == TYPE_DICTIONARY:
-					var r := clampi(int(j.get("round", -1)) + 1, 0, 4)
-					d["round"] = str(ROUND_NAMES[r])
-					if j.get("case_id", "") == "00184":
-						var night_index: int = int(j.get("laundry",{}).get("campaign",{}).get("night",1))
-						d["round"] = "得利洗衣店 · 第%d夜 · %s" % [night_index,"现场" if j.get("mode")=="laundry" else ("街道" if j.get("stage")=="town" else "出租屋")]
-					elif j.get("case_id", "") == "00201":
-						d["round"] = "十七楼的水表 · "+("已归档" if bool(j.get("case2",{}).get("campaign",{}).get("completed",false)) else ("槐安住宅" if j.get("mode")=="case2" else "回潮镇"))
-					else:
-						d["legacy"] = true
-						d["round"] = "旧版车站 · 已保留"
-					var cm := float(j.get("clock", T_START))
-					var mm := ((int(cm) % 1440) + 1440) % 1440
-					d["clock"] = "%02d:%02d" % [mm / 60, mm % 60]
-					var t := str(j.get("time", "")).replace("T", " ")
-					if t.length() > 16:
-						t = t.substr(0, 16)
-					d["time"] = t
+		var d := {"exists":FileAccess.file_exists(SLOT_PATHS[i]) or FileAccess.file_exists(SLOT_PATHS[i]+".bak"),"round":"","clock":"","time":""}
+		var j:Dictionary=preload("res://scripts/case_save.gd").read_snapshot(SLOT_PATHS[i])
+		if not j.is_empty():
+			var meta:Dictionary=preload("res://scripts/case_save.gd").metadata(j)
+			d.merge(meta)
+			d["round"]="%s · 第%d夜 · %s" % [meta.case_name,meta.night,String(meta.location).trim_prefix("得利洗衣店 · ")]
+			d["clock"]="游戏时间 "+meta.game_time
+			d["time"]="保存于 "+String(meta.saved_at).replace("T"," ").left(16)
+			if not preload("res://scripts/case_save.gd").last_error.is_empty():d["round"]+=" · 备份"
+		elif d.exists:
+			var old=JSON.parse_string(FileAccess.get_file_as_string(SLOT_PATHS[i]))
+			d["legacy"]=old is Dictionary and old.has("round")
+			d["invalid"]=not d.legacy
+			d["round"]="旧版车站 · 已保留" if d.legacy else "记录损坏 · 文件已保留"
 		out.append(d)
 	return out
 
@@ -5234,22 +5226,11 @@ func game_save(i: int) -> bool:
 	if preload("res://scripts/storage_paths.gd").inspection_active:return false
 	if i < 0 or i >= SLOT_PATHS.size():
 		return false
-	if case_mode in ["laundry","case2"] or state.begins_with("prologue") or _pre_pause_state.begins_with("prologue") or (case2_controller!=null and case2_controller.active):
+	if laundry!=null or case_mode in ["laundry","case2"] or state.begins_with("prologue") or _pre_pause_state.begins_with("prologue") or (case2_controller!=null and case2_controller.active):
 		var snapshot := preload("res://scripts/case_save.gd").capture(self)
 		if snapshot.is_empty():
 			return false
-		# 临时文件完整写入后再原子替换，避免半个 JSON 覆盖有效存档。
-		var temp_path: String = SLOT_PATHS[i] + ".tmp"
-		var save_file := FileAccess.open(temp_path, FileAccess.WRITE)
-		if save_file == null:
-			return false
-		save_file.store_string(JSON.stringify(snapshot))
-		save_file.flush()
-		var write_error := save_file.get_error()
-		save_file.close()
-		if write_error != OK:
-			return false
-		return DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(SLOT_PATHS[i])) == OK
+		return preload("res://scripts/case_save.gd").write_snapshot(SLOT_PATHS[i],snapshot)
 	var f := FileAccess.open(SLOT_PATHS[i], FileAccess.WRITE)
 	if f == null:
 		return false
@@ -5270,6 +5251,12 @@ func game_save(i: int) -> bool:
 func game_load(i: int) -> bool:
 	if i < 0 or i >= SLOT_PATHS.size():
 		return false
+	var snapshot:Dictionary=preload("res://scripts/case_save.gd").read_snapshot(SLOT_PATHS[i])
+	if not snapshot.is_empty():
+		var recovery_note:String=preload("res://scripts/case_save.gd").last_error
+		var restored:bool=preload("res://scripts/case_save.gd").restore(self,snapshot)
+		if restored and not recovery_note.is_empty():feedback.notify("已恢复上一份有效记录",recovery_note)
+		return restored
 	if not FileAccess.file_exists(SLOT_PATHS[i]):
 		return false
 	var f := FileAccess.open(SLOT_PATHS[i], FileAccess.READ)
@@ -5282,6 +5269,7 @@ func game_load(i: int) -> bool:
 		return false
 	if d.get("case_id", "") in ["00184","00201"]:
 		return preload("res://scripts/case_save.gd").restore(self, d)
+	if not d.has("round") or not d.get("got") is Array or not d.get("btn") is Array:return false
 	round = int(d.get("round", -1))
 	clock_min = float(d.get("clock", T_START))
 	power = bool(d.get("power", false))
@@ -5309,6 +5297,7 @@ func _discard_laundry() -> void:
 	hud_end.size = Vector2(920,378)
 	prologue_spots = prologue_spots.filter(func(sp): return sp.get("id","") != "case_rest")
 	if laundry != null and is_instance_valid(laundry.campaign):
+		laundry.campaign.stop_motion()
 		laundry.campaign.cinematic.cancel()
 		laundry.campaign.queue_free()
 	if laundry != null and is_instance_valid(laundry.world):

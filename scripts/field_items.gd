@@ -53,6 +53,10 @@ func setup(g) -> void:
 	ui.stow_requested.connect(stow)
 	ui.answer_requested.connect(answer_phone)
 	ui.hangup_requested.connect(end_phone_call)
+	ui.reject_requested.connect(func():
+		game.audio_system.ring.stop()
+		game._close_phone() # Keep the unanswered call available; do not skip its story callback.
+	)
 	game.audio_system.voice.finished.connect(func():
 		if ui.call_active: ui.end_call())
 	ui.tap.connect(func(): game.audio_system.sfx("ui_tap", -18))
@@ -299,9 +303,10 @@ func answer_phone() -> void:
 	game._prologue_set_objective("接听房东电话；挂断后留意房门外的声音。")
 
 func end_phone_call() -> void:
+	game.audio_system.ring.stop()
 	if game.audio_system.voice_context == "phone": game.audio_system.stop_voice()
 	game._clear_sub()
-	game.director.after_rent_call()
+	if game.prologue_call_done and not game.prologue_letter_ready:game.director.after_rent_call()
 
 func pickup_clock() -> void:
 	if not game.clock_appeared: return

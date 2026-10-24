@@ -34,7 +34,8 @@ func snapshot() -> Dictionary:
 	game.state=normal
 	var data=Save.capture(game)
 	game.state=original
-	if data.is_empty():return fallback.duplicate(true)
+	# A stale fallback may belong to the previous night/zone. Never call that saved.
+	if data.is_empty():return {}
 	var pos:Vector3=game.safety.save_position()
 	data.position=[pos.x,pos.y,pos.z]
 	if game.field_kit.letter_accepted:data.clock_appeared=true
@@ -48,33 +49,25 @@ func snapshot() -> Dictionary:
 	data["autosave"]=true
 	return data
 func write_snapshot(path: String, data: Dictionary) -> bool:
-	if not Save.valid(data):return false
-	var temp=path+".tmp";var file=FileAccess.open(temp,FileAccess.WRITE)
-	if file==null:return false
-	file.store_string(JSON.stringify(data));file.flush()
-	var result=file.get_error();file.close()
-	if result!=OK:return false
-	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temp),ProjectSettings.globalize_path(path))==OK
+	return Save.write_snapshot(path,data)
 func read_snapshot(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):return {}
-	var parser=JSON.new()
-	if parser.parse(FileAccess.get_file_as_string(path))!=OK:return {}
-	var data=parser.data
-	return data if data is Dictionary and Save.valid(data) else {}
+	return Save.read_snapshot(path)
 func save_now() -> bool:
 	if preload("res://scripts/storage_paths.gd").inspection_active:return false
 	if test_mode or game.state=="menu":return false
 	var data=snapshot()
+	if data.is_empty():return false
 	var result=write_snapshot(PATH,data)
 	if result:fallback=data;refresh_menu()
 	return result
 func continue_game() -> void:
 	var data=read_snapshot(PATH)
+	var recovery_note:String=Save.last_error
 	if data.is_empty():refresh_menu();return
 	game.field_kit.reset()
 	if Save.restore(game,data):
 		game.safety.reset_zone()
-		game.feedback.notify("已恢复自动保存","从上次离开的进度继续。手动存档仍在原槽位。")
+		game.feedback.notify("已恢复自动保存",recovery_note if not recovery_note.is_empty() else "从上次离开的进度继续。手动存档仍在原槽位。")
 func _process(delta: float) -> void:
 	if game.state=="menu":return
 	elapsed+=delta
@@ -95,7 +88,7 @@ func request_quit() -> void:
 				return
 			get_tree().quit();return
 	if game.state!="menu" and not test_mode and not save_now():
-		OS.alert("自动保存失败，游戏暂未退出。请在暂停菜单手动存档后再退出。","保存未完成")
+		OS.alert("自动保存未完成，游戏暂未退出。\n"+Save.last_error,"保存未完成")
 		return
 	get_tree().quit()
 func _notification(what: int) -> void:

@@ -14,6 +14,9 @@ signal quit_game
 signal recover_player
 signal auto_continue
 var auto_button: Button
+var auto_slot_button: Button
+var slot_confirm: ConfirmationDialog
+var pending_overwrite := -1
 signal settings_changed
 
 var font: Font
@@ -831,7 +834,12 @@ func _on_slot_pressed(i: int) -> void:
     if slot_mode == "load":
         load_slot.emit(i)
     else:
-        save_slot.emit(i)
+        if bool(slots_info[i].get("exists",false)):
+            pending_overwrite=i
+            slot_confirm.popup_centered(Vector2i(600,180))
+            slot_confirm.get_cancel_button().grab_focus()
+        else:
+            save_slot.emit(i)
 
 func _on_delete_pressed(i: int) -> void:
     if i < 0 or i >= slot_btns.size():
@@ -887,13 +895,20 @@ func _refresh_slot_texts() -> void:
             else:
                 b.add_theme_color_override("font_color", Color(0.56, 0.62, 0.69))
         _style_slot_btn(b, exists)
-        b.disabled = (slot_mode == "load" and (not exists or bool(d.get("legacy", false))))
+        b.disabled = (slot_mode == "load" and (not exists or bool(d.get("legacy", false)) or bool(d.get("invalid",false))))
         if i < slot_delete_btns.size():
             slot_delete_btns[i].disabled = not exists
+    if auto_slot_button!=null:
+        var data=preload("res://scripts/case_save.gd").read_snapshot(preload("res://scripts/exit_autosave.gd").PATH)
+        auto_slot_button.disabled=data.is_empty()
+        if data.is_empty():auto_slot_button.text="自动保存　·　暂无有效记录"
+        else:
+            var meta=preload("res://scripts/case_save.gd").metadata(data)
+            auto_slot_button.text="自动　·　%s · 第%d夜 · %s\n　　　　游戏时间 %s　 保存于 %s" % [meta.case_name,meta.night,meta.location,meta.game_time,String(meta.saved_at).replace("T"," ").left(16)]
 
 func _style_slot_btn(b: Button, exists: bool) -> void:
     if exists:
-        b.add_theme_stylebox_override("normal", _ghost_style(Color(0.886, 0.631, 0.29, 0.035), Color(0.886, 0.631, 0.29, 0.34), 2, 1))
+        b.add_theme_stylebox_override("normal", preload("res://scripts/field_ui_style.gd").box(Color("292c25")))
     else:
         b.add_theme_stylebox_override("normal", _ghost_style(Color(1, 1, 1, 0.012), Color(1, 1, 1, 0.07), 0, 1))
     b.add_theme_stylebox_override("disabled", _ghost_style(Color(0, 0, 0, 0), Color(1, 1, 1, 0.04), 0, 1))
@@ -904,7 +919,7 @@ func show_slots(mode: String) -> void:
     slot_mode = mode
     _reset_pending_delete()
     center.visible = false
-    pause_panel.visible = false
+    pause_panel.visible = pause_open
     sett.visible = false
     slots_panel.visible = true
     refresh_archive()
@@ -918,7 +933,7 @@ func show_slots(mode: String) -> void:
 func _refresh_mode_hint() -> void:
     if mode_hint == null:
         return
-    mode_hint.text = "载入模式 · 选择槽位继续" if slot_mode == "load" else "存档模式 · 选择槽位写入"
+    mode_hint.text = "读取记录 · 选择槽位继续调查" if slot_mode == "load" else "保存记录 · 三个手动槽位与一个独立自动档"
 
 # ------------------------------------------------------------------ 档案：显示 / 导出 / 导入
 func _set_chip(chip: Dictionary, fill: Color, border: Color, font_col: Color) -> void:
@@ -1280,38 +1295,39 @@ func _build_pause() -> void:
     add_child(pause_dim)
     move_child(pause_dim, 1)
     pause_panel = PanelContainer.new()
-    pause_panel.position = Vector2(620, 230)
-    pause_panel.size = Vector2(360, 440)
-    pause_panel.add_theme_stylebox_override("panel", _panel_style())
+    pause_panel.position = Vector2(60, 100)
+    pause_panel.size = Vector2(300, 700)
+    pause_panel.add_theme_stylebox_override("panel", preload("res://scripts/field_ui_style.gd").box(Color(.07,.08,.07,.9)))
     add_child(pause_panel)
     var v := VBoxContainer.new()
-    v.alignment = BoxContainer.ALIGNMENT_CENTER
+    v.alignment = BoxContainer.ALIGNMENT_BEGIN
     v.add_theme_constant_override("separation", 8)
     pause_panel.add_child(v)
-    v.add_child(_line(308, Color(0.886, 0.631, 0.29, 0.30)))
+    var brand := _label("诡异事务局", 20, Color("c5a878"))
+    brand.custom_minimum_size.y=55
+    v.add_child(brand)
     var head := HBoxContainer.new()
     head.alignment = BoxContainer.ALIGNMENT_CENTER
     head.add_theme_constant_override("separation", 9)
-    var t := _label("暂 停", 22, Color(0.93, 0.78, 0.52))
+    var t := _label("暂停", 38, Color("e7dfcc"))
     t.add_theme_font_override("font", _fvar(0.35, 1))
     head.add_child(t)
-    var en := _label("P A U S E D", 8, Color(0.36, 0.44, 0.52))
+    var en := _label("", 8, Color(0.36, 0.44, 0.52))
     en.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     head.add_child(en)
     v.add_child(head)
 
-    var b1 := _primary_btn("继 续", 15)
-    var b2 := _btn("存 档", 15)
-    var b3 := _btn("设 置", 15)
-    var b4 := _btn("回 主 菜 单", 15)
-    var recover := _btn("脱困修正  /  F8", 15)
-    var quit := _btn("保存并退出游戏", 15)
+    var b1 := _primary_btn("继续调查", 22)
+    var b2 := _btn("保存与读取", 22)
+    var b3 := _btn("设置", 22)
+    var b4 := _btn("返回主菜单", 22)
+    var recover := _btn("位置修正  /  F8", 20)
+    var quit := _btn("保存并退出游戏", 22)
     for b in [b1, b2, b3, recover, b4, quit]:
-        b.custom_minimum_size = Vector2(292, 42)
+        b.custom_minimum_size = Vector2(270, 64)
+        preload("res://scripts/field_ui_style.gd").button(b,b==b1)
         if b != b1:
-            b.add_theme_stylebox_override("normal", _ghost_style(Color(0, 0, 0, 0), Color(1, 1, 1, 0.10), 0, 1))
-            b.add_theme_stylebox_override("hover", _ghost_style(Color(0.886, 0.631, 0.29, 0.09), Color(0.886, 0.631, 0.29, 0.55), 2, 1))
-            b.add_theme_stylebox_override("pressed", _ghost_style(Color(0.886, 0.631, 0.29, 0.16), Color(0.886, 0.631, 0.29, 0.80), 2, 1))
+            b.add_theme_stylebox_override("normal", preload("res://scripts/field_ui_style.gd").box(Color.TRANSPARENT))
         v.add_child(b)
     b1.pressed.connect(func(): hide_all(); resume_game.emit())
     b2.pressed.connect(func(): _pause_wants_save.emit())
@@ -1323,6 +1339,8 @@ func _build_pause() -> void:
 signal _pause_wants_save
 
 func hide_all() -> void:
+    if slot_confirm!=null:slot_confirm.hide()
+    pending_overwrite=-1
     _reset_pending_delete()
     pause_open = false
     pause_panel.visible = false

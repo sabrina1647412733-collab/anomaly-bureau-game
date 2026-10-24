@@ -1,4 +1,5 @@
 extends Node
+const FieldUI := preload("res://scripts/field_ui_style.gd")
 ## 场景内逐句配音；字幕为辅助，不用案卷阅读页代替人物表演。
 var game
 var panel: Panel
@@ -14,32 +15,43 @@ var source_position := Vector3.INF
 var active := false
 var actor
 var speaker_resolver:Callable
+var text_pages:Array[String]=[]
+var text_page:=0
 func setup(g) -> void:
 	game=g
 	var layer=CanvasLayer.new();layer.layer=32;add_child(layer)
 	var root=Control.new();root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);layer.add_child(root)
 	root.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	panel=game.phone_ui.box(root,Vector2(260,650),Vector2(1080,205),Color(.035,.07,.075,.94),12)
-	speaker=game.phone_ui.lab(panel,"",Vector2(28,18),Vector2(860,34),23,Color("dbc08a"))
-	caption=game.phone_ui.lab(panel,"",Vector2(28,64),Vector2(850,115),25)
-	next_button=game.phone_ui.btn(panel,"继续\nE / 空格",Vector2(910,70),Vector2(145,96),advance)
+	panel=game.phone_ui.box(root,Vector2(0,610),Vector2(1600,290),Color.TRANSPARENT,0)
+	panel.add_theme_stylebox_override("panel",FieldUI.box(Color.TRANSPARENT))
+	FieldUI.gradient(panel)
+	speaker=game.phone_ui.lab(panel,"",Vector2(300,89),Vector2(1000,34),21,FieldUI.BRASS)
+	speaker.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	caption=game.phone_ui.lab(panel,"",Vector2(250,136),Vector2(1100,114),32,FieldUI.PAPER)
+	FieldUI.readable(caption,32);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	next_button=game.phone_ui.btn(panel,"E / 空格  继续",Vector2(1310,250),Vector2(260,32),advance)
+	FieldUI.button(next_button);next_button.add_theme_font_size_override("font_size",18)
+	for state in ["normal","hover","pressed"]:next_button.add_theme_stylebox_override(state,FieldUI.box(Color.TRANSPARENT))
 	panel.visible=false
 func play(sequence: Array, callback: Callable=Callable(), at:=Vector3.INF, speaker_actor=null) -> void:
 	if active:finish(false)
 	return_state=game.state
 	if game.phone_open:game._close_phone()
 	game._clear_sub();game.audio_system.stop_voice()
-	lines=sequence;cursor=-1;done=callback;source_position=at;actor=speaker_actor
+	lines=sequence;cursor=-1;text_pages.clear();text_page=0;done=callback;source_position=at;actor=speaker_actor
 	game.state="case_dialogue";game.player.can_move=false;game.player.allow_capture=false
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE;active=true;panel.visible=true
 	advance()
 func advance() -> void:
 	if not active or game.state!="case_dialogue":return
 	game.audio_system.stop_voice()
+	if text_page+1<text_pages.size():
+		text_page+=1;caption.text=text_pages[text_page];remaining=maxf(2.,caption.text.length()*.13);return
 	cursor+=1
 	if cursor>=lines.size():finish(true);return
 	var item: Array=lines[cursor]
-	speaker.text=item[0];caption.text=item[1]
+	speaker.text=item[0];text_pages=FieldUI.pages(String(item[1]),game.font,1100,32)
+	text_page=0;caption.text=text_pages[0]
 	if item.size()>2:
 		var npc:bool=item[0] not in ["许砚","广播"]
 		var at:Vector3=source_position if npc else Vector3.INF

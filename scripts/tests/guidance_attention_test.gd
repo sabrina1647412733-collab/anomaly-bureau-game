@@ -122,10 +122,10 @@ func run() -> void:
 	guide.idle_seconds=0
 	guide.track_progress(44.9,goal,route,position)
 	guide._process(0)
-	check(not guide.hint.text.ends_with(" · "+String(route.text)),"45秒之前不展开额外路线")
+	check(not guide.hint.text.contains(String(route.text)),"45秒之前不展开额外路线")
 	guide.track_progress(.2,goal,route,position)
 	guide._process(0)
-	check(guide.hint.text.ends_with(" · "+String(route.text)),"实际停滞45秒仍展开路线")
+	check(guide.hint.text.contains(String(route.text)),"实际停滞45秒仍展开路线")
 	before=message_count()
 	guide.track_progress(44.8,goal,route,position)
 	check(message_count()==before,"未达90秒不发卡关短信")

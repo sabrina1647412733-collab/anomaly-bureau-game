@@ -52,3 +52,11 @@
 ## 2026-10-25 默认TEMP错误5补修
 
 用户实机截图发现旧Setup在C盘TEMP初始化失败。已通过distribution/installer/TempHost.cs和build_installer.ps1在Inno前选择可写临时目录，build_windows接入；卸载快捷方式同样经过临时目录引导。30项安装检查及2项损坏包拒绝检查通过，不启动Godot或修改系统TEMP。当前应体验F:\诡异事务局\交付\AnomalyBureau-0.7.0-installer-tempfix\AnomalyBureau-Setup-0.7.0.exe，不能再推荐local-final内旧Setup解决此默认启动问题。游戏资源仍为原0.7.0；公开附件未覆盖，上传仍由用户操作。只读检查已见GitHub v0.7.0公开，早先草稿记录仅为历史状态。详见docs/verification/20261025/安装器临时目录修复.md。UI与存档会话的未提交内容均保持原样。
+
+## 2026-10-25 任务11/17交付
+
+UI设计经用户“可以改吧”确认后已实现，第二夜存档已修复。根因是出租屋case_reader保存误入旧车站写档器，以及保存成功未释放physics_frozen；另补通知书阅读恢复、原子校验/备份和旧梯间Tween清理。schema2保持兼容，正式、巡查和测试数据隔离。具体文件及证据见TASKS本会话记录与docs/verification/20261025/UI与第二夜存档验收.md。
+
+F:/诡异事务局/验收/20261025_UI存档/查看实机对照.html 可切换720p/900p/1080p；actual_before是0432a01脚本的真实Godot图，actual_after_final和actual_forward_plus为本项实机，approved_references仅为AI设计稿。测试入口ui_save_review_test/visual、night2_save_route、night2_restore_checkpoints、night2_exit_restart，运行必须使用F盘独立--data-dir和--verify。50检查点正常三夜路线、86恢复检查及55集成检查通过；无安装包或新Release。
+
+本项不占用安装/更新协议、面板、地图和模型；后续会话可重新登记文件。此前已覆盖又无备份的坏档不伪造进度恢复；未验收跨电脑或人工有声全案通关。

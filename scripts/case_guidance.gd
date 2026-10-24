@@ -11,10 +11,10 @@ var last_route := ""
 func setup(campaign) -> void:
  story=campaign
  var layer=CanvasLayer.new();layer.layer=6;add_child(layer)
- hint=Label.new();hint.position=Vector2(38,138);hint.size=Vector2(780,110)
+ hint=Label.new();hint.position=Vector2(58,193);hint.size=Vector2(710,88)
  hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;hint.mouse_filter=Control.MOUSE_FILTER_IGNORE
  hint.add_theme_font_override("font",story.game.font);hint.add_theme_font_size_override("font_size",18)
- hint.modulate=Color("c9d8c7");layer.add_child(hint)
+ preload("res://scripts/field_ui_style.gd").readable(hint,21,Color("b0ac9f"));layer.add_child(hint)
  marker=preload("res://scripts/quest_marker.gd").new();layer.add_child(marker);marker.setup(story.game.font)
 func floor_index(y: float) -> int:
  var floor_id=0
@@ -129,10 +129,10 @@ func _process(delta: float) -> void:
  if not hint.visible:return
  var g=story.game
  var goal:Dictionary=story.current_goal();var route=route_for(goal,g.player.global_position)
- if route.is_empty():hint.text=goal.why;return
+ if route.is_empty():hint.text="";return
  track_progress(delta,goal,route,g.player.global_position)
  if goal.mode!="act":
-  hint.text=goal.why+"\n"+("T 到下一事件  ·  H 查看当前提示" if goal.mode=="wait" else "等她坐稳后，再走近按 E 交谈")
+  hint.text="T  到下一事件" if goal.mode=="wait" else "等她坐稳后再交谈。"
   return
  var destination:Vector3=route.pos
  var camera:Camera3D=g.player.cam
@@ -146,7 +146,8 @@ func _process(delta: float) -> void:
  var angle=rad_to_deg(facing.signed_angle_to(offset.normalized(),Vector3.UP))
  var direction="前方" if absf(angle)<35 else ("身后" if absf(angle)>140 else ("左侧" if angle>0 else "右侧"))
  var focused:bool=g.prompt!=null and g.prompt.get("id","")==goal.id
- hint.text=("" if focused else "%s · %.1f米 · %s\n"%[direction,offset.length(),route.text])+goal.why+"\nH 展开提示"+(" · "+route.text if idle_seconds>=45 else "")
+ hint.text="" if focused else "%s · %.1f米" % [direction,offset.length()]
+ if idle_seconds>=45 and not focused:hint.text+="\n"+route.text
 func _input(event: InputEvent) -> void:
  if not available():return
  if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode==KEY_H:

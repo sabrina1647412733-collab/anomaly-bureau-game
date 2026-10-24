@@ -23,7 +23,7 @@ static func root_dir() -> String:
 	var ignore=FileAccess.open(cached_root.path_join(".gdignore"),FileAccess.WRITE)
 	if ignore!=null:ignore.close()
 	# Read old data once without deleting or changing anything in AppData.
-	if not verify:
+	if not verify and override_dir.is_empty():
 		for name in LEGACY:
 			var destination=cached_root.path_join(name)
 			if not FileAccess.file_exists(destination) and FileAccess.file_exists("user://"+name):

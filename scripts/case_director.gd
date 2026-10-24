@@ -45,8 +45,9 @@ func setup(g) -> void:
 	notification_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	notification_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	notifications.add_child(notification_root)
-	toast = ui.btn(notification_root,"",Vector2(1050,125),Vector2(500,90),open_message,Color("29352e"))
-	toast.add_theme_font_size_override("font_size",16)
+	toast = ui.btn(notification_root,"",Vector2(1050,190),Vector2(500,80),open_message,Color("23271f"))
+	preload("res://scripts/field_ui_style.gd").button(toast)
+	toast.add_theme_font_size_override("font_size",22)
 	toast.alignment=HORIZONTAL_ALIGNMENT_LEFT
 	toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast.visible = false
@@ -75,13 +76,14 @@ func send_once(id: String, who: String, text: String) -> void:
 	sent[id] = true
 	game.phone_ui.receive(who,text)
 	toast_sender = who
-	toast.text = who + " · 新消息  [点击查看]\n" + text.left(48)
-	toast_time = 6.5
+	toast.text = "收到短信 · " + who + "\n点击查看完整消息"
+	toast_time = 3.8
 	toast_chime_pending = true
 	sync_toast(0)
 
 func sync_toast(delta: float) -> void:
 	var available: bool = game.state in ["prologue","play"] and not game.phone_open and not game.bag_open and not game.nb_open and not game.field_kit.letter_ui.visible and not modal.visible and game.choice==null and not game.sub_pause and game.sub=="" and game.sub_queue.is_empty() and not game.audio_system.is_busy()
+	available=available and (game.feedback==null or not game.feedback.panel.visible)
 	# Keep its reading time while a conversation, menu or document owns the screen.
 	if available:
 		if toast_chime_pending:

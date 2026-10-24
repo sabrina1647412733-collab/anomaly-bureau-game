@@ -42,7 +42,8 @@ func run():
  check(game.sub=="请你再等一会。" and not game.sub_pause,"拾取反馈不替换剧情字幕、不强制停住玩家")
  game.state="case_read";game.feedback.step(30)
  check(not game.feedback.panel.visible and game.feedback.pending.size()==1,"阅读时保留操作反馈，回到现场才显示")
- game.state="play";clear();game.feedback.step(.1)
+ game.state="play";clear();game.director.sync_toast(4.0);game.feedback.step(.1)
+ check(not game.director.toast.visible,"短信展示完后再显示物品通知，不重叠")
  check(game.feedback.panel.visible and game.feedback.title.text.contains("测试文件"),"现场显示独立的物品获得卡片")
  var hold:float=game.feedback.remaining
  game._open_phone();game.feedback.step(30)

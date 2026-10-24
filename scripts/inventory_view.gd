@@ -65,7 +65,7 @@ func setup(f: Font) -> void:
 	surface.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	surface.stretch_mode = TextureRect.STRETCH_TILE
 	surface.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	surface.modulate.a = .15
+	surface.modulate.a = .055
 	surface.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(surface)
 	var emblem := Label.new()
@@ -106,24 +106,24 @@ func setup(f: Font) -> void:
 	empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label("物品详情", Vector2(900, 126), Vector2(446, 28), 18, BRASS)
 	rule(Vector2(1003, 141), Vector2(342, 1))
-	art = TextureRect.new(); art.position = Vector2(900, 157); art.size = Vector2(448, 320)
+	art = TextureRect.new(); art.position = Vector2(930, 161); art.size = Vector2(388, 238)
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(art)
-	kind_label = label("", Vector2(904, 453), Vector2(430, 26), 14, BRASS)
-	title = label("", Vector2(900, 486), Vector2(450, 45), 29, PAPER)
+	kind_label = label("", Vector2(904, 410), Vector2(430, 28), 18, BRASS)
+	title = label("", Vector2(900, 450), Vector2(450, 45), 30, PAPER)
 	title.clip_text = true
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	detail_scroll = ScrollContainer.new()
-	detail_scroll.position = Vector2(904, 546); detail_scroll.size = Vector2(440, 105)
+	detail_scroll.position = Vector2(904, 511); detail_scroll.size = Vector2(440, 145)
 	detail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	panel.add_child(detail_scroll); style_scroll(detail_scroll)
 	detail = Label.new(); detail.custom_minimum_size = Vector2(418, 0)
 	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	detail.add_theme_color_override("font_color", PAPER)
-	detail.add_theme_font_size_override("font_size", 18)
+	detail.add_theme_font_size_override("font_size", 22)
 	detail.add_theme_constant_override("line_spacing", 5)
 	detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	detail_scroll.add_child(detail)
@@ -131,6 +131,7 @@ func setup(f: Font) -> void:
 	detail_scroll.get_v_scroll_bar().changed.connect(update_scroll_hint)
 	rule(Vector2(904, 674), Vector2(440, 1))
 	take_button = button("取出物品", Vector2(900, 691), Vector2(448, 48))
+	take_button.add_theme_font_size_override("font_size",22)
 	take_button.add_theme_stylebox_override("normal", style(Color("bca77f"), Color("c6b797")))
 	take_button.add_theme_stylebox_override("hover", style(Color("d0bc94"), Color("e1d0ad")))
 	take_button.add_theme_stylebox_override("pressed", style(Color("a58e66"), BRASS))
@@ -144,7 +145,7 @@ func setup(f: Font) -> void:
 	key_text.add_theme_color_override("font_color",PAPER);key_text.mouse_filter = Control.MOUSE_FILTER_IGNORE;keycap.add_child(key_text)
 	take_button.pressed.connect(func():take_requested.emit())
 	rule(Vector2(32, 755), Vector2(1336, 1))
-	label("物品已妥善收纳", Vector2(34, 766), Vector2(350, 24), 14, MUTED)
+	label("取出后按 F 查看，B 收纳。", Vector2(34, 766), Vector2(350, 24), 16, MUTED)
 	var hints := label("方向键 选择    Tab 分类    E 取出    B / Esc 返回", Vector2(704, 764), Vector2(642, 28), 14, MUTED)
 	hints.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	resized.connect(fit_panel); fit_panel()
@@ -229,10 +230,14 @@ func refresh(all_items: Array, preferred := "") -> void:
 			var name_label := Label.new();name_label.text = String(item.name)
 			name_label.position = Vector2(5,97);name_label.size = Vector2(114,22)
 			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			name_label.add_theme_font_size_override("font_size",14)
+			name_label.add_theme_font_size_override("font_size",16)
 			name_label.add_theme_color_override("font_color",PAPER)
 			name_label.clip_text = true;name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 			name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE;cell.add_child(name_label)
+			var quantity:=Label.new();quantity.text="×"+str(item.get("quantity",1));quantity.position=Vector2(89,5);quantity.size=Vector2(30,22)
+			quantity.add_theme_font_size_override("font_size",15);quantity.add_theme_color_override("font_color",PAPER)
+			quantity.add_theme_color_override("font_shadow_color",Color.BLACK);quantity.add_theme_constant_override("shadow_offset_y",1)
+			quantity.mouse_filter=Control.MOUSE_FILTER_IGNORE;cell.add_child(quantity)
 			cell.tooltip_text = String(item.name)
 			var corner := Polygon2D.new();corner.name = "SelectedCorner"
 			corner.polygon = PackedVector2Array([Vector2(113,1),Vector2(123,1),Vector2(123,11)])
