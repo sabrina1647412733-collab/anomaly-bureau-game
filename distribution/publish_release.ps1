@@ -27,7 +27,7 @@ $remoteCommit=Invoke-RestMethod -Uri ($api+'/commits/'+$TargetCommit) -Headers $
 if ($remoteCommit.sha -ne $TargetCommit) {throw 'Push and verify the source commit before publishing.'}
 $notes=[IO.File]::ReadAllText([IO.Path]::GetFullPath($NotesFile))
 $metadata=@{tag_name="v$version";target_commitish=$TargetCommit;name="诡异事务局 v$version";body=$notes;draft=$true;prerelease=$false}
-$releases=@(Invoke-RestMethod -Uri ($api+'/releases?per_page=100') -Headers $headers -TimeoutSec 90)
+$releases=Invoke-RestMethod -Uri ($api+'/releases?per_page=100') -Headers $headers -TimeoutSec 90
 $release=$releases | Where-Object {$_.tag_name -eq "v$version"} | Select-Object -First 1
 if ($release -and -not $release.draft) {throw 'This version is already published. Never replace published assets; use a higher version.'}
 if ($release -and $release.target_commitish -ne $TargetCommit) {throw 'Existing draft belongs to a different source commit.'}
@@ -42,7 +42,7 @@ foreach ($file in $assets) {
     $digest='sha256:'+(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
     $verified=$false
     for ($attempt=1;$attempt -le 3;$attempt++) {
-        $remoteAssets=@(Invoke-RestMethod -Uri ($api+'/releases/'+$release.id+'/assets?per_page=100') -Headers $headers -TimeoutSec 90)
+        $remoteAssets=Invoke-RestMethod -Uri ($api+'/releases/'+$release.id+'/assets?per_page=100') -Headers $headers -TimeoutSec 90
         $asset=$remoteAssets | Where-Object {$_.name -eq $name} | Select-Object -First 1
         if ($asset -and $asset.state -eq 'uploaded' -and $asset.digest -eq $digest -and $asset.size -eq $size) {$verified=$true;break}
         if ($asset) {
