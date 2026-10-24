@@ -77,14 +77,39 @@ func show_history() -> void:
 	mode = "history"; _open(); service.fetch_history()
 
 static func release_text(release: Dictionary) -> String:
-	return "%s  ·  %s UTC\n%s\n\n%s" % [str(release.get("tag_name", "未知版本")), str(release.get("published_at", "")).replace("T", " ").trim_suffix("Z"), str(release.get("name", "")), str(release.get("body", "暂无更新说明。"))]
+	var version := str(release.get("tag_name", "未知版本"))
+	var date := str(release.get("published_at", "")).left(10)
+	# Old public notes contained build/test internals. Keep those available on GitHub,
+	# while providing an audited player summary without re-publishing old attachments.
+	var historical := {
+		"v0.6.1": "新增内容\n• 可在主菜单查看更新与历史日志。\n• 新增开发者巡查入口。\n\n必要的已知问题\n• 第二案的美术、表演与声音仍在完善。",
+		"v0.6.0": "新增内容\n• 游戏可检查新版本并提示更新。\n\n必要的已知问题\n• 此版本更新需要下载完整资源包。",
+	}
+	var body := str(historical.get(version, ""))
+	if body.is_empty(): body = player_notes(str(release.get("body", "")))
+	return "%s  ·  %s\n\n%s" % [version, date, body]
+
+static func player_notes(body: String) -> String:
+	var rows := PackedStringArray()
+	var section := ""
+	for raw in body.split("\n"):
+		var line := raw.strip_edges()
+		if line.begins_with("#"):
+			var title := line.trim_prefix("#").strip_edges()
+			while title.begins_with("#"): title = title.trim_prefix("#").strip_edges()
+			section = title if title in ["新增内容", "修复问题", "必要的已知问题", "已知问题"] else ""
+			if not section.is_empty(): rows.append("\n" + section)
+		elif not section.is_empty() and (line.begins_with("- ") or line.begins_with("• ")):
+			# Only the explicitly player-facing sections are displayed.
+			rows.append("• " + line.substr(2))
+	return "\n".join(rows).strip_edges() if not rows.is_empty() else "暂无简明更新说明。"
 
 func _history_changed() -> void:
 	if mode == "history": refresh()
 
 func refresh() -> void:
 	if not is_instance_valid(modal): return
-	var busy: bool = service.state in ["downloading", "verifying", "installing"]
+	var busy: bool = service.state in ["planning", "downloading", "verifying", "installing"]
 	bar.visible = mode == "update" and service.state == "downloading"
 	if mode == "history":
 		heading.text = "更新日志 · 当前 v" + service.current_version
@@ -102,7 +127,7 @@ func refresh() -> void:
 		text.text = release_text(service.latest) if not service.latest.is_empty() else "启动时会自动检查 GitHub 正式版本。断网不影响继续游戏。\n\n更新只替换程序与资源，保留 _玩家数据 中的存档和设置。"
 		primary.visible = not service.asset.is_empty()
 		primary.text = "重试下载" if service.state == "error" else "立即更新"
-		primary.disabled = busy or service.state == "checking"
+		primary.disabled = busy or service.state in ["checking", "current", "unavailable"]
 		secondary.text = "重试检查" if service.state == "error" else "检查更新"
 		secondary.disabled = busy or service.state == "checking"
 		more.visible = false

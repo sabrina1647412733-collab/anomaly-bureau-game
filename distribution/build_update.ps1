@@ -14,7 +14,7 @@ $runtime = Join-Path $outputRoot 'Windows'
 New-Item -ItemType Directory -Force -Path $runtime | Out-Null
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path -LiteralPath $compiler)) { throw 'Windows .NET Framework 4.x C# compiler was not found.' }
-& $compiler /nologo /target:winexe /optimize+ /platform:x64 "/out:$runtime\AnomalyBureau.exe" /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Windows.Forms.dll (Join-Path $PSScriptRoot 'updater\Launcher.cs')
+& $compiler /nologo /target:winexe /optimize+ /platform:x64 "/out:$runtime\AnomalyBureau.exe" /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Windows.Forms.dll (Join-Path $PSScriptRoot 'updater\Launcher.cs') (Join-Path $PSScriptRoot 'updater\Grouped.cs') (Join-Path $PSScriptRoot 'updater\Migration.cs')
 if ($LASTEXITCODE -ne 0) { throw 'Launcher compilation failed.' }
 if (-not $SkipExport) {
     & $GodotBinary --headless --audio-driver Dummy --log-file (Join-Path $outputRoot 'export.log') --path $projectRoot --export-release 'Windows Desktop' (Join-Path $runtime 'AnomalyBureau.Game.exe')

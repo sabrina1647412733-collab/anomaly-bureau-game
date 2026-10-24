@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "portable_allowlist_and_hashes": true,
+  "installer_and_migrated_runtime_match": true,
+  "icon_sizes": [
+    16,
+    24,
+    32,
+    48,
+    64,
+    128,
+    256
+  ],
+  "assets": {
+    "AnomalyBureau-manifest-v2.json": {
+      "bytes": 905116,
+      "sha256": "83785ac184e8d23ba06b9de9a41dc14217d186e7f2cfdacc94310983eae264fd"
+    },
+    "AnomalyBureau-resources-base.bin": {
+      "bytes": 295493433,
+      "sha256": "9ed99c7e3141b34fc228a05241a893b16366e634a184a21cd8a164c2774771d0"
+    },
+    "AnomalyBureau-resources-case1.bin": {
+      "bytes": 47791806,
+      "sha256": "516110cc85362abc5baead13151c9f472bc10cc70ba7eb793e43a9e0c19a9078"
+    },
+    "AnomalyBureau-resources-case2.bin": {
+      "bytes": 34480045,
+      "sha256": "5c9921894db99a0142ed3ea11a6155c922fdcf71b801c012cb20bf678bb4621b"
+    },
+    "AnomalyBureau-resources-characters_audio.bin": {
+      "bytes": 211459983,
+      "sha256": "47f684c61759ccc5ee4aa9f6dbff8b15511454a564de385565defbc31c773c70"
+    },
+    "AnomalyBureau-resources-code_ui.bin": {
+      "bytes": 8565742,
+      "sha256": "65be7a09d4774af7ef92b3910d5058a01d9780c87affac71ec72f38bf6ac9976"
+    },
+    "AnomalyBureau-resources-maps.bin": {
+      "bytes": 68303077,
+      "sha256": "5ff401b21429ebfce4e3b7dce76696b1260bf5882ec699f086cee1f9e1e18f7f"
+    },
+    "AnomalyBureau-Setup-0.7.0.exe": {
+      "bytes": 779302856,
+      "sha256": "82e08df308303844cb49c46167db260931cb297d65951710a208c8292c13a383"
+    },
+    "AnomalyBureau-update-win64.zip": {
+      "bytes": 822995708,
+      "sha256": "d404e3d521a12d687ecb4dfc5c648f925db18490e435d597f03aadc246eccfc6"
+    },
+    "AnomalyBureau-Windows-0.7.0.zip": {
+      "bytes": 783669323,
+      "sha256": "69f9831d55bd3a9a1d2ce22c4adcd6426ec2aaf2896c1362d0430aafb211e791"
+    }
+  }
+}

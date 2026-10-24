@@ -154,6 +154,7 @@ public static class Launcher {
         s.Append('\\',slashes*2); s.Append('"'); return s.ToString();
     }
     static Process StartGame(string root, string[] args) {
+        if (File.Exists(Path.Combine(root,"_运行文件","active.json"))) return Grouped.Start(root,args);
         return Process.Start(new ProcessStartInfo(Path.Combine(root,Allowed[0]),String.Join(" ",args.Select(Quote))) {
             WorkingDirectory=root, UseShellExecute=false
         });
@@ -193,6 +194,8 @@ public static class Launcher {
         }
     }
     [STAThread] public static int Main(string[] args) {
+        if (args.Length>=4 && args[0].StartsWith("--group-")) return Grouped.Command(args);
+        if (args.Length>=5 && args[0]=="--migrate-install") return Migration.Install(args);
         try {
             if (args.Length==2 && args[0]=="--apply") {
                 Job job=Read<Job>(args[1]); string root=Path.GetFullPath(job.install_dir);
@@ -222,11 +225,15 @@ public static class Launcher {
                 string root=AppDomain.CurrentDomain.BaseDirectory;
                 EnsurePlain(root); Directory.CreateDirectory(Cache(root)); EnsurePlain(Cache(root));
                 using (var gate=new FileStream(Path.Combine(Cache(root),"update.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None)) {
-                    Recover(root); StartGame(root,args);
+                    Migration.Recover(root); Recover(root); Grouped.Recover(root); StartGame(root,args);
                 }
             }
             return 0;
         } catch (Exception e) {
+            if(args.Contains("--headless")) {
+                try { WriteJson(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"_更新缓存","launcher-error.json"),new {message=e.Message}); } catch {}
+                return 1;
+            }
             MessageBox.Show("更新或启动未完成：\n"+e.Message+"\n\n请关闭游戏后重新启动 AnomalyBureau.exe。存档与设置未被更新器修改。", "诡异事务局",MessageBoxButtons.OK,MessageBoxIcon.Warning);
             return 1;
         }

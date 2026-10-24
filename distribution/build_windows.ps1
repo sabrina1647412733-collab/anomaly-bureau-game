@@ -1,15 +1,21 @@
 param(
     [Parameter(Mandatory=$true)][string]$GodotBinary,
     [Parameter(Mandatory=$true)][string]$InnoCompiler,
+    [Parameter(Mandatory=$true)][string]$PythonBinary,
     [string]$OutputDirectory,
+    [string]$Version='0.7.0',
+    [string]$BaselineRuntime,
     [switch]$SkipExport
 )
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
-$version=[regex]::Match([IO.File]::ReadAllText((Join-Path $projectRoot 'project.godot')), 'config/version="(\d+\.\d+\.\d+)"').Groups[1].Value
+$version=$Version
 if (-not $OutputDirectory) { $OutputDirectory=Join-Path $projectRoot "build\release-$version" }
 $outputRoot=[IO.Path]::GetFullPath($OutputDirectory)
-& (Join-Path $PSScriptRoot 'build_update.ps1') -GodotBinary $GodotBinary -OutputDirectory $outputRoot -SkipExport:$SkipExport
+if(-not $SkipExport) {
+    & (Join-Path $PSScriptRoot 'build_grouped.ps1') -GodotBinary $GodotBinary -PythonBinary $PythonBinary -OutputDirectory $outputRoot -Version $version -BaselineRuntime $BaselineRuntime
+    if($LASTEXITCODE -ne 0) {throw 'Grouped build failed'}
+} elseif(-not (Test-Path -LiteralPath (Join-Path $outputRoot 'Windows/_运行文件/active.json'))) {throw 'SkipExport requires an existing grouped runtime'}
 & $InnoCompiler "/DAppVersion=$version" "/DRuntimeDir=$outputRoot\Windows" "/DReleaseDir=$outputRoot" (Join-Path $PSScriptRoot 'windows_installer.iss')
 if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compilation failed.' }
 Get-ChildItem -LiteralPath $outputRoot -File | Where-Object {$_.Extension -in @('.exe','.zip')} | ForEach-Object {

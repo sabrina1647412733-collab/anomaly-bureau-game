@@ -1,66 +1,131 @@
-; 从工程根目录编译：ISCC.exe distribution\windows_installer.iss
-; 必须先按「Windows Desktop」预设导出 build\windows。
 #ifndef AppVersion
-  #define AppVersion "0.6.0"
+  #define AppVersion "0.7.0"
 #endif
 #ifndef RuntimeDir
-  #define RuntimeDir "..\build\release-" + AppVersion + "\Windows"
+  #error RuntimeDir is required
 #endif
 #ifndef ReleaseDir
-  #define ReleaseDir "..\build\release-" + AppVersion
+  #error ReleaseDir is required
 #endif
+
 [Setup]
 AppId={{8E86F0AA-FE1C-4DDD-AD31-6239674835D9}
-AppName=诡异事务局 · 得利洗衣店
+AppName=诡异事务局
 AppVersion={#AppVersion}
 AppPublisher=诡异事务局项目组
 AppPublisherURL=https://github.com/sabrina1647412733-collab/anomaly-bureau-game
-DefaultDirName={localappdata}\Programs\AnomalyBureau
-DefaultGroupName=诡异事务局
+DefaultDirName={code:DefaultInstallDir}
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir={#ReleaseDir}
 OutputBaseFilename=AnomalyBureau-Setup-{#AppVersion}
-Compression=lzma2
-SolidCompression=yes
+SetupIconFile={#RuntimeDir}\AnomalyBureau.ico
+Compression=lzma2/fast
+SolidCompression=no
 WizardStyle=modern
+DisableDirPage=no
+DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\AnomalyBureau.exe
+; File-local uninstall works even when HKCU and Start Menu writes are denied.
+CreateUninstallRegKey=no
+UsePreviousAppDir=no
+UsePreviousTasks=no
 SetupLogging=yes
-CloseApplications=yes
+CloseApplications=no
 RestartApplications=no
-InfoAfterFile=开始游玩说明.txt
+ExtraDiskSpaceRequired=1073741824
 
 [Languages]
 Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "创建桌面快捷方式 / Desktop shortcut"; Flags: checkedonce
+Name: "desktopicon"; Description: "创建桌面快捷方式"; Flags: checkedonce
 
 [Files]
+Source: "{#RuntimeDir}\_运行文件\packs\*.zip"; DestDir: "{app}\_运行文件\packs"; Flags: ignoreversion
 Source: "{#RuntimeDir}\AnomalyBureau.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RuntimeDir}\AnomalyBureau.Game.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RuntimeDir}\AnomalyBureau.Game.pck"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#RuntimeDir}\自动更新说明.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "开始游玩说明.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "兼容模式启动.bat"; DestDir: "{app}"; Flags: ignoreversion
-Source: "Godot-LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "Godot-COPYRIGHT.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "NotoSansSC-LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
-
-Source: "{#RuntimeDir}\credits.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#RuntimeDir}\CC-BY-4.0.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#RuntimeDir}\CC0-1.0.txt"; DestDir: "{app}"; Flags: ignoreversion
-
-
+Source: "{#RuntimeDir}\AnomalyBureau.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RuntimeDir}\*.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RuntimeDir}\兼容模式启动.bat"; DestDir: "{app}"; Flags: ignoreversion
+; Activate the complete resource set only after all immutable packs are installed.
+Source: "{#RuntimeDir}\_运行文件\active.json"; DestDir: "{app}\_运行文件"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\诡异事务局 · 得利洗衣店"; Filename: "{app}\AnomalyBureau.exe"; WorkingDir: "{app}"
-Name: "{group}\得利洗衣店（兼容模式）"; Filename: "{app}\AnomalyBureau.exe"; Parameters: "--rendering-method gl_compatibility"; WorkingDir: "{app}"
-Name: "{group}\开始游玩说明"; Filename: "{app}\开始游玩说明.txt"
-Name: "{autodesktop}\诡异事务局 · 得利洗衣店"; Filename: "{app}\AnomalyBureau.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{app}\诡异事务局"; Filename: "{app}\AnomalyBureau.exe"; WorkingDir: "{app}"; IconFilename: "{app}\AnomalyBureau.ico"
+Name: "{app}\卸载诡异事务局"; Filename: "{uninstallexe}"; WorkingDir: "{app}"
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}\_运行文件"
+Type: filesandordirs; Name: "{app}\_更新缓存"
+Type: files; Name: "{app}\desktop-shortcut.txt"
 
 [Run]
-Filename: "{app}\AnomalyBureau.exe"; Description: "启动得利洗衣店 / Play"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\AnomalyBureau.exe"; Description: "启动诡异事务局"; Flags: nowait postinstall skipifsilent unchecked
+
+[Code]
+function DefaultInstallDir(Param: String): String;
+begin
+  if DirExists('F:\') then Result := 'F:\Games\AnomalyBureau'
+  else Result := ExpandConstant('{userdocs}\AnomalyBureau');
+end;
+
+procedure InitializeWizard;
+begin
+  WizardForm.SelectDirLabel.Caption := '请选择诡异事务局的安装位置。建议F盘；升级时选择原目录。存档与设置会保留。';
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var Locator, Service, Processes, Process: Variant; I: Integer; Target: String;
+begin
+  Result := '';
+  Target := Lowercase(ExpandConstant('{app}\AnomalyBureau.Game.exe'));
+  try
+    Locator := CreateOleObject('WbemScripting.SWbemLocator');
+    Service := Locator.ConnectServer('', 'root\CIMV2');
+    Processes := Service.ExecQuery('SELECT ExecutablePath FROM Win32_Process WHERE Name="AnomalyBureau.Game.exe"');
+    for I := 0 to Processes.Count - 1 do begin
+      Process := Processes.ItemIndex(I);
+      if not VarIsNull(Process.ExecutablePath) then
+        if Lowercase(String(Process.ExecutablePath)) = Target then begin
+          Result := '请先正常退出此目录中的诡异事务局，再安装或升级。安装器不会关闭游戏。';
+          Exit;
+        end;
+    end;
+  except
+    Log('Process inventory unavailable; Windows file locks remain enforced.');
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var DesktopDir, Shortcut, ErrorText: String;
+begin
+  if (CurStep = ssPostInstall) and WizardIsTaskSelected('desktopicon') then begin
+    DesktopDir := ExpandConstant('{param:DESKTOPDIR|{userdesktop}}');
+    Shortcut := AddBackslash(DesktopDir) + '诡异事务局.lnk';
+    try
+      ForceDirectories(DesktopDir);
+      CreateShellLink(Shortcut, '诡异事务局', ExpandConstant('{app}\AnomalyBureau.exe'), '', ExpandConstant('{app}'), ExpandConstant('{app}\AnomalyBureau.ico'), 0, SW_SHOWNORMAL);
+      SaveStringToFile(ExpandConstant('{app}\desktop-shortcut.txt'), Shortcut, False);
+      Log('Desktop shortcut created: ' + Shortcut);
+    except
+      ErrorText := GetExceptionMessage;
+      Log('Desktop shortcut could not be created: ' + ErrorText);
+      if not WizardSilent then MsgBox('游戏已安装。桌面目录不允许写入，请使用安装目录内的“诡异事务局”快捷方式。' + #13#10 + ErrorText, mbInformation, MB_OK);
+    end;
+  end;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var Shortcut: AnsiString;
+begin
+  if CurUninstallStep = usUninstall then begin
+    if LoadStringFromFile(ExpandConstant('{app}\desktop-shortcut.txt'), Shortcut) then begin
+      if ExtractFileName(String(Shortcut)) = '诡异事务局.lnk' then DeleteFile(String(Shortcut));
+    end;
+  end;
+end;

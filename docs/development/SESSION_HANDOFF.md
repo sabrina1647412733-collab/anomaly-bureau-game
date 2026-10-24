@@ -37,3 +37,12 @@
 下一步：
 
 任务状态使用“待开始／处理中／待验收／已完成”。仅写计划或通过局部测试不能标记整项完成。
+
+## 2026-10-24 安装与更新专项
+
+- 用户授权第3/4/5项及源码提交同步，但禁止公开新Release或替换v0.6.1附件。游戏显示名称为「诡异事务局」，英文文件名用AnomalyBureau。
+- 新协议与构建入口改为distribution/build_grouped.ps1、build_windows.ps1和build_bridge.ps1，协议细节见distribution/AUTO_UPDATE.md。旧完整包工具保留兼容回归，不将其当新分组构建入口。
+- 通过发行层独立引导PCK先挂载全部组，再加载原main.tscn；game.gd、storage_paths.gd、project.godot和export_presets.cfg未被本项改写。后续内容版必须复用已验收的-BaselineRuntime；更新基础文件要完整迁移。
+- 玩家数据仍在EXE旁_玩家数据，更新缓存跟随EXE，不能因--data-dir或巡查目录改变而错位。安装器不依赖HKCU登记，卸载入口在安装目录内。
+- 用户再次强调禁止窗口；最终验证通过HiddenDesktop工具创建不可见桌面，绝不SwitchDesktop，整个进程链隔离；Godot仍必须headless+Dummy。不可使用历史“已允许声音/画面”授权恢复可见运行。
+- 当前进度及最终产物以STATUS和docs/verification/20261024/安装更新验收.md为准。

@@ -10,9 +10,21 @@ $manifest=Get-Content -LiteralPath (Join-Path $releaseRoot 'manifest.json') -Raw
 $version=[string]$manifest.version
 if ($version -notmatch '^\d+\.\d+\.\d+$' -or $TargetCommit -notmatch '^[0-9a-fA-F]{40}$') {throw 'Require manifest version X.Y.Z and an explicit full source commit SHA.'}
 $assets=@((Join-Path $releaseRoot 'AnomalyBureau-update-win64.zip'),(Join-Path $releaseRoot "AnomalyBureau-Windows-$version.zip"),(Join-Path $releaseRoot 'SHA256SUMS.txt'))
+$groupManifest=Join-Path $releaseRoot 'AnomalyBureau-manifest-v2.json'
+if(Test-Path -LiteralPath $groupManifest) {
+    $grouped=Get-Content -LiteralPath $groupManifest -Raw | ConvertFrom-Json
+    if($grouped.protocol -ne 2 -or $grouped.version -ne $version) {throw 'Grouped manifest version/protocol mismatch'}
+    $assets+=$groupManifest
+    $bundles=@($grouped.files | Select-Object -ExpandProperty bundle -Unique)
+    foreach($bundle in $bundles) {
+        if($bundle -notmatch '^AnomalyBureau-resources-(base|code_ui|maps|case1|case2|characters_audio)\.bin$') {throw 'Invalid resource bundle'}
+        $assets+=(Join-Path $releaseRoot $bundle)
+    }
+}
 $setup=Join-Path $releaseRoot "AnomalyBureau-Setup-$version.exe"
 if (Test-Path -LiteralPath $setup) {$assets+=$setup}
 foreach ($asset in $assets) { if (-not (Test-Path -LiteralPath $asset)) {throw "Missing release asset: $asset"} }
+foreach($asset in $assets) {if((Get-Item -LiteralPath $asset).Length -ge 2GB) {throw 'GitHub release assets must be under 2 GiB; split the resource group first'}}
 # Credentials remain in the existing Git credential manager and process memory.
 # They are never saved into release files, arguments, logs or the game.
 $env:GIT_TERMINAL_PROMPT='0'

@@ -9,6 +9,10 @@ class HealthGame {
         foreach(var arg in args) {
             if(arg.StartsWith("--update-health=")) health=arg.Substring(16);
             if(arg.StartsWith("--update-token=")) token=arg.Substring(15);
+            if(arg.StartsWith("--group-health=")) health=arg.Substring(15);
+            if(arg.StartsWith("--group-token=")) token=arg.Substring(14);
+            if(arg.StartsWith("--migration-health=")) health=arg.Substring(19);
+            if(arg.StartsWith("--migration-token=")) token=arg.Substring(18);
         }
         if(health!=null) File.WriteAllText(health,token);
         Thread.Sleep(3500); return 0;
