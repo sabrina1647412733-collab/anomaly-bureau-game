@@ -60,3 +60,9 @@ UI设计经用户“可以改吧”确认后已实现，第二夜存档已修复
 F:/诡异事务局/验收/20261025_UI存档/查看实机对照.html 可切换720p/900p/1080p；actual_before是0432a01脚本的真实Godot图，actual_after_final和actual_forward_plus为本项实机，approved_references仅为AI设计稿。测试入口ui_save_review_test/visual、night2_save_route、night2_restore_checkpoints、night2_exit_restart，运行必须使用F盘独立--data-dir和--verify。50检查点正常三夜路线、86恢复检查及55集成检查通过；无安装包或新Release。
 
 本项不占用安装/更新协议、面板、地图和模型；后续会话可重新登记文件。此前已覆盖又无备份的坏档不伪造进度恢复；未验收跨电脑或人工有声全案通关。
+
+## 2026-10-25 发布端增量上传完成
+
+当前推荐build_patch.ps1：指定上一版完整清单与原BaselineRuntime，日常默认仅输出v3清单、变化容器、校验文件及干净上传目录；无变化时两文件。新增transport=3跨Release来源，保留protocol=2本地挂载布局。publish_release支持DryRun/CheckOnly、历史依赖公开状态及大小/digest核验，不默认发完整安装包/免安装ZIP/桥接ZIP。0.7及更早固定启动器需要一次完整Setup迁移，完整旧目录覆盖至0.8已验证保存玩家数据。
+
+实测UI/模型总上传约0.97/1.47MB，首次基础9文件约1.45GB；连续/跨版、旧源修复、下载失败/缓存/恢复均通过，证据在docs/verification/20261025/减少发布上传验收.md和F:\诡异事务局\验收\20261025_增量上传。体验包F:\诡异事务局\交付\AnomalyBureau-0.8.0-local来自已验收0.7.0导出快照，仅替换更新服务，不自动包含并行6b07c98的UI/存档整合。正式发行前按最终源码重建。未公开/上传Release、未覆盖附件，源码随本项同步；所有Godot验证仍须不可见桌面、headless、Dummy。不改其他会话代码或正式玩家目录。

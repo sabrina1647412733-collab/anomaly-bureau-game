@@ -60,11 +60,12 @@ if((Test-Path -LiteralPath (Join-Path $sandbox 'AnomalyBureau.exe')) -or (Test-P
 Install $sandbox 'reinstall'
 Preserved $sandbox 'reinstall'
 if($LegacyRuntimeDirectory) {
-    $legacy=Join-Path $out 'sandbox-旧0.6.1 升级'
+    $legacy=Join-Path $out 'sandbox-旧版 升级'
     New-Item -ItemType Directory -Path $legacy | Out-Null
     foreach($name in @('AnomalyBureau.exe','AnomalyBureau.Game.exe','AnomalyBureau.Game.pck')) {Copy-Item -LiteralPath (Join-Path $LegacyRuntimeDirectory $name) -Destination $legacy}
+    if(Test-Path -LiteralPath (Join-Path $LegacyRuntimeDirectory '_运行文件/active.json')) {Copy-Item -LiteralPath (Join-Path $LegacyRuntimeDirectory '_运行文件') -Destination $legacy -Recurse}
     Sentinels $legacy
-    Install $legacy 'old-0.6.1-upgrade'
-    Preserved $legacy 'old-0.6.1-upgrade'
+    Install $legacy 'old-version-upgrade'
+    Preserved $legacy 'old-version-upgrade'
 }
 "RESULT installer $passed passed, 0 failed"

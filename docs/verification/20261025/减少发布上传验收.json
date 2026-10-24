@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-25",
+  "scope": "publisher_upload_reuse",
+  "local_version": "0.8.0",
+  "installer": {
+    "bytes": 779666036,
+    "sha256": "166fe6822c3cd4e3f536d435af53d4f222b3773a84f43c6ffbf2fa6b4ebe2a13"
+  },
+  "first_base_upload_bytes": 1446710216,
+  "ui_sample_upload_bytes": 965643,
+  "model_sample_upload_bytes": 1470193,
+  "cross_version_resource_bytes": 518640,
+  "historical_repair_bytes": 8557061,
+  "csharp_passed": 36,
+  "gdscript_passed": 5,
+  "publisher_passed": 8,
+  "installer_passed": 11,
+  "api_writes": 0,
+  "source_payload_base": "reviewed 0.7.0 export with this update_service only",
+  "latest_parallel_ui_commit_not_bundled": "6b07c98",
+  "content": {
+    "cross_release_manifest_supported": true,
+    "model_x": 1.01999998092651,
+    "ok": true,
+    "transport": 3.0,
+    "ui_label": "安装更新",
+    "version": "0.8.2"
+  },
+  "complete_old_upgrade": {
+    "ok": true,
+    "old_version": "0.7.0",
+    "new_version": "0.8.0",
+    "fixed_launcher_replaced": true,
+    "save_settings_preserved": true,
+    "real_menu_verified": true
+  },
+  "release_published": false
+}

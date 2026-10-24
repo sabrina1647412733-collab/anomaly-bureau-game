@@ -255,11 +255,13 @@ func _grouped_install() -> bool:
 	return FileAccess.file_exists(OS.get_executable_path().get_base_dir().path_join("_运行文件/active.json"))
 
 func _select_group_manifest(release: Dictionary) -> Dictionary:
-	var expected := "https://github.com/%s/releases/download/%s/AnomalyBureau-manifest-v2.json" % [REPOSITORY, str(release.get("tag_name", ""))]
 	var rx := RegEx.new(); rx.compile("^sha256:[a-fA-F0-9]{64}$")
-	for item in release.get("assets", []):
-		if item is Dictionary and item.get("name") == "AnomalyBureau-manifest-v2.json" and str(item.get("browser_download_url", "")) == expected and rx.search(str(item.get("digest", ""))) != null and int(item.get("size", 0)) > 0 and int(item.get("size", 0)) <= 16 * 1024 * 1024:
-			return item
+	# v3 is a transport extension; mounted runtime layout remains protocol 2.
+	for name in ["AnomalyBureau-manifest-v3.json", "AnomalyBureau-manifest-v2.json"]:
+		var expected := "https://github.com/%s/releases/download/%s/%s" % [REPOSITORY, str(release.get("tag_name", "")), name]
+		for item in release.get("assets", []):
+			if item is Dictionary and item.get("name") == name and str(item.get("browser_download_url", "")) == expected and rx.search(str(item.get("digest", ""))) != null and int(item.get("size", 0)) > 0 and int(item.get("size", 0)) <= 16 * 1024 * 1024:
+				return item
 	return {}
 
 func _prepare_group_manifest() -> void:

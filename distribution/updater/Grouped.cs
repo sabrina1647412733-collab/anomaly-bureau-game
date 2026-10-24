@@ -13,14 +13,16 @@ using System.Security.Cryptography;
 
 namespace AnomalyBureauDistribution {
 public sealed class ResourceFile {
-    public string path, group, sha256, asset, download_sha256, bundle;
+    public string path, group, sha256, asset, download_sha256, bundle, source_version;
     public long size, download_size, offset;
 }
 public sealed class GroupManifest {
-    public int protocol;
+    public int protocol, transport;
     public string version, baseline;
     public ResourceFile[] files;
+    public ResourceContainer[] containers;
 }
+public sealed class ResourceContainer { public string version, name, sha256; public long size; }
 public sealed class GroupPlan {
     public long bytes;
     public string state, message;
@@ -51,17 +53,32 @@ public static class Grouped {
     internal static GroupManifest Validate(string path) {
         if (new FileInfo(path).Length>16*1024*1024) throw new InvalidDataException("资源清单过大");
         var m=Read<GroupManifest>(path);
-        if (m==null || m.protocol!=2 || !System.Text.RegularExpressions.Regex.IsMatch(m.version??"",@"^\d+\.\d+\.\d+$") || !Digest(m.baseline) || m.files==null || m.files.Length==0 || m.files.Length>20000)
+        if (m==null || m.protocol!=2 || (m.transport!=0 && m.transport!=3) || !ReleaseVersion(m.version) || !Digest(m.baseline) || m.files==null || m.files.Length==0 || m.files.Length>20000)
             throw new InvalidDataException("不支持的分组更新清单");
+        var containers=new Dictionary<string,ResourceContainer>(StringComparer.Ordinal);
+        if(m.transport==3) {
+            if(m.containers==null || m.containers.Length==0 || m.containers.Length>20000) throw new InvalidDataException("资源来源目录缺失");
+            foreach(var c in m.containers) {
+                string key=c.version+"/"+c.name;
+                if(!ReleaseVersion(c.version) || new Version(c.version)>new Version(m.version) || !BundleName(c.name) || !Digest(c.sha256) || c.size<=0 || c.size>=2147483648L || containers.ContainsKey(key)) throw new InvalidDataException("资源来源目录无效");
+                containers.Add(key,c);
+            }
+        }
         var paths=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var f in m.files) {
             if (String.IsNullOrEmpty(f.path)||f.path.StartsWith("/")||f.path.Contains("\\")||f.path.Contains(":")||f.path.Split('/').Any(s=>s==".."||s=="."||s.Length==0)||!paths.Add(f.path)||!Groups.Contains(f.group)||!Digest(f.sha256)||!Digest(f.download_sha256)||f.size<0||f.size>2000000000L||f.download_size<=0||f.download_size>2000000000L||f.asset!="r-"+f.sha256+".zip")
                 throw new InvalidDataException("资源清单包含非法路径、分组或校验值");
-            if(!String.IsNullOrEmpty(f.bundle) && (!Groups.Any(g=>f.bundle=="AnomalyBureau-resources-"+g+".bin")||f.offset<0||f.offset>20000000000L))
+            if(!String.IsNullOrEmpty(f.bundle) && (!BundleName(f.bundle)||f.offset<0||f.offset>20000000000L))
                 throw new InvalidDataException("资源分组容器或偏移无效");
+            if(m.transport==3) {
+                ResourceContainer c;
+                if(!ReleaseVersion(f.source_version) || !containers.TryGetValue(f.source_version+"/"+f.bundle,out c) || f.offset>c.size-f.download_size) throw new InvalidDataException("资源来源版本或范围无效");
+            } else if(!String.IsNullOrEmpty(f.source_version) || (!String.IsNullOrEmpty(f.bundle) && !Groups.Any(g=>f.bundle=="AnomalyBureau-resources-"+g+".bin"))) throw new InvalidDataException("旧清单不能包含跨版本资源来源");
         }
         return m;
     }
+    static bool ReleaseVersion(string v) { return System.Text.RegularExpressions.Regex.IsMatch(v??"",@"^\d+\.\d+\.\d+$"); }
+    static bool BundleName(string v) { return Groups.Any(g=>v=="AnomalyBureau-resources-"+g+".bin") || System.Text.RegularExpressions.Regex.IsMatch(v??"",@"^AnomalyBureau-patch-[a-f0-9]{64}\.bin$"); }
     internal static string GroupId(IEnumerable<ResourceFile> files) {
         string joined=String.Join("\n",files.OrderBy(f=>f.path,StringComparer.Ordinal).Select(f=>f.path+"\t"+f.sha256+"\t"+f.size.ToString(System.Globalization.CultureInfo.InvariantCulture)));
         using(var sha=SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(joined))).Replace("-","").ToLowerInvariant();
@@ -109,12 +126,16 @@ public static class Grouped {
         var missing=m.files.GroupBy(f=>f.sha256).Select(g=>g.First()).Where(f=>!local.ContainsKey(f.sha256)&&!GoodBlob(root,f)).ToArray();
         return new GroupPlan { bytes=missing.Sum(f=>f.download_size), assets=missing.Select(f=>f.asset).ToArray(),state="available",message="已校验本地资源，可开始更新或修复。" };
     }
-    static Uri AssetUri(string baseUrl,string asset) {
+    internal static Uri AssetUri(string baseUrl,string asset,string sourceVersion=null) {
         var b=new Uri(baseUrl.TrimEnd('/')+"/");
         // Loopback is permitted for isolated acceptance only; production manifest URLs
         // are additionally constrained by update_service to the fixed public repository.
-        if (!(b.IsLoopback&&b.Scheme=="http") && !(b.Scheme=="https"&&b.Host=="github.com"&&b.AbsolutePath.StartsWith("/sabrina1647412733-collab/anomaly-bureau-game/releases/download/v")))
+        if (!(b.IsLoopback&&b.Scheme=="http") && !(b.Scheme=="https"&&b.Host=="github.com"&&b.Port==443&&String.IsNullOrEmpty(b.UserInfo)&&String.IsNullOrEmpty(b.Query)&&System.Text.RegularExpressions.Regex.IsMatch(b.AbsolutePath,@"^/sabrina1647412733-collab/anomaly-bureau-game/releases/download/v\d+\.\d+\.\d+/$")))
             throw new InvalidDataException("资源下载地址无效");
+        if(!String.IsNullOrEmpty(sourceVersion)) {
+            if(!ReleaseVersion(sourceVersion) || !BundleName(asset)) throw new InvalidDataException("资源来源版本无效");
+            b=new Uri(b,"../v"+sourceVersion+"/");
+        }
         return new Uri(b,asset);
     }
     internal static void Download(string root,string manifest,string baseUrl,string status) {
@@ -130,7 +151,7 @@ public static class Grouped {
                 try {
                     if(File.Exists(status+".cancel")) throw new OperationCanceledException("已取消下载，完整校验的文件已保留。");
                     bool ranged=!String.IsNullOrEmpty(f.bundle);
-                    var request=(HttpWebRequest)WebRequest.Create(AssetUri(baseUrl,ranged?f.bundle:f.asset));
+                    var request=(HttpWebRequest)WebRequest.Create(AssetUri(baseUrl,ranged?f.bundle:f.asset,f.source_version));
                     if(ranged) request.AddRange(f.offset,f.offset+f.download_size-1);
                     request.UserAgent="AnomalyBureau"; request.Timeout=20000; request.ReadWriteTimeout=20000;
                     using(var response=(HttpWebResponse)request.GetResponse())

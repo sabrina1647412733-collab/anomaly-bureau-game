@@ -5,15 +5,22 @@ param(
     [string]$Version='0.7.0',
     [string]$ExportZip,
     [string]$BaselineRuntime,
+    [string]$PreviousManifest,
+    [switch]$CompletePackage,
+    [switch]$BaseRelease,
     [switch]$SkipArchives
 )
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $out=[IO.Path]::GetFullPath($OutputDirectory)
 if ($out -notmatch '^[Ff]:\\') {throw 'Builds, logs and caches must be on F:.'}
+if((Test-Path -LiteralPath (Join-Path $out 'publish-plan.json')) -or (Test-Path -LiteralPath (Join-Path $out 'AnomalyBureau-manifest-v2.json'))) {throw 'Use a fresh output directory; reviewed releases must not be overwritten'}
 New-Item -ItemType Directory -Force -Path $out,(Join-Path $out 'temp'),(Join-Path $out 'Windows') | Out-Null
 $env:TEMP=Join-Path $out 'temp'; $env:TMP=$env:TEMP
 $runtime=Join-Path $out 'Windows'
+if($PreviousManifest -and -not $BaselineRuntime) {throw 'Incremental publishing requires the original -BaselineRuntime'}
+if($PreviousManifest -and $BaseRelease) {throw 'Choose BaseRelease or PreviousManifest, not both'}
+if(-not $CompletePackage) {$SkipArchives=$true}
 if (-not $ExportZip) {
     $ExportZip=Join-Path $out 'export.zip'
     & $GodotBinary --headless --audio-driver Dummy --path $projectRoot --export-pack 'Windows Desktop' $ExportZip --log-file (Join-Path $out 'export.log') > (Join-Path $out 'export.out') 2> (Join-Path $out 'export.err')
@@ -40,11 +47,17 @@ if($LASTEXITCODE -ne 0) {throw 'ICO conversion failed'}
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 & $compiler /nologo /target:winexe /optimize+ /platform:x64 "/win32icon:$runtime\AnomalyBureau.ico" "/out:$runtime\AnomalyBureau.exe" /r:System.Web.Extensions.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Windows.Forms.dll (Join-Path $PSScriptRoot 'updater/Launcher.cs') (Join-Path $PSScriptRoot 'updater/Grouped.cs') (Join-Path $PSScriptRoot 'updater/Migration.cs')
 if($LASTEXITCODE -ne 0) {throw 'Launcher compilation failed'}
-& $PythonBinary (Join-Path $PSScriptRoot 'build_groups.py') --export $ExportZip --runtime $runtime --output $out --version $Version
+$groupArguments=@((Join-Path $PSScriptRoot 'build_groups.py'),'--export',$ExportZip,'--runtime',$runtime,'--output',$out,'--version',$Version)
+if($PreviousManifest) {$groupArguments+=@('--previous-manifest',$PreviousManifest)}
+& $PythonBinary @groupArguments
 if($LASTEXITCODE -ne 0) {throw 'Resource grouping failed'}
+if($BaseRelease -or -not $PreviousManifest) {
+    & $PythonBinary (Join-Path $PSScriptRoot 'delta_transport.py') --base-manifest (Join-Path $out 'AnomalyBureau-manifest-v2.json') --runtime $runtime --output $out
+    if($LASTEXITCODE -ne 0) {throw 'Base publication inventory failed'}
+}
 foreach($name in @('开始游玩说明.txt','兼容模式启动.bat','Godot-LICENSE.txt','Godot-COPYRIGHT.txt','NotoSansSC-LICENSE.txt')) {Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $runtime -Force}
 foreach($name in @('credits.txt','CC-BY-4.0.txt','CC0-1.0.txt')) {Copy-Item -LiteralPath (Join-Path $projectRoot ('assets/audio/finish/'+$name)) -Destination $runtime -Force}
-[IO.File]::WriteAllText((Join-Path $runtime '自动更新说明.txt'),"从 AnomalyBureau.exe 或快捷方式启动。`r`n存档和设置仍在 _玩家数据；卸载默认保留。`r`n更新只下载变化或损坏的资源，失败后可重试，已校验文件会复用。`r`n安装目录内运行 unins000.exe 可卸载。建议安装在F盘。`r`n",$utf8)
+[IO.File]::WriteAllText((Join-Path $runtime '自动更新说明.txt'),"从 AnomalyBureau.exe 或快捷方式启动。`r`n存档和设置仍在 _玩家数据；卸载默认保留。`r`n更新只下载变化或损坏的资源，失败后可重试，已校验文件会复用。`r`n安装版使用目录内的卸载快捷方式卸载。建议安装在F盘。`r`n",$utf8)
 if(-not $SkipArchives) {
     & $PythonBinary (Join-Path $PSScriptRoot 'layout_manifest.py') $runtime
     if($LASTEXITCODE -ne 0) {throw 'Layout manifest failed'}

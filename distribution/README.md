@@ -1,11 +1,24 @@
 # 诡异事务局 Windows发行工具
 
-当前公开正式版仍为 **v0.6.1**：[GitHub Releases](https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/latest)。**v0.7.0为本地安装更新体验版**；2026-10-25创建GitHub草稿Release，附件上传已移交用户，移交时没有已完成附件。未公开v0.7.0，未替换v0.6.1附件。游戏、安装器、快捷方式统一称「诡异事务局」，英文下载文件前缀为AnomalyBureau。
+已确认GitHub存在v0.7.0公开版本；实时状态以[GitHub Releases](https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/latest)为准。**v0.8.0安装更新专项体验版仅在F盘**，本会话没有公开或替换Release附件。游戏、安装器、快捷方式统一称「诡异事务局」，英文下载文件前缀为AnomalyBureau。
+
+## 当前推荐流程：只上传变化内容
+
+日常使用build_patch.ps1：复用上一份完整清单中的资源来源，默认只生成新清单、一个变化资源容器和校验文件；完全没有资源变化时只有清单和校验文件。工具自动创建“上传这些”文件夹，窗口中全选该文件夹内文件即可，不上传Windows运行目录、导出ZIP或缓存。真实UI/模型样板总上传分别965,643/1,470,193字节，包含清单和校验文件。
+
+首次启用、或定期合并远端资源时，使用build_grouped.ps1生成新基础版本；不指定PreviousManifest即为新基础，默认也不额外生成完整免安装ZIP。完整安装器通过build_installer.ps1单独生成；build_windows.ps1集成构建并刷新发布清单。需要完整免安装ZIP时对build_grouped显式传-CompletePackage。每日补丁不需要再次生成Setup、免安装ZIP和旧版迁移ZIP。
+
+v0.7.0及更早客户端的旧启动器不能识别跨版本来源，需要一次完整Setup覆盖原目录以替换启动器，存档和设置保留。此路径已用完整0.7.0目录实测到0.8.0并进入真实主菜单。之后才能使用新的小补丁发布流程。新玩家可以安装完整基础包，再一次更新到最新，无需逐个安装历史补丁。
+
+首次0.8.0基础发布含完整Setup及六个容器，共9个文件、1,446,710,216字节，属于一次性建立基础；不能把这个首次成本说成每天都只上传1MB。体验包使用已验收0.7.0内容快照，只替换本项更新代码，未混入并行UI/存档会话当时未提交的游戏改动；正式发行前从最终提交重新构建需要发行的游戏内容。
+
+具体命令及手动上传见[增量发布操作说明](增量发布_操作说明.md)，实测见[减少发布上传验收](../docs/verification/20261025/减少发布上传验收.md)。
 
 ## 工具
 
 | 文件 | 用途 |
 | --- | --- |
+| build_patch.ps1、delta_transport.py、prepare_upload.ps1 | 日常增量发布、跨版本资源来源、仅包含必要附件的上传文件夹 |
 | build_grouped.ps1、build_groups.py | 真实Windows资源导出、六组资源、自动清单和完整免安装ZIP |
 | build_windows.ps1、windows_installer.iss | 使用同一Windows运行目录生成Setup |
 | build_bridge.ps1 | v0.6.x旧启动器的一次性完整迁移包 |
@@ -27,7 +40,7 @@
 .\distribution\build_bridge.ps1 -GodotBinary 'Godot控制台程序.exe' -PythonBinary 'python.exe' -ReleaseDirectory 'F:\交付\AnomalyBureau-0.7.0'
 ```
 
-版本参数写入清单，引导器挂载后设置版本，无需修改其他会话占用的project.godot或导出预设。更换基础引擎、引导PCK或固定启动器协议时应走完整迁移。所有输出放F盘。发布仍须单独授权；当前只交付本地版本。源码进Git，EXE/PCK/ZIP/Setup和测试数据不进Git。
+版本参数写入清单，引导器挂载后设置版本，无需修改其他会话占用的project.godot或导出预设。更换基础引擎、引导PCK或固定启动器协议时应走完整迁移。所有输出放F盘并使用新目录，禁止覆盖已有清单的验收产物。发布仍须单独授权；当前只交付本地版本。源码进Git，EXE/PCK/ZIP/Setup和测试数据不进Git。
 
 ## 玩家文件
 

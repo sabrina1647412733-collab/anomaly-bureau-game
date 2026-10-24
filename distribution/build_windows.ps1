@@ -17,6 +17,11 @@ if(-not $SkipExport) {
     if($LASTEXITCODE -ne 0) {throw 'Grouped build failed'}
 } elseif(-not (Test-Path -LiteralPath (Join-Path $outputRoot 'Windows/_运行文件/active.json'))) {throw 'SkipExport requires an existing grouped runtime'}
 & (Join-Path $PSScriptRoot 'build_installer.ps1') -RuntimeDirectory (Join-Path $outputRoot 'Windows') -OutputDirectory $outputRoot -InnoCompiler $InnoCompiler -Version $version
+if(Test-Path -LiteralPath (Join-Path $outputRoot 'publish-plan.json')) {
+    & $PythonBinary (Join-Path $PSScriptRoot 'delta_transport.py') --output $outputRoot
+    if($LASTEXITCODE -ne 0) {throw 'Installer publication inventory failed'}
+} else {
 Get-ChildItem -LiteralPath $outputRoot -File | Where-Object {$_.Extension -in @('.exe','.zip')} | ForEach-Object {
     '{0}  {1}' -f (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.Name
 } | Set-Content -LiteralPath (Join-Path $outputRoot 'SHA256SUMS.txt') -Encoding utf8
+}

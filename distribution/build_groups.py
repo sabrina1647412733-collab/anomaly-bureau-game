@@ -42,7 +42,7 @@ def group_for(path):
 def group_id(files):
     return digest('\n'.join(f"{f['path']}\t{f['sha256']}\t{f['size']}" for f in sorted(files, key=lambda f: f['path'])).encode())
 
-def build(export_zip, runtime, output, version, blob_cache=None):
+def build(export_zip, runtime, output, version, blob_cache=None, previous_manifest=None):
     if not re.fullmatch(r'\d+\.\d+\.\d+', version):
         raise ValueError('Version must be X.Y.Z')
     blobs = blob_cache or output / '资源下载'
@@ -89,6 +89,12 @@ def build(export_zip, runtime, output, version, blob_cache=None):
                         add(pack, f['path'], source.read(f['path']))
     # Six publishable transport containers. Resource-sized HTTP Range reads avoid
     # GitHub's release asset-count limit without downloading unchanged entries.
+    baseline = digest((''.join(digest((runtime / name).read_bytes()) for name in ('AnomalyBureau.Game.exe', 'AnomalyBureau.Game.pck'))).encode('ascii'))
+    if previous_manifest:
+        from delta_transport import prepare
+        manifest = prepare(records, baseline, version, previous_manifest, blobs, output)
+        write_json(runtime / '_运行文件' / 'active.json', manifest)
+        return manifest
     locations = {}
     for group in GROUPS:
         bundle = 'AnomalyBureau-resources-' + group + '.bin'
@@ -117,5 +123,6 @@ if __name__ == '__main__':
     p.add_argument('--runtime', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--version', required=True)
+    p.add_argument('--previous-manifest', type=Path)
     a = p.parse_args()
-    build(a.export_zip, a.runtime, a.output, a.version)
+    build(a.export_zip, a.runtime, a.output, a.version, previous_manifest=a.previous_manifest)

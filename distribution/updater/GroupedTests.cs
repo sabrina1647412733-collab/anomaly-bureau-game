@@ -73,6 +73,19 @@ class GroupedTests {
         bad=Grouped.Read<GroupManifest>(m3);bad.files[0].group="unknown";Grouped.Write(hostile,bad);Throws(()=>Grouped.Validate(hostile),"unknown group rejected");
         bad=Grouped.Read<GroupManifest>(m3);bad.baseline=new string('0',64);Grouped.Write(hostile,bad);Throws(()=>Grouped.Plan(root,hostile),"incompatible engine/bootstrap rejected");
         Check(Directory.GetFiles(Path.Combine(Grouped.Runtime(root),"packs"),"*.zip").Length<=6,"compaction bounds packs to active + previous groups");Saves();
+        string origin="https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/download/v0.8.2/";
+        Check(Grouped.AssetUri(origin,"AnomalyBureau-resources-base.bin","0.8.0").AbsoluteUri=="https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/download/v0.8.0/AnomalyBureau-resources-base.bin","unchanged resources resolve against their original release");
+        Throws(()=>Grouped.AssetUri(origin,"AnomalyBureau-resources-base.bin","../evil"),"source version traversal rejected");
+        Throws(()=>Grouped.AssetUri("https://github.com/foreign/repo/releases/download/v0.8.2/","AnomalyBureau-resources-base.bin","0.8.0"),"foreign repository rejected");
+        var sourceManifest=Grouped.Read<GroupManifest>(m3); sourceManifest.transport=3;
+        foreach(var f in sourceManifest.files) {f.bundle="AnomalyBureau-resources-"+f.group+".bin";f.offset=0;f.source_version="0.7.0";}
+        sourceManifest.containers=sourceManifest.files.Select(f=>new ResourceContainer{version="0.7.0",name=f.bundle,size=1000000,sha256=new string('a',64)}).GroupBy(container=>container.name).Select(g=>g.First()).ToArray();
+        Grouped.Write(hostile,sourceManifest); Check(Grouped.Validate(hostile).transport==3,"cross-release transport keeps compatible runtime layout");
+        sourceManifest.files[0].source_version="9.0.0";Grouped.Write(hostile,sourceManifest);Throws(()=>Grouped.Validate(hostile),"missing historical source rejected");
+        sourceManifest.files[0].source_version="0.7.0";sourceManifest.files[0].offset=1000001;Grouped.Write(hostile,sourceManifest);Throws(()=>Grouped.Validate(hostile),"out-of-container resource range rejected");
+        sourceManifest.files[0].offset=0;Grouped.Write(hostile,sourceManifest);string beforeSourceSwitch=Launcher.Hash(Active());
+        Grouped.Activate(root,hostile,Guid.NewGuid().ToString("N"));Check(Grouped.Recover(root)&&Launcher.Hash(Active())==beforeSourceSwitch,"interrupted cross-release activation restores previous manifest");
+        Grouped.Activate(root,hostile,Guid.NewGuid().ToString("N"));Check(!Grouped.Confirm(root,new[]{"--fail"})&&Launcher.Hash(Active())==beforeSourceSwitch,"cross-release startup failure rolls back with historical sources intact");Saves();
         Console.WriteLine("RESULT "+passed+" passed, "+failed+" failed");return failed==0?0:1;
     }
 }
