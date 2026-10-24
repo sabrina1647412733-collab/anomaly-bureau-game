@@ -13,3 +13,7 @@
 *.mp4 binary
 *.pck binary
 *.wasm binary
+*.blend binary
+*.docx binary
+*.ogg binary
+*.mp3 binary
