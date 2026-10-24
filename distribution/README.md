@@ -1,6 +1,6 @@
 # 诡异事务局 Windows发行工具
 
-当前公开正式版仍为 **v0.6.1**：[GitHub Releases](https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/latest)。**v0.7.0仅为本地安装更新体验版**，未创建Release，未替换v0.6.1附件。游戏、安装器、快捷方式统一称「诡异事务局」，英文下载文件前缀为AnomalyBureau。
+当前公开正式版仍为 **v0.6.1**：[GitHub Releases](https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/latest)。**v0.7.0为本地安装更新体验版**；2026-10-25创建GitHub草稿Release，附件上传已移交用户，移交时没有已完成附件。未公开v0.7.0，未替换v0.6.1附件。游戏、安装器、快捷方式统一称「诡异事务局」，英文下载文件前缀为AnomalyBureau。
 
 ## 工具
 
@@ -10,7 +10,7 @@
 | build_windows.ps1、windows_installer.iss | 使用同一Windows运行目录生成Setup |
 | build_bridge.ps1 | v0.6.x旧启动器的一次性完整迁移包 |
 | layout_manifest.py、package_portable.py | 只打包明确安装清单，排除玩家数据、缓存与测试文件 |
-| publish_release.ps1 | 草稿上传、附件digest核对及显式公开；本轮未运行 |
+| publish_release.ps1 | 草稿上传、附件digest核对及显式公开；2026-10-25已创建草稿，上传中途移交用户，未使用-Publish |
 | updater/、bootstrap/ | 固定启动器、工作进程、引导加载与旧版迁移源码 |
 | test_*.ps1、test_grouped_e2e.py | 单测、安装、真实资源与旧客户端迁移验收 |
 | build_update.ps1、build_portable.ps1 | 旧协议完整包工具，留作兼容回归；新内容版使用build_grouped |

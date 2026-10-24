@@ -34,4 +34,6 @@ F:\诡异事务局\交付\AnomalyBureau-0.7.0-local-final：完整Setup、完整
 
 ## 本轮仓库整理
 
+2026-10-25 GitHub上传补充：安装更新源码82a652831f126727ca9c7c8693380ec1c96896d6已同步main；按用户“上传github”创建v0.7.0草稿（Release id 422849708）。用户随后提出自己上传，已停止本会话上传进程并移交网页操作；移交时草稿无已完成附件，v0.6.1三个公开附件完全未变。v0.7.0仍未公开，不能宣称已完成线上更新发行。草稿入口：https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/edit/untagged-682f46b80ba7a68b4b04 。本地文件继续使用AnomalyBureau-0.7.0-local-final，全部10个产物校验已复核。
+
 44份资料归档，根目录追踪文件45→9；新增多会话接手和任务表。运行/配置/源模型逐项校验保持原样，详见[整理验收](../verification/20261024/20261024_仓库整理验收.md)。仅整理，不视为上述玩法和安装问题已解决。
