@@ -7,6 +7,9 @@
 #ifndef ReleaseDir
   #error ReleaseDir is required
 #endif
+#ifndef TempHostDir
+  #error TempHostDir is required; use build_installer.ps1
+#endif
 
 [Setup]
 AppId={{8E86F0AA-FE1C-4DDD-AD31-6239674835D9}
@@ -50,6 +53,7 @@ Source: "{#RuntimeDir}\AnomalyBureau.exe"; DestDir: "{app}"; Flags: ignoreversio
 Source: "{#RuntimeDir}\AnomalyBureau.Game.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RuntimeDir}\AnomalyBureau.Game.pck"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RuntimeDir}\AnomalyBureau.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#TempHostDir}\AnomalyBureau.Uninstall.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RuntimeDir}\*.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RuntimeDir}\兼容模式启动.bat"; DestDir: "{app}"; Flags: ignoreversion
 ; Activate the complete resource set only after all immutable packs are installed.
@@ -57,7 +61,7 @@ Source: "{#RuntimeDir}\_运行文件\active.json"; DestDir: "{app}\_运行文件
 
 [Icons]
 Name: "{app}\诡异事务局"; Filename: "{app}\AnomalyBureau.exe"; WorkingDir: "{app}"; IconFilename: "{app}\AnomalyBureau.ico"
-Name: "{app}\卸载诡异事务局"; Filename: "{uninstallexe}"; WorkingDir: "{app}"
+Name: "{app}\卸载诡异事务局"; Filename: "{app}\AnomalyBureau.Uninstall.exe"; WorkingDir: "{app}"; IconFilename: "{app}\AnomalyBureau.ico"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\_运行文件"

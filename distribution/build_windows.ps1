@@ -16,8 +16,7 @@ if(-not $SkipExport) {
     & (Join-Path $PSScriptRoot 'build_grouped.ps1') -GodotBinary $GodotBinary -PythonBinary $PythonBinary -OutputDirectory $outputRoot -Version $version -BaselineRuntime $BaselineRuntime
     if($LASTEXITCODE -ne 0) {throw 'Grouped build failed'}
 } elseif(-not (Test-Path -LiteralPath (Join-Path $outputRoot 'Windows/_运行文件/active.json'))) {throw 'SkipExport requires an existing grouped runtime'}
-& $InnoCompiler "/DAppVersion=$version" "/DRuntimeDir=$outputRoot\Windows" "/DReleaseDir=$outputRoot" (Join-Path $PSScriptRoot 'windows_installer.iss')
-if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compilation failed.' }
+& (Join-Path $PSScriptRoot 'build_installer.ps1') -RuntimeDirectory (Join-Path $outputRoot 'Windows') -OutputDirectory $outputRoot -InnoCompiler $InnoCompiler -Version $version
 Get-ChildItem -LiteralPath $outputRoot -File | Where-Object {$_.Extension -in @('.exe','.zip')} | ForEach-Object {
     '{0}  {1}' -f (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.Name
 } | Set-Content -LiteralPath (Join-Path $outputRoot 'SHA256SUMS.txt') -Encoding utf8

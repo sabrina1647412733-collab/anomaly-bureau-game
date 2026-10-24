@@ -42,3 +42,7 @@
 ## 2026-10-25 GitHub草稿上传
 
 用户在安装版交付后要求“上传github”。安装与更新会话创建了v0.7.0草稿Release，目标源码82a652831f126727ca9c7c8693380ec1c96896d6；本地10个产物SHA256复核通过。上传首个完整迁移包期间，用户提出自己上传，已停止本会话上传进程并移交网页上传。移交时草稿无已完成附件，公开v0.6.1的3个附件id、大小及digest保持原样。状态：草稿及移交完成，附件待用户上传；尚未公开新Release。本阶段负责TASKS、STATUS、SESSION_HANDOFF、distribution/README.md、AUTO_UPDATE.md，仅更新实际上传状态，未运行Godot或修改运行代码。记录：F:\诡异事务局\验收\20261025_GitHub草稿上传。
+
+## 2026-10-25 安装器默认临时目录错误5修复
+
+用户实机双击Setup截图表明，进入安装页面前创建C盘TEMP子目录即错误5。此前指定F盘TEMP的隔离验收漏测默认启动环境。安装更新会话负责distribution的安装启动层、build_windows/windows_installer及新增临时目录修复测试；STATUS/SESSION_HANDOFF仅追加本项，TASKS保留其他会话原文。起点0432a01；未改UI/存档会话内容。已完成：独立安装引导EXE在Inno初始化前选择可写临时目录，卸载入口同样处理并先释放安装目录内自身占用；仅对子进程设置TEMP/TMP。30项安装/卸载/重装检查及2项损坏包拒绝检查通过，未启动Godot。输出F:\诡异事务局\交付\AnomalyBureau-0.7.0-installer-tempfix；证据F:\诡异事务局\验收\20261025_安装器临时目录；不公开或覆盖Release附件。状态：修复及本地验收完成。详见docs/verification/20261025/安装器临时目录修复.md。

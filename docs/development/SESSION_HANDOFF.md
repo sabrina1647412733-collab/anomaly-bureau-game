@@ -48,3 +48,7 @@
 - 当前进度及最终产物以STATUS和docs/verification/20261024/安装更新验收.md为准。
 
 2026-10-25上传补充：用户要求上传GitHub后已创建v0.7.0草稿（id 422849708，目标82a652831f126727ca9c7c8693380ec1c96896d6），未公开。用户随后提出自己上传，代理已停止自己的上传进程，草稿移交时无已完成附件；不要误报完整上传已结束。下一步由用户网页上传，文件取F:\诡异事务局\交付\AnomalyBureau-0.7.0-local-final。v0.6.1公开附件未修改。源码已在main，不需重复打包或启动Godot。
+
+## 2026-10-25 默认TEMP错误5补修
+
+用户实机截图发现旧Setup在C盘TEMP初始化失败。已通过distribution/installer/TempHost.cs和build_installer.ps1在Inno前选择可写临时目录，build_windows接入；卸载快捷方式同样经过临时目录引导。30项安装检查及2项损坏包拒绝检查通过，不启动Godot或修改系统TEMP。当前应体验F:\诡异事务局\交付\AnomalyBureau-0.7.0-installer-tempfix\AnomalyBureau-Setup-0.7.0.exe，不能再推荐local-final内旧Setup解决此默认启动问题。游戏资源仍为原0.7.0；公开附件未覆盖，上传仍由用户操作。只读检查已见GitHub v0.7.0公开，早先草稿记录仅为历史状态。详见docs/verification/20261025/安装器临时目录修复.md。UI与存档会话的未提交内容均保持原样。

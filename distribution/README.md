@@ -36,3 +36,17 @@
 安装器可选择位置，建议F盘并显示所需空间；默认创建桌面快捷方式。升级选原目录。卸载入口是安装目录内「卸载诡异事务局」或unins000.exe，默认保留玩家数据。为避免受限HKCU导致整包回滚，不依赖Windows“已安装应用”登记，也不写开始菜单；桌面不可写时明确提示并保留目录内快捷方式。免安装ZIP解压本身不会创建桌面快捷方式。
 
 协议、失败恢复、资源分组及验收命令见[AUTO_UPDATE.md](AUTO_UPDATE.md)。
+
+## 2026-10-25 默认TEMP启动修复
+
+用户双击旧Setup时，在C盘TEMP创建is-*.tmp目录即错误5。此前测试固定F盘TEMP，未覆盖此启动条件；原0.7.0安装器不能再作为该问题已解决的证据。修正版在F:\诡异事务局\交付\AnomalyBureau-0.7.0-installer-tempfix，仍安装已验收0.7.0运行文件，不含其他会话尚未提交的UI/存档改动。
+
+build_windows现在通过build_installer.ps1构建独立临时目录引导层，内嵌Inno负载并校验SHA256，先选择可写目录再启动Inno。优先F盘缓存，其次安装包旁可写缓存，最后可写的系统临时目录；只修改子进程环境，不改注册表或系统TEMP。卸载请使用安装目录内“卸载诡异事务局”快捷方式，它同样选择可写TEMP并先脱离安装目录，避免锁住自己的EXE。诊断日志保留在选定缓存内，嵌入的完整安装负载执行后删除。
+
+仅重建安装器、无需运行Godot：
+
+```powershell
+.\distribution\build_installer.ps1 -RuntimeDirectory 'F:\诡异事务局\交付\AnomalyBureau-0.7.0-local-final\Windows' -OutputDirectory 'F:\交付\新的安装器目录' -InnoCompiler 'ISCC.exe' -Version '0.7.0'
+```
+
+输出目录不得已有同名安装包，避免覆盖已交付文件。新验收见[安装器临时目录修复](../docs/verification/20261025/安装器临时目录修复.md)。本次未上传或替换任何Release附件。

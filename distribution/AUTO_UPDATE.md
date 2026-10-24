@@ -73,6 +73,8 @@ AnomalyBureau-manifest-v2.json为protocol=2，包含version、baseline和完整f
 
 ## 安装与卸载
 
+2026-10-25追加：用户默认双击旧Setup在C盘TEMP创建目录即错误5，发生于Inno脚本执行前；下方旧验收使用F盘TEMP，不能覆盖该失败条件。现由installer/TempHost.cs外层引导在启动Inno前选定可写临时目录，只对子进程设置TEMP/TMP。build_installer.ps1编译引导、卸载入口并嵌入带SHA256校验的Inno负载；build_windows统一走此入口。卸载快捷方式改为AnomalyBureau.Uninstall.exe，先复制到临时目录并退出原入口后再启动unins000.exe，避免卸载时自身EXE仍被占用。不要直接双击unins000.exe绕过此处理。最终30项安装检查及2项损坏包拒绝检查通过，详见docs/verification/20261025/安装器临时目录修复.md。新版完整安装器位于独立installer-tempfix交付目录，未替换原产物或公开附件。
+
 旧Setup已复现：文件解压后，开始菜单写入与HKCU卸载项RegCreateKeyEx均报错误5（拒绝访问），随后整包回滚。本次去掉对这些写入的强制依赖。原先口述“初始化失败”不再当作已知根因；实际复现证据是权限失败与安装回滚。
 
 Setup使用当前用户权限，可选择位置；F盘存在时建议F:\Games\AnomalyBureau。标准目录/准备安装页显示实际文件所需空间，并额外预留1GiB。默认创建「诡异事务局」桌面快捷方式，指向固定启动器并使用参考图转换的正式ICO。桌面无写权限时明确报告并保留安装目录内的游戏快捷方式。不会强制关闭进程或修改音量。
