@@ -102,6 +102,22 @@ func frontage_shots() -> void:
 		var front := Vector3(float(entry.x),0.10,float(entry.z))+outward*float(entry.d)*0.5
 		await capture("低附房_02",front+outward*2.4,front-outward*0.3+Vector3(0,2.1,0))
 
+func vegetation_shots() -> void:
+	# Natural standing player poses, not a macro camera placed inside a wall or
+	# through furniture. capture() validates standing volume and floor support.
+	for entry in game.town_bridge.layout.get("buildings", []):
+		if int(entry.get("seed",-1))!=579349:continue
+		var yaw:=float(entry.get("rot",0.0))
+		var front:=Vector3(float(entry.fx),0.0,float(entry.fz))
+		var across:=Vector3(cos(yaw),0,-sin(yaw))
+		var outward:=Vector3(sin(yaw),0,cos(yaw))
+		await capture("草近景_旧大草丛替换",front-across*.40+outward*.95+Vector3(0,.10,0),
+			front-across*.80+outward*.095+Vector3(0,.10,0))
+		await capture("草近景_墙缝细叶",front-across*3.00+outward*.90+Vector3(0,.10,0),
+			front-across*3.02+outward*.08+Vector3(0,.085,0))
+		break
+	await capture("近景_雨篦条栅与墙脚",Vector3(153.8,.10,125.45),Vector3(153.4716,.035,126.3624))
+
 func run() -> void:
 	create_timer(45 if OS.get_cmdline_user_args().has("--quick") else 220).timeout.connect(func():push_error("街道截图超时");quit(2))
 	for argument in OS.get_cmdline_user_args():
@@ -156,6 +172,8 @@ func run() -> void:
 		await capture("近景_门旁藤椅搪瓷盆",Vector3(154,0.10,124.7),Vector3(151.8,1.0,127.3))
 		await capture("近景_反向立面管线",Vector3(155.3,0.10,127.3),Vector3(177.7,6.2,102.8))
 		await capture("近景_晾晒与窗洞",Vector3(160,0.10,125.2),Vector3(161.6,2.6,129.5))
+	if OS.get_cmdline_user_args().has("--vegetation-details"):
+		await vegetation_shots()
 	if quick:await capture("06_沿街道路近景",Vector3(150,0.10,124.1),Vector3(165,0.5,126.5))
 	else:
 		await phase_shots()

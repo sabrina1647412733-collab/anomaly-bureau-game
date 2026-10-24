@@ -1,0 +1,62 @@
+[
+  {
+    "id": "hebo",
+    "source": "electrical_shopkeeper.glb",
+    "source_untouched": true,
+    "reuse": "base face, body, own skeleton and planted Idle",
+    "added": [
+      "Hebo_separate_knitted_vest",
+      "Hebo_glasses_lens_rim",
+      "Hebo_glasses_lens_rim.001",
+      "Hebo_glasses_bridge",
+      "Hebo_glasses_temple",
+      "Hebo_glasses_temple.001"
+    ],
+    "idle_samples": [
+      {
+        "phase": 0,
+        "feet_min": -3.494395528491623e-08,
+        "height": 1.696368490830796
+      },
+      {
+        "phase": 0.5,
+        "feet_min": -3.494395528491623e-08,
+        "height": 1.696368490830796
+      },
+      {
+        "phase": 1,
+        "feet_min": -3.494395528491623e-08,
+        "height": 1.696368490830796
+      }
+    ],
+    "file_bytes": 13013896
+  },
+  {
+    "id": "sun_suqin",
+    "source": "female_resident.glb",
+    "source_untouched": true,
+    "reuse": "base face, body, own skeleton and planted Idle",
+    "added": [
+      "Sun_separate_work_apron",
+      "Sun_low_work_bun"
+    ],
+    "idle_samples": [
+      {
+        "phase": 0,
+        "feet_min": -3.075369647831394e-08,
+        "height": 1.6964763710475808
+      },
+      {
+        "phase": 0.5,
+        "feet_min": -3.075369647831394e-08,
+        "height": 1.6964763710475808
+      },
+      {
+        "phase": 1,
+        "feet_min": -3.075369647831394e-08,
+        "height": 1.6964763710475808
+      }
+    ],
+    "file_bytes": 13057752
+  }
+]

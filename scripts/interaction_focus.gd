@@ -19,6 +19,7 @@ func setup(g) -> void:
 	layer.add_child(dot)
 
 func available() -> bool:
+	if game.town_bridge!=null and game.town_bridge.active and game.town_bridge.town_map.big_open:return false
 	return game.state in ["play","prologue"] and not game.bag_open and not game.phone_open and not game.nb_open and game.choice==null
 
 func _process(_delta: float) -> void:
@@ -29,6 +30,7 @@ func _process(_delta: float) -> void:
 	dot.queue_redraw()
 
 func radius_for(id: String) -> float:
+	if id in ["c2_aqi","c2_guard","c2_he_door","c2_sun","c2_exit","c2_elevator","c2_intercom"]:return .52
 	if id in ["c1_lady","lb_exit","door","l_backdoor","l_locked_402","l_locked_503","case_rest"]:return .48
 	if id in ["phone","envelope","envelope2","wclock","c1_cert","c1_homework","c1_sandal","c1_shoe_room","c1_stones"]:return .15
 	if id.begins_with("l_m"):return .35
@@ -61,6 +63,9 @@ func select_target() -> Variant:
 			var at:Vector3=bridge.ORIGIN+Vector3(float(front[0]),1.1,float(front[1]))
 			candidates.append({"kind":"town","id":id,"text":"进入得利洗衣店" if id=="01" else ("回出租屋" if id=="02" else "查看"+String(entry.get("name","地点"))),"pos":at,"reach":3.3,"radius":.7})
 		if bridge.residents != null:candidates.append_array(bridge.residents.interaction_candidates())
+	elif game.state=="prologue" and game.case2_controller!=null and game.case2_controller.active:
+		for point in game.case2_controller.room_spots():
+			candidates.append({"kind":"spot","id":point.id,"text":point.label,"spot":point,"pos":point.pos,"reach":point.r,"radius":radius_for(point.id)})
 	elif game.state=="prologue":
 		for point in game.prologue_spots:
 			if point.stage!=game.prologue_stage:continue
@@ -75,6 +80,11 @@ func select_target() -> Variant:
 			elif id=="phone":at=game.get_meta("phone_world_body").global_position+Vector3(0,.08,0)
 			elif id=="wclock" and game.wclock!=null:at=game.wclock.root.global_position+Vector3(0,.3,0)
 			candidates.append({"kind":"prologue","id":id,"text":game._prologue_label(point),"pos":at,"reach":point.r,"radius":radius_for(id)})
+	elif game.case_mode=="case2" and game.case2_controller!=null and game.case2_controller.campaign!=null:
+		for point in game.case2_controller.campaign.spots():
+			if not point.get("enabled",true):continue
+			var id:=String(point.id)
+			candidates.append({"kind":"spot","id":id,"text":point.get("label",point.get("text","检查")),"spot":point,"pos":point.pos,"reach":point.r,"radius":radius_for(id)})
 	elif game.case_mode=="laundry":
 		for point in game.spots:
 			var id=String(point.id)

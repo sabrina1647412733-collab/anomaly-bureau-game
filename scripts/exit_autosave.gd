@@ -26,8 +26,10 @@ func snapshot() -> Dictionary:
 	if normal=="clock_ui":normal=game.director.return_state
 	elif normal=="prologue_ui":normal=game.field_kit.return_state
 	elif normal=="prologue_choice":normal="prologue"
-	elif normal=="case_reader":normal=game.laundry.campaign.return_state
-	elif normal=="case_dialogue":normal=game.laundry.campaign.dialogue.return_state
+	elif normal=="case2_read":normal=game.case2_controller.campaign.return_state
+	elif normal=="case_reader" and game.laundry!=null:normal=game.laundry.campaign.return_state
+	elif normal=="case_dialogue":
+		normal=game.case2_controller.campaign.dialogue.return_state if game.case2_controller.active else game.laundry.campaign.dialogue.return_state
 	elif normal=="case_cinematic":normal=game.laundry.campaign.cinematic.return_state if game.laundry!=null and game.laundry.campaign.cinematic.active else game.field_kit.letter_camera.return_state
 	game.state=normal
 	var data=Save.capture(game)
@@ -41,7 +43,7 @@ func snapshot() -> Dictionary:
 		data.room.envelope_taken=false
 		data.field_items.held_id=""
 	# 通话中退出，恢复为房东来电，避免错过挂断后的投信回调。
-	if game.phone_ui.call_active or (data.mode!="laundry" and game.prologue_call_done and not game.prologue_letter_ready):
+	if not game.case2_controller.active and (game.phone_ui.call_active or (data.mode!="laundry" and game.prologue_call_done and not game.prologue_letter_ready)):
 		data.room.prologue_call_done=false
 	data["autosave"]=true
 	return data
@@ -60,6 +62,7 @@ func read_snapshot(path: String) -> Dictionary:
 	var data=parser.data
 	return data if data is Dictionary and Save.valid(data) else {}
 func save_now() -> bool:
+	if preload("res://scripts/storage_paths.gd").inspection_active:return false
 	if test_mode or game.state=="menu":return false
 	var data=snapshot()
 	var result=write_snapshot(PATH,data)
@@ -77,10 +80,20 @@ func _process(delta: float) -> void:
 	elapsed+=delta
 	if elapsed<1:return
 	elapsed=0
-	if game.state in ["play","prologue","case_reader","case_dialogue","case_end"]:
+	if game.state in ["play","prologue","case_reader","case2_read","case_dialogue","case_end"]:
 		var data=snapshot()
 		if not data.is_empty():fallback=data
 func request_quit() -> void:
+	if game.developer_review!=null:
+		if game.developer_review.login_open:game.developer_review.cancel_login()
+		if game.developer_review.active:
+			var review=game.developer_review
+			review.save_bookmark()
+			# Persist only the pre-inspection snapshot, never the inspected scene.
+			if not test_mode and not review.snapshot.is_empty() and not write_snapshot(String(review.prior_paths.auto),review.snapshot):
+				OS.alert("原进度保存失败，请先退出巡查后重试。","保存未完成")
+				return
+			get_tree().quit();return
 	if game.state!="menu" and not test_mode and not save_now():
 		OS.alert("自动保存失败，游戏暂未退出。请在暂停菜单手动存档后再退出。","保存未完成")
 		return

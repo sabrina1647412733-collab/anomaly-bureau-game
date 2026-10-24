@@ -39,6 +39,7 @@ var _rain_origin := Vector2i(-99999, -99999)
 var _light_update := 0.0
 var _last_sky_clock := -99999.0
 var _last_sky_second := -99999
+var inspection_override:Dictionary={}
 
 func setup(owner_town: Node3D) -> void:
 	town = owner_town
@@ -157,9 +158,9 @@ func _integrate_wetness(from: float, to: float) -> void:
 func refresh(delta := 0.0) -> void:
 	if not is_instance_valid(game):
 		return
-	var paused := _paused()
+	var paused := _paused() and inspection_override.is_empty()
 	if not paused:
-		var clock := _absolute_clock()
+		var clock := float(inspection_override.get("minute",_absolute_clock()))
 		if last_clock < 0.0:
 			last_clock = clock
 		elif clock < last_clock - 0.001:
@@ -173,6 +174,10 @@ func refresh(delta := 0.0) -> void:
 		rain_amount = profile.rain
 		cloud_cover = profile.clouds
 		daylight = profile.daylight
+		if not inspection_override.is_empty():
+			rain_amount=clampf(float(inspection_override.get("rain",rain_amount)),0,1)
+			wetness=clampf(float(inspection_override.get("wetness",wetness)),0,1)
+			cloud_cover=maxf(cloud_cover,rain_amount*.9)
 		if active:
 			animation_time += maxf(delta, 0.0)
 	if not active:

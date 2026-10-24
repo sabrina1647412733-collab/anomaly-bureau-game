@@ -8,11 +8,14 @@ from collections import defaultdict, Counter
 from mathutils import Vector
 
 ROOT=Path(sys.argv[sys.argv.index('--')+1]); OUT=ROOT/'assets/town/renewal'
+sys.path.insert(0,str(ROOT/'scripts/tools'))
+from street_vegetation import ground_plant, curved_leaf, fallen_leaf
 PLAN=json.loads((ROOT/'_tools/street_surface_plan.json').read_text(encoding='utf8'))
 DATA=json.loads((ROOT/'assets/town/town-layout.json').read_text(encoding='utf8'))
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 GEOM={}; GROUP=(0,0); YAW=0.;CENTER=(0.,0.); TINT=(1,1,1,1);DETAIL=False;RECESSED=False
-SAMPLE_HOUSES={579349:'limewash',993505:'mint_plaster'}
+SAMPLE_HOUSES={579349:'limewash',993505:'mint_plaster',
+              88229:'hero_plaster',458904:'plaster',805503:'limewash',695191:'plaster'}
 COLORS={'plaster':(.61,.60,.52,1),'brick':(.43,.29,.23,1),'graybrick':(.4,.43,.42,1),
  'concrete':(.5,.5,.46,1),'wood':(.32,.22,.13,1),'metal':(.26,.29,.28,1),
  'rust':(.36,.22,.13,1),'roof_tile':(.26,.30,.3,1),'roof_metal':(.36,.38,.35,1),
@@ -21,7 +24,7 @@ COLORS={'plaster':(.61,.60,.52,1),'brick':(.43,.29,.23,1),'graybrick':(.4,.43,.4
  'cable':(.045,.053,.051,1),'sign':(.14,.23,.24,1),'paper':(.65,.60,.45,1),
  'road':(.42,.42,.4,1),'paving':(.62,.61,.55,1),'ground':(.4,.41,.35,1),
  'puddle':(.11,.16,.17,1),'water':(.10,.17,.17,1),'lamp':(.9,.62,.28,1),'curtain':(.44,.40,.30,1)}
-COLORS.update({'limewash':(.89,.86,.78,1),'mint_plaster':(.70,.78,.72,1),'hero_plaster':(.72,.69,.63,1),'galvanized':(.62,.64,.61,1),
+COLORS.update({'limewash':(.89,.86,.78,1),'mint_plaster':(.70,.78,.72,1),'hero_plaster':(.72,.69,.63,1),'galvanized':(.62,.64,.61,1),'verge_green':(1,1,1,1),'drain_iron':(.19,.205,.19,1),
  'painted_metal':(.72,.70,.65,1),'road_patch':(.28,.29,.28,1),'wall_damp':(.24,.25,.20,1),'road_crack':(.07,.065,.055,1)})
 manifest={'version':2,'chunks':[],'props':[],'lights':[],'signs':[],'drips':[],'counts':{},
  'collision':PLAN['surfaces']['collision'],'river_bed':PLAN['surfaces']['river'],'surface_validation':PLAN['validation'],'shop_recesses':[],'hero_frontages':[]}
@@ -36,8 +39,9 @@ def face(mat,verts,faces,color=None,world=False):
  key=(GROUP,mat)
  if key not in GEOM:GEOM[key]=[[],[],[]]
  vv,ff,cc=GEOM[key];base=len(vv)
- for p in verts:
-  x,y,z=p if world else point(p);vv.append((x,-z,y));cc.append(color or TINT)
+ per_vertex=bool(color) and isinstance(color[0],(tuple,list))
+ for index,p in enumerate(verts):
+  x,y,z=p if world else point(p);vv.append((x,-z,y));cc.append(color[index] if per_vertex else color or TINT)
  ff.extend(tuple(base+i for i in f) for f in faces)
 def box(mat,at,size,color=None):
  x,y,z=at;a,b,c=[v/2 for v in size]
@@ -53,14 +57,61 @@ def bevel_box(mat,at,size,amount=.012,color=None):
  bm.verts.ensure_lookup_table();bm.verts.index_update()
  face(mat,[tuple(v.co+Vector(at)) for v in bm.verts],[tuple(v.index for v in f.verts) for f in bm.faces],color)
  bm.free()
-def tube(mat,a,b,r,n=7,r2=None):
+def tube(mat,a,b,r,n=7,r2=None,color=None):
  a=Vector(a);b=Vector(b);d=(b-a).normalized();u=d.cross(Vector((0,1,0)))
  if u.length<.1:u=d.cross(Vector((1,0,0)))
  u.normalize();v=d.cross(u);vv=[]
  for p,rad in [(a,r),(b,r if r2 is None else r2)]:
   for j in range(n):vv.append(tuple(p+rad*(u*math.cos(j*math.tau/n)+v*math.sin(j*math.tau/n))))
  faces=[tuple(range(n-1,-1,-1)),tuple(range(n,n*2))]+[(i,(i+1)%n,(i+1)%n+n,i+n) for i in range(n)]
- face(mat,vv,faces)
+ face(mat,vv,faces,color)
+
+def household_pot(xx,front,seed,detail):
+ # Hollow terracotta profile with an inner lip, soil and bent evergreen leaves.
+ # It occupies the same wall-side footprint as the former cylinder/spike kit.
+ r=random.Random(seed+891)
+ z=front+.32;n=16 if detail else 12
+ profile=[(.135,.04),(.153,.07),(.204,.30),(.224,.306),(.229,.328),
+          (.216,.346),(.196,.342),(.190,.314),(.172,.271)]
+ verts=[(xx+radius*math.cos(k*math.tau/n),y,z+radius*math.sin(k*math.tau/n))
+        for radius,y in profile for k in range(n)]
+ faces=[(j*n+k,j*n+(k+1)%n,(j+1)*n+(k+1)%n,(j+1)*n+k)
+        for j in range(len(profile)-1) for k in range(n)]
+ faces.append(tuple(range(n-1,-1,-1)))
+ # Reuse the existing opaque paper/earth batch; vertex colour is clay, not rust.
+ face('paper',verts,faces,(.69,.43,.22,1))
+ tube('cable',(xx,.275,z),(xx,.282,z),.175,n,color=(.45,.41,.32,1))
+ leaves=7 if detail else 5
+ for k in range(leaves):
+  angle=k*2.399+r.uniform(-.35,.35)
+  curved_leaf(face,(xx+r.uniform(-.012,.012),.280,z+r.uniform(-.012,.012)),angle,
+              r.uniform(.155,.220),r.uniform(.025,.041),r.uniform(.25,.41),
+              seed+k+882,segments=4 if detail else 3,curl=r.uniform(.45,.75))
+ for yy in [.117,.260]:
+  # Two subtle impressed rings remain separate from the broad pot silhouette.
+  rad=.152 if yy<.2 else .194
+  for k in range(n):
+   a=k*math.tau/n;b=(k+1)*math.tau/n
+   tube('paper',(xx+rad*math.cos(a),yy,z+rad*math.sin(a)),
+        (xx+rad*math.cos(b),yy,z+rad*math.sin(b)),.0025,3,color=(.53,.33,.17,1))
+
+def straw_broom(xx,front,seed):
+ r=random.Random(seed+196)
+ tube('wood',(xx,.29,front+.36),(xx-.18,1.35,front+.14),.013,6)
+ # Distinct dry straw bundles splay onto the paving and are tied below the
+ # wooden handle. No opaque green rectangular block remains on the pavement.
+ for k in range(43):
+  side=(k-21)/21;bx=xx+side*.105+r.uniform(-.002,.002);end_y=r.uniform(.039,.055)
+  width=r.uniform(.0013,.0022);bend=r.uniform(-.007,.007)
+  vv=[(bx-width,end_y,front+.395+r.uniform(-.006,.006)),
+      (bx+width,end_y+.001,front+.395),
+      (xx+side*.071+bend+width,.13,front+.379),
+      (xx+side*.071+bend-width,.13,front+.379),
+      (xx+side*.037+width*.6,.25,front+.368),
+      (xx+side*.037-width*.6,.25,front+.368)]
+  face('paper',vv,[(0,1,2,3),(3,2,4,5)],(.70+r.uniform(-.10,.10),.56+r.uniform(-.04,.04),.31,1))
+ tube('rust',(xx-.044,.227,front+.375),(xx+.044,.227,front+.375),.007,5)
+ tube('rust',(xx-.035,.255,front+.369),(xx+.035,.255,front+.369),.006,5)
 def cable(a,b,sag=.45,r=.014):
  prev=a
  for i in range(1,13):
@@ -94,13 +145,17 @@ def roof(w,d,h,kind):
  manifest['drips'].append(list(point((x,h-.1,z))))
 def window(x,y,z,width=1.05,height=1.35,lit=False,bars=False):
  glass_z=z-.235 if RECESSED else z+.029
- if DETAIL:
+ if DETAIL or RECESSED:
   # A dark inner reveal and four separate frame rails replace the solid backing
   # slab. Glass stays outside the existing solid building hull, never inside it.
   box('cable',(x,y,glass_z-.025),(width+.035,height+.035,.016))
   for side in [-1,1]:
-   bevel_box('trim',(x+side*(width/2+.065),y,z+.045),(.13,height+.24,.16))
-   bevel_box('trim',(x,y+side*(height/2+.065),z+.045),(width+.26,.13,.16))
+   if DETAIL:
+    bevel_box('trim',(x+side*(width/2+.065),y,z+.045),(.13,height+.24,.16))
+    bevel_box('trim',(x,y+side*(height/2+.065),z+.045),(width+.26,.13,.16))
+   else:
+    box('trim',(x+side*(width/2+.065),y,z+.045),(.13,height+.24,.16))
+    box('trim',(x,y+side*(height/2+.065),z+.045),(width+.26,.13,.16))
   box('window_warm' if lit else 'glass',(x,y,glass_z),(width,height,.018))
   if RECESSED:
    for side in [-1,1]:
@@ -177,7 +232,7 @@ def frontage_detail(b,w,d,h,wall):
    face('brick',vv,[tuple(range(6))],(.94,.90,.85,1))
    if right-left>1.1:
     a=left+.15;bb=min(right,a+.70);yy=r.uniform(.90,1.18)
-    if b.get('seed') in SAMPLE_HOUSES:
+    if b.get('kind')!='annex':
      # A surface repair that used to sit behind flush glazing becomes visible
      # inside a real window pocket. Keep the patch on the solid outer pier.
      if side<0:a=left+.04;bb=a+.48
@@ -218,7 +273,7 @@ def recessed_house_shell(w,d,h,floors,wall):
  for f in range(floors):
   for k in range(bays):
    xx=-w/2+step*(k+.5);yy=f*h/floors+1.65
-   if f==0 and abs(xx)-ww*.5<.79:continue
+   if f==0 and (abs(xx)-ww*.5<.79 if DETAIL else abs(xx)<step*.62):continue
    openings.append((xx-ww/2-.035,xx+ww/2+.035,yy-.685,yy+.685))
  box(wall,(0,h/2,-.15),(w,h,d-.30))
  xs=sorted(set([-w/2,w/2]+[v for rect in openings for v in rect[:2]]))
@@ -234,6 +289,12 @@ def building(b,special=''):
  w,d,h=b['w'],b['d'],b.get('height',7);floors=max(1,b.get('floors',round(h/3.3)))
  DETAIL=(140<x<185 and 112<z<140) or bool(special)
  wall=b.get('wall','plaster');wall=wall if wall in COLORS else 'plaster'
+ if wall=='plaster' and not DETAIL:
+  # The same residential scale carries local repainting/age differences; this
+  # does not rename a shop or randomise the layout between visits.
+  palette_slot=int(b.get('seed',0))%11
+  if palette_slot==0:wall='limewash'
+  elif palette_slot==1:wall='mint_plaster'
  if DETAIL and wall=='plaster' and int(b.get('seed',0))%3!=0:wall='hero_plaster'
  wall=SAMPLE_HOUSES.get(b.get('seed'),wall)
  shade=r.uniform(.83,1.10);palette=r.choice([(1.,.98,.92),(.87,.93,.94),(.96,.88,.73),(.80,.87,.83)])
@@ -254,9 +315,10 @@ def building(b,special=''):
    for k in range(4):box('paper',(-.52+k*.34,yy+.13,d/2-1.49),(.21,.25,.18),(.5,.45,.3,1))
   manifest['shop_recesses'].append({'seed':b['seed'],'depth':depth,'opening':opening})
  else:
-  if b.get('seed') in SAMPLE_HOUSES:
+  if b.get('kind')!='annex':
    count=recessed_house_shell(w,d,h,floors,wall)
-   manifest.setdefault('recessed_frontages',[]).append({'seed':b['seed'],'pockets':count,'depth_m':.18})
+   manifest.setdefault('recessed_frontages',[]).append({'seed':b.get('seed',0),
+       'id':b.get('id',''),'pockets':count,'depth_m':.18})
   else:box(wall,(0,h/2,0),(w,h,d))
   if DETAIL:bevel_box('concrete',(0,.07,0),(w+.025,.14,d+.025),.012)
   else:box('graybrick',(0,.32,0),(w+.05,.64,d+.05))
@@ -284,7 +346,7 @@ def building(b,special=''):
    xx=-w/2+step*(k+.5)
    window_width=min(1.45,step*.64)
    if f==0 and (abs(xx)-window_width*.5 < (.94 if recess else .79) if DETAIL else abs(xx)<step*.62):continue
-   RECESSED=b.get('seed') in SAMPLE_HOUSES
+   RECESSED=b.get('kind')!='annex' and not recess
    window(xx,y,front,window_width,1.3,r.random()<(.46 if special else .19),f==0 or r.random()<.25)
    if RECESSED:
     # Runoff starts at the sill corners, never as arbitrary full-wall dirt.
@@ -342,11 +404,8 @@ def building(b,special=''):
   tube('metal',(xx-.85,h/floors+1.2,front+.88),(xx+.85,h/floors+1.2,front+.88),.025,6)
  # Simple flowerpot, broom and bucket remain against the wall, outside the entrance clear width.
  if w>5:
-  xx=w*.37;tube('rust',(xx,.05,front+.32),(xx,.35,front+.32),.18,10,r2=.23)
-  for k in range(7):
-   a=k*math.tau/7;tube('grass',(xx,.3,front+.32),(xx+math.sin(a)*.24,.65+r.random()*.2,front+.32+math.cos(a)*.24),.015,4,r2=.002)
-  tube('wood',(-w*.36,.03,front+.37),(-w*.36-.18,1.35,front+.14),.018,6)
-  box('grass',(-w*.36,.13,front+.4),(.25,.22,.08))
+  household_pot(w*.37,front,int(b.get('seed',0)),DETAIL)
+  straw_broom(-w*.36,front,int(b.get('seed',0)))
  if special:
   sy=5.5 if special=='laundry' else 3.1
   box('sign',(0,sy,front+.21),(7.1 if special=='laundry' else 4.5,.85,.16))
@@ -468,13 +527,29 @@ for a,b in zip(rail[:-1],rail[1:]):
  for j in range(int(length/.7)+1):box('wood',(0,.01,-length/2+j*.7),(2.1,.09,.18))
 
 # Drain grates, utility covers and small scraps follow the road edge, leaving its centre clear.
+manifest['storm_drains']=[]
 for i,road in enumerate(DATA['roads']):
  pts=road['points'];r=random.Random(i+184);width=road['width']
  for j in range(3,len(pts)-1,11):
   x,z=pts[j];xx,zz=pts[j+1];yaw=math.atan2(xx-x,zz-z)
   place(x,z,yaw);side=1 if j%2 else -1;offset=side*(width/2-.25)
-  box('metal',(offset,.018,0),(.36,.03,.68))
-  for k in range(8):box('cable',(offset,.036,-.28+k*.08),(.27,.008,.037))
+  wx,_,wz=point((offset,0,0));base_y=grade_height(wx,wz)
+  # The former solid, near-black chequer plate read as a missing road tile.
+  # Keep the footprint and untouched road below it, but model the actual cast
+  # frame/individual bars with a shallow dark inset and an oxidised iron finish.
+  box('cable',(offset,base_y+.003,0),(.34,.004,.66),(.38,.40,.36,1))
+  for side in [-1,1]:
+   box('drain_iron',(offset+side*.164,base_y+.019,0),(.032,.028,.68))
+   box('drain_iron',(offset,base_y+.019,side*.324),(.328,.028,.032))
+  for k in range(8):
+   at=(offset,base_y+.027,-.28+k*.08);size=(.304,.019,.027)
+   if 140<wx<185 and 112<wz<140:bevel_box('drain_iron',at,size,.003)
+   else:box('drain_iron',at,size)
+  for side in [-1,1]:
+   tube('drain_iron',(offset+side*.164,base_y+.031,side*.28),
+        (offset+side*.164,base_y+.039,side*.28),.007,7)
+  manifest['storm_drains'].append({'at':[wx,base_y,wz],'yaw':yaw,'size':[.36,.039,.68],
+      'collision':False,'terrain_cut':False})
   if j%3==0:
    box('metal',(0,.01,1.1),(.62,.02,.72));box('cable',(0,.022,1.1),(.53,.005,.63))
    for zz2 in [.88,1.,1.12,1.24]:box('rust',(0,.03,zz2),(.49,.012,.023))
@@ -564,23 +639,36 @@ for i,t in enumerate(DATA['trees']):
    x=end[0]+r.uniform(-.9,.9)*s;y=end[1]+r.uniform(-.45,.55)*s;z=end[2]+r.uniform(-.9,.9)*s;sz=r.uniform(.14,.27)*s
    angle=r.random()*math.tau;dx=math.sin(angle)*sz;dz=math.cos(angle)*sz
    face('leaf',[(x-dx,y,z-dz),(x-dz*.45,y+.10*s,z+dx*.45),(x+dx,y,z+dz),(x+dz*.45,y-.025*s,z-dx*.45)],[(0,1,2,3)],(r.uniform(.7,1.15),r.uniform(.8,1.12),.8,1))
-for x,z,s,seed in PLAN['grass']:
- place(x,z);r=random.Random(seed)
- for k in range(8):
-  a=k*2.4;dx=math.cos(a)*s*.5;dz=math.sin(a)*s*.5;xx=r.uniform(-.08,.08);zz=r.uniform(-.08,.08)
-  face('grass',[(xx-.018,.015,zz),(xx+.018,.015,zz),(xx+dx,.02+s*r.uniform(.6,1.1),zz+dz)],[(0,1,2)],(.8,r.uniform(.8,1.2),.75,1))
+manifest['vegetation']=[]
+for plant in PLAN['vegetation']:
+ x,z=plant['x'],plant['z'];place(x,z)
+ record=ground_plant(face,0.,plant['root_y'],0.,plant['height'],plant['seed'],plant['species'])
+ record.update(root=[x,plant['root_y'],z],surface=plant['surface'],anchor_seed=plant['anchor_seed'])
+ manifest['vegetation'].append(record)
+ # An occasional old leaf is trapped beside the same construction joint.
+ # No rubbish or vegetation is scattered into the open road centre.
+ if plant['seed']%7==0:
+  fallen_leaf(face,(.018,plant['root_y']+.0005,.012),plant['seed']*.61,.038,plant['seed']+171)
+manifest['vegetation_policy']=PLAN['vegetation_policy']
 
 # Export chunks. Material names/nodes are a stable runtime contract for shared PBR overrides.
 materials={}
 for mat in sorted(set(k[1] for k in GEOM)):
  m=bpy.data.materials.new(mat);m.diffuse_color=COLORS.get(mat,(.35,.38,.32,1));m.use_nodes=True
  bsdf=m.node_tree.nodes.get('Principled BSDF');bsdf.inputs['Base Color'].default_value=m.diffuse_color;bsdf.inputs['Roughness'].default_value=.8
+ if mat=='verge_green':
+  col=m.node_tree.nodes.new('ShaderNodeVertexColor');col.layer_name='Color'
+  m.node_tree.links.new(col.outputs['Color'],bsdf.inputs['Base Color'])
+  bsdf.inputs['Roughness'].default_value=.91
+  m.use_backface_culling=False
  materials[mat]=m
 chunks=defaultdict(list);vertices=0;faces_count=0
 for (chunk,kind),(verts,faces,colors) in GEOM.items():
  mesh=bpy.data.meshes.new(kind);mesh.from_pydata(verts,[],faces);mesh.materials.append(materials[kind]);mesh.update()
  col=mesh.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='POINT')
  flat=[v for c in colors for v in c];col.data.foreach_set('color',flat)
+ if kind=='verge_green':
+  for poly in mesh.polygons:poly.use_smooth=True
  obj=bpy.data.objects.new(kind,mesh);bpy.context.collection.objects.link(obj);chunks[chunk].append(obj)
  vertices+=len(verts);faces_count+=len(faces)
 modeldir=OUT/'models';modeldir.mkdir(exist_ok=True,parents=True)
@@ -592,7 +680,8 @@ for chunk,objects in sorted(chunks.items()):
   export_yup=True,export_texcoords=False,export_normals=True,export_vertex_color='ACTIVE',export_all_vertex_colors=True,export_materials='EXPORT',export_cameras=False,export_lights=False)
  manifest['chunks'].append('res://assets/town/renewal/models/'+filename)
 manifest['counts']={'buildings':len(DATA['buildings'])+len(PLAN['infill']), 'grass_tufts':len(PLAN['grass']),
- 'vertices':vertices,'polygons':faces_count,'chunks':len(chunks),'poles':len(DATA['poles']),'trees':len(DATA['trees'])}
+ 'vertices':vertices,'polygons':faces_count,'triangles':sum(sum(len(f)-2 for f in g[1]) for g in GEOM.values()),
+ 'chunks':len(chunks),'poles':len(DATA['poles']),'trees':len(DATA['trees'])}
 (OUT/'street_manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,separators=(',',':')),encoding='utf8')
 bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/'source_art/huichao_street_v2.blend'),compress=True)
 print('STREET_BUILT',manifest['counts'],flush=True)

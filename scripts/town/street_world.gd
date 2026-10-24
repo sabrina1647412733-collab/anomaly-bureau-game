@@ -18,6 +18,8 @@ const TEXTURES := {
 const TINTS := {
 	"glass":Color(.10,.17,.19),"window_warm":Color(.68,.44,.21),"window_cool":Color(.36,.52,.55),
 	"cable":Color(.055,.064,.062),"grass":Color(.24,.31,.14),"leaf":Color(.18,.27,.15),
+	"verge_green":Color.WHITE,
+	"drain_iron":Color(.19,.205,.19),
 	"lamp":Color(.85,.53,.21),"paper":Color(.68,.61,.45),"curtain":Color(.38,.33,.24),
 	"painted_metal":Color(.72,.71,.66),"galvanized":Color(.59,.62,.63),
 	"wall_damp":Color(.24,.25,.20),"road_crack":Color(.14,.14,.13)
@@ -116,7 +118,12 @@ func _materials(node:Node)->void:
 			if not match_kind.is_empty():kind=match_kind
 		node.material_override=_material(kind)
 		node.visibility_range_end=150. if kind in ["plaster","hero_plaster","limewash","mint_plaster","brick","graybrick","roof_tile","roof_metal"] else 100.
-		if kind in ["leaf","grass","road_patch","wall_damp","road_crack"]:node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if kind in ["leaf","grass","verge_green","road_patch","wall_damp","road_crack"]:node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if kind=="verge_green":
+			# Small foliage is one opaque batch per spatial chunk. It needs no
+			# long-distance shadow/alpha overdraw and is not a collision resource.
+			node.visibility_range_end=42.0
+			node.visibility_range_end_margin=5.0
 	for child in node.get_children():_materials(child)
 
 func _material(kind:String)->Material:
@@ -141,19 +148,20 @@ func _material(kind:String)->Material:
 	if kind=="wall_damp":
 		var damp=ShaderMaterial.new();damp.shader=preload("res://scripts/town/street_wall_damp.gdshader")
 		materials[kind]=damp;return damp
-	if kind in ["painted_metal","galvanized"]:
+	if kind in ["painted_metal","galvanized","drain_iron"]:
 		# These are coated/oxidised service fixtures, not dark chequer-plate steel.
 		var finish=ShaderMaterial.new();finish.shader=preload("res://scripts/town/street_metal_finish.gdshader")
 		finish.set_shader_parameter("tint",TINTS[kind])
 		finish.set_shader_parameter("street_origin",town.global_position if is_instance_valid(town) else Vector3.ZERO)
 		finish.set_shader_parameter("metalness",1.0 if kind=="galvanized" else 0.)
-		finish.set_shader_parameter("base_roughness",.61 if kind=="galvanized" else .72)
-		finish.set_shader_parameter("mottle_amount",.055 if kind=="galvanized" else .022)
+		finish.set_shader_parameter("base_roughness",.80 if kind=="drain_iron" else (.61 if kind=="galvanized" else .72))
+		finish.set_shader_parameter("mottle_amount",.065 if kind=="drain_iron" else (.055 if kind=="galvanized" else .022))
 		materials[kind]=finish;return finish
 	if not TEXTURES.has(kind):
 		var simple=StandardMaterial3D.new();simple.albedo_color=TINTS.get(kind,Color(.45,.45,.4))
 		simple.vertex_color_use_as_albedo=true;simple.cull_mode=BaseMaterial3D.CULL_DISABLED
 		simple.roughness=.24 if kind=="glass" else .83
+		if kind=="verge_green":simple.roughness=.91
 		if kind in ["lamp","window_warm","window_cool"]:
 			simple.emission_enabled=true;simple.emission=simple.albedo_color;simple.emission_energy_multiplier=.8 if kind=="lamp" else .3
 		materials[kind]=simple;return simple

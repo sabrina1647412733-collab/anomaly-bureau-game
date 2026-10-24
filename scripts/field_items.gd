@@ -365,6 +365,8 @@ func _input(event: InputEvent) -> void:
 			show_letter(false)
 		elif held_id == "weird_clock":
 			game.director.open_clock()
+		elif game.case2_controller!=null and game.case2_controller.active and game.case2_controller.campaign.inspect_item(held_id):
+			pass
 		elif game.laundry != null and game.laundry.campaign != null and game.laundry.campaign.inspect_item(held_id):
 			pass
 		else:

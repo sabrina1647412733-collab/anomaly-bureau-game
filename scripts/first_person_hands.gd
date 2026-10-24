@@ -6,6 +6,7 @@ var pose := ""
 func build(id: String) -> void:
 	name="XuYanGripHands"
 	pose="paper" if id in PAPERS else ("photo" if id=="photo" else ("clock" if id=="weird_clock" else ("cloth" if id in ["sweater","roof_copy","sandal"] else ("key" if id.ends_with("key") else "phone"))))
+	if id.begins_with("c2_"):pose="paper"
 	if id=="sandal":pose="shoe"
 	var model: Node3D=load(BASE+pose+".glb").instantiate()
 	add_child(model)

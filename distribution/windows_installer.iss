@@ -1,9 +1,18 @@
 ; 从工程根目录编译：ISCC.exe distribution\windows_installer.iss
 ; 必须先按「Windows Desktop」预设导出 build\windows。
+#ifndef AppVersion
+  #define AppVersion "0.6.0"
+#endif
+#ifndef RuntimeDir
+  #define RuntimeDir "..\build\release-" + AppVersion + "\Windows"
+#endif
+#ifndef ReleaseDir
+  #define ReleaseDir "..\build\release-" + AppVersion
+#endif
 [Setup]
 AppId={{8E86F0AA-FE1C-4DDD-AD31-6239674835D9}
 AppName=诡异事务局 · 得利洗衣店
-AppVersion=0.4.0
+AppVersion={#AppVersion}
 AppPublisher=诡异事务局项目组
 AppPublisherURL=https://github.com/sabrina1647412733-collab/anomaly-bureau-game
 DefaultDirName={localappdata}\Programs\AnomalyBureau
@@ -12,8 +21,8 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
-OutputDir=..\build\release
-OutputBaseFilename=AnomalyBureau-Setup-0.4.0
+OutputDir={#ReleaseDir}
+OutputBaseFilename=AnomalyBureau-Setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -31,19 +40,21 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "创建桌面快捷方式 / Desktop shortcut"; Flags: checkedonce
 
 [Files]
-Source: "..\build\windows\AnomalyBureau.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\build\windows\AnomalyBureau.pck"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RuntimeDir}\AnomalyBureau.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RuntimeDir}\AnomalyBureau.Game.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RuntimeDir}\AnomalyBureau.Game.pck"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RuntimeDir}\自动更新说明.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "开始游玩说明.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "兼容模式启动.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Godot-LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Godot-COPYRIGHT.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "NotoSansSC-LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 
-Source: "..\build\windows\credits.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\build\windows\CC-BY-4.0.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\build\windows\CC0-1.0.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\build\windows\第一人称手部来源.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\build\windows\新增音效来源.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RuntimeDir}\credits.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RuntimeDir}\CC-BY-4.0.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RuntimeDir}\CC0-1.0.txt"; DestDir: "{app}"; Flags: ignoreversion
+
+
 
 [Icons]
 Name: "{group}\诡异事务局 · 得利洗衣店"; Filename: "{app}\AnomalyBureau.exe"; WorkingDir: "{app}"

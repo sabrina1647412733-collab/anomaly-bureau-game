@@ -24,6 +24,8 @@ var resident_snapshot: Dictionary = {}
 var indoor_camera_attributes:CameraAttributes
 var outdoor_camera_attributes:CameraAttributesPractical
 var indoor_fx:Dictionary={}
+var map_restore_move := true
+var map_restore_capture := true
 
 func setup(owner_game: Node3D, font: Font) -> void:
 	game = owner_game
@@ -178,7 +180,9 @@ func enter(from_laundry := false) -> void:
 	_outdoor_view(true)
 	game.player.allow_capture = true
 	game.player.body.visible = game.player.cam_mode!=0
-	if from_laundry:
+	if game.case2_controller!=null and game.case2_controller.active:
+		game.case2_controller.update_goal()
+	elif from_laundry:
 		game._prologue_set_objective("夜班还没结束。可返回洗衣店继续调查，或沿街回出租公寓。M 地图。")
 		game._say_seq("旁白", "你推开门回到老街。店里的钟仍在走。")
 	else:
@@ -188,6 +192,9 @@ func enter(from_laundry := false) -> void:
 	residents.activate()
 
 func leave() -> void:
+	if town_map!=null and town_map.big_open:
+		game.player.can_move=map_restore_move
+		game.player.allow_capture=map_restore_capture
 	if residents != null:residents.deactivate()
 	weather.deactivate()
 	_outdoor_view(false)
@@ -221,13 +228,24 @@ func _outdoor_view(on:bool)->void:
 func update_map() -> void:
 	if active and town_map != null:
 		town_map.set_player_position(game.player.global_position - ORIGIN)
+		if game.case2_controller!=null and game.case2_controller.active:
+			town_map.set_intuition("10" if game.case2_controller.campaign.flag("orphanage_done") else "07","道口通往槐安住宅" if game.case2_controller.campaign.flag("orphanage_done") else "归还的地址指向旧福利院")
+		else:town_map.set_intuition("01","洗衣店附近有异常")
 		var target := "01"
 		if game.laundry != null and game.laundry.campaign != null and bool(game.laundry.campaign.progress.rest_pending): target = "02"
+		if game.case2_controller!=null and game.case2_controller.active:target=game.case2_controller.street_target()
 		town_map.set_navigation(game.player.rotation.y,target)
 
 func toggle_map() -> void:
 	if active:
 		town_map.toggle_big()
+		if town_map.big_open:
+			map_restore_move=game.player.can_move;map_restore_capture=game.player.allow_capture
+			game.player.can_move=false;game.player.allow_capture=false;game.player.velocity=Vector3.ZERO
+			Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
+		else:
+			game.player.can_move=map_restore_move;game.player.allow_capture=map_restore_capture
+			Input.mouse_mode=Input.MOUSE_MODE_CAPTURED if map_restore_capture else Input.MOUSE_MODE_VISIBLE
 
 func interaction_hint() -> Dictionary:
 	if not active:
@@ -243,6 +261,7 @@ func interaction_hint() -> Dictionary:
 	return {}
 
 func interact(id: String) -> void:
+	if game.case2_controller!=null and game.case2_controller.active and game.case2_controller.interact(id):return
 	if residents != null and residents.interact(id):return
 	match id:
 		"01":

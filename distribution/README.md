@@ -1,5 +1,7 @@
 # Windows 发行构建
 
+**当前自动更新版为 v0.6.0。** 新的构建、安装、GitHub 发布与回滚流程见 [AUTO_UPDATE.md](AUTO_UPDATE.md)。`build_update.ps1` 生成带固定启动器的完整文件夹、便携 ZIP 和专用更新 ZIP；`build_windows.ps1` 再生成首次安装程序。下面的历史 v0.4.0 说明仅保留供追溯，当前以新文档为准。
+
 2026-10-23构建脚本版本为v0.4.0。仅要完整可玩文件夹时使用下面命令，不生成ZIP或安装程序：
 
 ```powershell

@@ -62,6 +62,7 @@ func reset() -> void:
 	game.phone_ui.reset_messages()
 
 func now() -> float:
+	if game.case2_controller!=null and game.case2_controller.active:return game.case2_controller.clock_minutes
 	return game.laundry.START_MIN + game.laundry.t / 60.0 if game.case_mode == "laundry" and game.laundry != null else room_minutes
 
 func hhmm(value: float, seconds := false) -> String:
@@ -125,13 +126,18 @@ func step(delta: float) -> void:
 		toast.visible = false
 		return
 	if game.state == "paused": return
-	if game.case_mode != "laundry" and not game.state.begins_with("prologue") and game.state != "clock_ui": return
+	if game.case_mode not in ["laundry","case2"] and not game.state.begins_with("prologue") and game.state != "clock_ui": return
 	var free: bool = game.state in ["prologue","play"] and not game.phone_open and not game.bag_open and not game.nb_open and not modal.visible and game.choice == null and not game.sub_pause
-	if free and game.case_mode != "laundry": room_minutes += delta * RATE / 60.0
+	if game.town_bridge!=null and game.town_bridge.town_map.big_open:free=false
+	var second_case:bool=game.case2_controller!=null and game.case2_controller.active
+	if free and game.case_mode != "laundry" and not second_case: room_minutes += delta * RATE / 60.0
 	game.clock_min = now()
 	if game.wclock != null:
 		game.wclock.total_min = now() - 1420.0
 		game.wclock._update_hands()
+	if second_case:
+		if modal.visible:refresh_clock()
+		return
 	if free:
 		idle += delta
 		if idle > 45.0 and game.field_kit.letter_accepted and game.case_mode != "laundry":
@@ -171,6 +177,7 @@ func close_clock(stow := false) -> void:
 	if stow: game.field_kit.stow()
 
 func next_mark() -> Array:
+	if game.case2_controller!=null and game.case2_controller.active:return game.case2_controller.campaign.next_event()
 	if game.case_mode == "laundry" and game.laundry != null and game.laundry.campaign != null:
 		return game.laundry.campaign.next_event()
 	if game.laundry!=null and game.laundry.campaign!=null and bool(game.laundry.campaign.progress.rest_pending):
@@ -180,7 +187,9 @@ func next_mark() -> Array:
 func refresh_clock() -> void:
 	time_label.text = hhmm(now(),true)
 	event_label.text = "下一事件  " + String(next_mark()[1])
-	if game.case_mode != "laundry":
+	if game.case2_controller!=null and game.case2_controller.active:
+		event_label.text += "\n线索与实际操作会推进事件；拨时不能替代取证或跳过关键步骤。"
+	elif game.case_mode != "laundry":
 		event_label.text += "\n"+("从街道进入出租公寓，在床边休息。" if game.laundry!=null and game.laundry.campaign!=null and bool(game.laundry.campaign.progress.rest_pending) else "沿街道去得利洗衣店，调查事件在店内推进。")
 
 func next_event() -> void:
@@ -189,6 +198,12 @@ func next_event() -> void:
 func advance(minutes: float) -> void:
 	if not modal.visible: return
 	var target := minf(now()+minutes,float(next_mark()[0]))
+	if game.case2_controller!=null and game.case2_controller.active:
+		if game.case2_controller.campaign.advance_to(maxf(now(),target)):
+			close_clock(false)
+			game.clock_min=now();game.audio_system.sfx("ui_tap",-8)
+		else:refresh_clock()
+		return
 	if target<now() or (is_equal_approx(target,now()) and game.case_mode!="laundry"):
 		refresh_clock()
 		return

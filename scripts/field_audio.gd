@@ -46,8 +46,11 @@ func speak_dialogue(id: String, at:=Vector3.INF, actor=null) -> void:
 	stop_voice()
 	var path=PERFORMANCE+id+".wav"
 	var authored=ResourceLoader.exists(path)
+	if id.begins_with("c2_") and ResourceLoader.exists("res://assets/audio/case2/"+id+".wav"):
+		path="res://assets/audio/case2/"+id+".wav";authored=true
 	if not authored:path="res://assets/audio/dialogue/"+id+".wav"
 	if not ResourceLoader.exists(path):path=BASE+id+".wav"
+	if not ResourceLoader.exists(path):return
 	var clip: AudioStream=load(path)
 	voice_context="dialogue"
 	var player_node:Node
@@ -177,6 +180,12 @@ func line(who: String, text: String) -> void:
 		else: speak(id)
 
 func music_target() -> String:
+	if game.case_mode=="case2" and game.case2_controller!=null:
+		var story=game.case2_controller.campaign
+		if story.flag("source_closed"):return "memory_theme"
+		if story.flag("memory_shared") and not story.flag("leak_isolated"):return "depth_theme"
+		if game.player.global_position.y>46.:return "suspense_theme"
+		return "lightless_dawn"
 	if game.case_mode != "laundry":return "room_theme"
 	var lc=game.laundry
 	if lc==null:return "room_theme"
@@ -193,6 +202,7 @@ func change_music(id:String)->void:
 	music_id=id;music.stream=stream(id,true);music.volume_db=-80;music.play();blend=0.
 
 func footstep(running:bool)->void:
+	if preload("res://scripts/storage_paths.gd").inspection_active:return
 	if Time.get_ticks_msec()-last_step<90:return
 	last_step=Time.get_ticks_msec();step_index=(step_index+1)%4
 	var surface="wood"
@@ -200,6 +210,7 @@ func footstep(running:bool)->void:
 	if game.case_mode=="laundry":
 		var y=game.player.global_position.y
 		surface="metal" if y<0 or y>15 else ("wood" if y>6.7 else "tile")
+	if game.case_mode=="case2":surface="tile"
 	sfx("step_"+surface+str(step_index),-16. if running else -23.)
 
 func spatial_sfx(id:String,at:Vector3,volume:=-12.0)->void:
@@ -226,11 +237,14 @@ func sync_machines(active:bool)->void:
 
 func _process(delta: float) -> void:
 	if game == null:return
+	if preload("res://scripts/storage_paths.gd").inspection_active:
+		music.stop();music_alt.stop();atmosphere.stop();ring.stop();stop_voice();sync_machines(false)
+		return
 	var active:bool=game.state!="menu"
 	var paused:bool=game.state=="paused"
-	var zone="laundry" if game.case_mode=="laundry" else ("town" if game.prologue_stage in ["town","street"] else "room")
+	var zone=game.case_mode if game.case_mode in ["laundry","case2"] else ("town" if game.prologue_stage in ["town","street"] else "room")
 	if room_reverb!=null:
-		var wet=.30 if game.case_mode=="laundry" and game.player.global_position.y<0 else (.12 if zone=="laundry" else (.06 if zone=="room" else 0.))
+		var wet=.30 if game.case_mode=="laundry" and game.player.global_position.y<0 else (.15 if zone in ["laundry","case2"] else (.06 if zone=="room" else 0.))
 		room_reverb.wet=move_toward(room_reverb.wet,wet,delta*.3)
 	if game.case_mode=="laundry" and game.player.global_position.y>15:zone="roof"
 	if zone!=current_zone:

@@ -34,9 +34,15 @@ const CASE_FIELDS := ["t", "fired", "clues", "back_open", "has_back_key", "claim
 	"final_open", "ended", "selected_ending"]
 
 static func capture(g) -> Dictionary:
+	if preload("res://scripts/storage_paths.gd").inspection_active:return {}
 	var resume: String = g._pre_pause_state if g.state == "paused" else g.state
-	if resume=="case_dialogue" and g.laundry!=null:
+	var second:bool=g.case2_controller!=null and g.case2_controller.active
+	if second and resume=="case2_read":resume=g.case2_controller.campaign.return_state
+	if second and resume=="case_dialogue":resume=g.case2_controller.campaign.dialogue.return_state
+	elif resume=="case_dialogue" and g.laundry!=null:
 		resume=g.laundry.campaign.dialogue.return_state
+	if resume=="clock_ui":resume=g.director.return_state
+	if resume=="case_reader" and g.laundry!=null:resume=g.laundry.campaign.return_state
 	if resume=="case_cinematic":
 		resume=g.laundry.campaign.cinematic.return_state if g.laundry!=null and g.laundry.campaign.cinematic.active else g.field_kit.letter_camera.return_state
 	if resume not in ["prologue", "play", "case_choice", "case_end"]:
@@ -45,7 +51,7 @@ static func capture(g) -> Dictionary:
 	for key in ROOM_FIELDS:
 		room[key] = g.get(key)
 	var p: Vector3 = g.player.global_position
-	var d := {"schema_version": VERSION, "building_version": 2, "case_id": "00184", "mode": g.case_mode,
+	var d := {"schema_version": VERSION, "building_version": 2, "case_id": "00201" if second else "00184", "mode": g.case_mode,
 		"state": resume, "stage": g.prologue_stage, "room": room, "bag": g.case_bag.duplicate(true),
 		"position": [p.x, p.y, p.z], "yaw": g.player.rotation.y, "pitch": g.player.pitch,
 		"camera_mode":g.player.cam_mode,
@@ -58,6 +64,8 @@ static func capture(g) -> Dictionary:
 	d["field_items"] = {"held_id": g.field_kit.held_id, "phone_owned": g.field_kit.phone_owned,
 		"letter_accepted": g.field_kit.letter_accepted}
 	d["director"] = g.director.capture()
+	d["series"]=g.series.duplicate(true)
+	if second:d["case2"]=g.case2_controller.capture()
 	if g.town_bridge!=null and g.town_bridge.weather!=null:
 		d["town_environment"]=g.town_bridge.weather.capture()
 	if g.town_bridge!=null:
@@ -83,9 +91,9 @@ static func capture(g) -> Dictionary:
 	return d
 
 static func valid(d: Dictionary) -> bool:
-	if int(d.get("schema_version", 0)) != VERSION or d.get("case_id") != "00184":
+	if int(d.get("schema_version", 0)) != VERSION or d.get("case_id") not in ["00184","00201"]:
 		return false
-	if d.get("mode", "") not in ["", "laundry"] or typeof(d.get("room")) != TYPE_DICTIONARY:
+	if d.get("mode", "") not in ["", "laundry","case2"] or typeof(d.get("room")) != TYPE_DICTIONARY:
 		return false
 	if d.get("state") not in ["prologue", "play", "case_choice", "case_end"]:
 		return false
@@ -95,17 +103,36 @@ static func valid(d: Dictionary) -> bool:
 	for value in pos:
 		if typeof(value) not in [TYPE_FLOAT, TYPE_INT] or not is_finite(float(value)):
 			return false
+	if d.get("case_id")=="00201":
+		var c=d.get("case2")
+		if not c is Dictionary or int(c.get("version",0))!=1 or not c.get("campaign") is Dictionary:return false
+		if typeof(c.get("active"))!=TYPE_BOOL or not c.active or typeof(c.get("in_residence"))!=TYPE_BOOL:return false
+		var progress:Dictionary=c.campaign
+		if int(progress.get("version",0))!=1 or not progress.get("flags") is Dictionary or not progress.get("evidence") is Dictionary:return false
+		for container in [progress.flags,progress.evidence]:
+			for key in container:
+				if typeof(key)!=TYPE_STRING or typeof(container[key])!=TYPE_BOOL:return false
+		if typeof(progress.get("active"))!=TYPE_BOOL or typeof(progress.get("completed"))!=TYPE_BOOL:return false
+		if progress.completed and not progress.flags.get("case_complete",false):return false
+		var clock=c.get("clock_minutes")
+		if typeof(clock) not in [TYPE_FLOAT,TYPE_INT] or not is_finite(float(clock)) or float(clock)<0:return false
+		if d.get("mode")=="case2" and not bool(c.get("in_residence",false)):return false
+	elif d.get("mode")=="case2":return false
+	if d.has("series") and not d.series is Dictionary:return false
 	return d.get("mode") != "laundry" or typeof(d.get("laundry")) == TYPE_DICTIONARY
 
 static func restore(g, d: Dictionary) -> bool:
 	if not valid(d):
 		return false
+	if g.case2_controller!=null:g.case2_controller.reset()
 	g._discard_laundry()
 	g.field_kit.reset()
 	g._clear_sub()
 	g.choice = null
 	g.choice_text = ""
 	g._start_prologue(false)
+	g.series=d.get("series",{"chapter":"00184","case1_complete":false,"case2_started":false,"case2_complete":false}).duplicate(true)
+	var second:bool=d.get("case_id")=="00201"
 	for key in ROOM_FIELDS:
 		if d["room"].has(key):
 			g.set(key, d["room"][key])
@@ -126,7 +153,7 @@ static func restore(g, d: Dictionary) -> bool:
 	if not g.field_kit.letter_accepted:
 		g.phone_ui.messages.erase("派遣科")
 		g.director.sent.clear()
-	g.phone_ui.incoming = d.get("mode") != "laundry" and not g.prologue_call_done
+	g.phone_ui.incoming = not second and d.get("mode") != "laundry" and not g.prologue_call_done
 	if g.nb != null:
 		g.nb.entries = d.get("notes", {"物": [], "人": [], "话": [], "疑": []}).duplicate(true)
 	g._set_prologue_room_lights(g.prologue_room_lights_on)
@@ -140,7 +167,7 @@ static func restore(g, d: Dictionary) -> bool:
 		g.wclock.total_min = float(d.get("room_clock", {}).get("total_min", 0.0))
 		g.wclock.fired = d.get("room_clock", {}).get("fired", {}).duplicate()
 		g.wclock._update_hands()
-	if d.has("laundry"):
+	if d.has("laundry") and not second:
 		g.start_laundry_case()
 		var lc: Dictionary = d["laundry"]
 		for key in CASE_FIELDS:
@@ -154,7 +181,8 @@ static func restore(g, d: Dictionary) -> bool:
 			g.laundry.world.visible = false
 			g.case_mode = ""
 			g._apply_laundry_environment(false)
-	if d.get("mode") != "laundry" and d.get("stage", "room") == "town" and g.town_bridge != null:
+	if second and not g.case2_controller.restore(d["case2"]):return false
+	if d.get("mode") not in ["laundry","case2"] and d.get("stage", "room") == "town" and g.town_bridge != null:
 		g.town_bridge.enter(d.has("laundry"))
 	g._clear_sub()
 	g.case_objective = String(d.get("objective", ""))
@@ -182,7 +210,9 @@ static func restore(g, d: Dictionary) -> bool:
 	if g.state == "case_choice":
 		g.state = "play"
 		g.laundry.final_open = false
-	elif g.state == "case_end" and g.laundry.selected_ending != "":
+	elif g.state=="case_end" and second and g.case2_controller.campaign.flag("case_complete"):
+		g.finish_case2(g.case2_controller.campaign.summary())
+	elif g.state == "case_end" and g.laundry!=null and g.laundry.selected_ending != "":
 		g.laundry.ended = false
 		g.laundry.complete_case()
 	elif g.state == "case_end":
@@ -202,6 +232,7 @@ static func restore(g, d: Dictionary) -> bool:
 	g.player.allow_capture = g.player.can_move
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if g.player.can_move else Input.MOUSE_MODE_VISIBLE
 	g._update_hud()
+	if second:g.case2_controller.update_goal()
 	if g.phone_ui.incoming and g.case_mode != "laundry":
 		g.audio_system.start_ring()
 	return true

@@ -2,6 +2,7 @@ extends SceneTree
 ## Street acceptance: original landmark contract, actual collision probes, weather
 ## lifecycle, and optional real player input. No player archive is written.
 const OUT := "F:/诡异事务局/验收/20261023_街道重构/"
+var out_dir := OUT
 const SOURCE := "res://assets/town/town-layout.json"
 var game
 var passed := 0
@@ -17,6 +18,10 @@ var movement_frame_ms: Array[float] = []
 var previous_frame_usec := 0
 
 func _initialize() -> void:
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--report-dir="):
+			out_dir=argument.trim_prefix("--report-dir=").replace("\\","/").trim_suffix("/")+"/"
+	DirAccess.make_dir_recursive_absolute(out_dir)
 	if OS.get_cmdline_user_args().has("--render-timing") and DisplayServer.get_name() != "headless":
 		root.size = Vector2i(1600,900)
 		Engine.max_fps = 0
@@ -376,7 +381,7 @@ func physical_route(id: String) -> bool:
 
 func run() -> void:
 	create_timer(240).timeout.connect(func(): held_key(KEY_W,false);check(false,"街道验收超时");quit(2))
-	DirAccess.make_dir_recursive_absolute(OUT)
+	DirAccess.make_dir_recursive_absolute(out_dir)
 	original = read_json(SOURCE)
 	game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
@@ -419,7 +424,7 @@ func run() -> void:
 	check(jumped and game.player.is_on_floor(),"门前跳跃并重新落在实体路面")
 	var result := {"passed":passed,"failed":failed,"errors":errors,"walked_metres":walked_metres,"physical_frames":walk_frames,"minimum_y":minimum_y,"road_support_samples":supported_samples,"method":"engine collision queries; actual keyboard movement; screenshot poses are a separate review"}
 	result["movement_timing"] = movement_timing()
-	var file := FileAccess.open(OUT+"street_test_result.json",FileAccess.WRITE)
+	var file := FileAccess.open(out_dir+"street_test_result.json",FileAccess.WRITE)
 	if file != null: file.store_string(JSON.stringify(result,"\t"));file.close()
 	print("STREET_RENEWAL_RESULT ",JSON.stringify(result))
 	held_key(KEY_W,false)

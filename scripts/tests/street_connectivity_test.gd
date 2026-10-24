@@ -2,6 +2,7 @@ extends SceneTree
 ## A physics-probed road graph for all ten landmarks; this is not a player walk.
 ## Actual keyboard/character routes are checked by street_renewal/normal_route.
 const OUT := "F:/诡异事务局/验收/20261023_街道重构/"
+var out_dir := OUT
 const MINIMUM := Vector2i(-15, -15)
 const SIZE := Vector2i(331, 271)
 var game
@@ -18,6 +19,10 @@ var space: PhysicsDirectSpaceState3D
 var report := {"kind": "physics-probed road graph; not full player walking", "landmarks": [], "bridges": [], "failures": []}
 
 func _initialize() -> void:
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--report-dir="):
+			out_dir=argument.trim_prefix("--report-dir=").replace("\\","/").trim_suffix("/")+"/"
+	DirAccess.make_dir_recursive_absolute(out_dir)
 	call_deferred("run")
 
 func check(value: bool, label: String) -> void:
@@ -224,7 +229,7 @@ func save_map(start: Vector2i) -> void:
 		var front := point(entry.front)
 		content += '<circle cx="%f" cy="%f" r="2.5" fill="#d3cdb7"/><text x="%f" y="%f" font-size="5" fill="white">%s</text>' % [front.x, front.y, front.x + 3.5, front.y, String(entry.id)]
 	content += '</svg>'
-	var file := FileAccess.open(OUT + "street_connectivity_map.svg", FileAccess.WRITE)
+	var file := FileAccess.open(out_dir + "street_connectivity_map.svg", FileAccess.WRITE)
 	if file != null:
 		file.store_string(content)
 
@@ -259,7 +264,7 @@ func run() -> void:
 	report["passed"] = passed
 	report["failed"] = failed
 	report["elapsed_ms"] = Time.get_ticks_msec() - started
-	var file := FileAccess.open(OUT + "street_connectivity_report.json", FileAccess.WRITE)
+	var file := FileAccess.open(out_dir + "street_connectivity_report.json", FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(report, "\t"))
 	print("STREET CONNECTIVITY: ", passed, " passed, ", failed, " failed; graph only; elapsed_ms=", report.elapsed_ms)

@@ -120,6 +120,16 @@ func set_item(id: String) -> void:
 		var docs=preload("res://scripts/laundry_campaign.gd").DOCS
 		var label:String=String(docs[id][0])+"\n\n"+String(docs[id][1]).split("\n\n")[0] if docs.has(id) else "案卷00184\n\n调查记录"
 		text(wrap_caption(label,1080.),Vector3(.075,-.18,-.594),.00023,Color("26332e"))
+	elif id.begins_with("c2_"):
+		if id=="c2_old_plaque":
+			block(Vector3(.075,-.19,-.60),Vector3(.30,.17,.016),material(Color("76664e"),.85),.004)
+			block(Vector3(.075,-.19,-.589),Vector3(.276,.146,.003),material(Color("c5bc99"),.75),.002)
+			text("16F\n附属用房",Vector3(.075,-.18,-.584),.0004,Color("30392f"))
+		else:
+			var docs:Dictionary=preload("res://scripts/case2/case2_dialogue_data.gd").DOCS
+			block(Vector3(.075,-.19,-.60),Vector3(.30,.205,.004),material(Color("dfd1ae")),.002)
+			var caption:=String(docs[id][0])+"\n\n"+String(docs[id][1]).split("\n\n")[0] if docs.has(id) else "案卷00201\n\n现场调查记录"
+			text(wrap_caption(caption,1080.),Vector3(.075,-.18,-.594),.00023,Color("26332e"))
 	elif id.ends_with("key"):
 		segment(Vector3(.22,-.17,-.53),Vector3(.22,-.26,-.53),.007,material(Color("a38c58")))
 		block(Vector3(.23,-.25,-.53),Vector3(.03,.025,.01),material(Color("a38c58")),.002)

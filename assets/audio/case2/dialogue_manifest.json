@@ -1,0 +1,476 @@
+{
+	"base": "res://assets/audio/case2/",
+	"case_id": "00201",
+	"lines": [
+		{
+			"event": "invitation",
+			"file": "c2_invitation_00.wav",
+			"id": "c2_invitation_00",
+			"speaker": "许砚",
+			"text": "昨天店里，一直是你？"
+		},
+		{
+			"event": "invitation",
+			"file": "c2_invitation_01.wav",
+			"id": "c2_invitation_01",
+			"speaker": "阿七",
+			"text": "你拿纸的时候，有水滴下来。我把毛巾挪过去了。"
+		},
+		{
+			"event": "invitation",
+			"file": "c2_invitation_02.wav",
+			"id": "c2_invitation_02",
+			"speaker": "许砚",
+			"text": "你怎么不说话？"
+		},
+		{
+			"event": "invitation",
+			"file": "c2_invitation_03.wav",
+			"id": "c2_invitation_03",
+			"speaker": "阿七",
+			"text": "说过。你以为是广播。"
+		},
+		{
+			"event": "invitation",
+			"file": "c2_invitation_04.wav",
+			"id": "c2_invitation_04",
+			"speaker": "阿七",
+			"text": "工牌：临-07，权限未入册。七，工牌上就剩这个。别替我编姓。"
+		},
+		{
+			"event": "invitation",
+			"file": "c2_invitation_05.wav",
+			"id": "c2_invitation_05",
+			"speaker": "许砚",
+			"text": "阿七。一起去看看还给我的那个地址？"
+		},
+		{
+			"event": "address",
+			"file": "c2_address_00.wav",
+			"id": "c2_address_00",
+			"speaker": "许砚",
+			"text": "滑梯原来在那边。"
+		},
+		{
+			"event": "address",
+			"file": "c2_address_01.wav",
+			"id": "c2_address_01",
+			"speaker": "阿七",
+			"text": "你确定，还是看见它以后才想起来？"
+		},
+		{
+			"event": "address",
+			"file": "c2_address_02.wav",
+			"id": "c2_address_02",
+			"speaker": "许砚",
+			"text": "先把门牌拍下来。这里和归还的地址对得上。"
+		},
+		{
+			"event": "address",
+			"file": "c2_address_03.wav",
+			"id": "c2_address_03",
+			"speaker": "阿七",
+			"text": "一件一件记，不必今天就想起全部。"
+		},
+		{
+			"event": "arrival",
+			"file": "c2_arrival_00.wav",
+			"id": "c2_arrival_00",
+			"speaker": "何伯",
+			"text": "物业说表没坏。水厂说账没错。那我该找谁？"
+		},
+		{
+			"event": "arrival",
+			"file": "c2_arrival_01.wav",
+			"id": "c2_arrival_01",
+			"speaker": "许砚",
+			"text": "多出来那户，谁签收过？"
+		},
+		{
+			"event": "arrival",
+			"file": "c2_arrival_02.wav",
+			"id": "c2_arrival_02",
+			"speaker": "何伯",
+			"text": "没有人。钱是从每户摊的。三份材料在桌上，你们先核对。"
+		},
+		{
+			"event": "meter",
+			"file": "c2_meter_00.wav",
+			"id": "c2_meter_00",
+			"speaker": "许砚",
+			"text": "读数在走，日期怎么退了一天？"
+		},
+		{
+			"event": "meter",
+			"file": "c2_meter_01.wav",
+			"id": "c2_meter_01",
+			"speaker": "阿七",
+			"text": "我看不到数字。这里写着：未分配住户用量，摊入已登记户。"
+		},
+		{
+			"event": "meter",
+			"file": "c2_meter_02.wav",
+			"id": "c2_meter_02",
+			"speaker": "许砚",
+			"text": "你念，我记。照片没有把你看到的字传过来。"
+		},
+		{
+			"event": "meter",
+			"file": "c2_meter_03.wav",
+			"id": "c2_meter_03",
+			"speaker": "阿七",
+			"text": "我停下来你就别动。别替我猜后面。把两边都留在记录里。"
+		},
+		{
+			"event": "meal",
+			"file": "c2_meal_00.wav",
+			"id": "c2_meal_00",
+			"speaker": "何伯",
+			"text": "我今天是不是还没吃饭？"
+		},
+		{
+			"event": "meal",
+			"file": "c2_meal_01.wav",
+			"id": "c2_meal_01",
+			"speaker": "阿七",
+			"text": "锅里有温粥。您记不记得谁给您做的？"
+		},
+		{
+			"event": "meal",
+			"file": "c2_meal_02.wav",
+			"id": "c2_meal_02",
+			"speaker": "何伯",
+			"text": "……这楼里，以前有个人。"
+		},
+		{
+			"event": "meal",
+			"file": "c2_meal_03.wav",
+			"id": "c2_meal_03",
+			"speaker": "许砚",
+			"text": "门背的便条，可以借我们比对一下吗？"
+		},
+		{
+			"event": "meal",
+			"file": "c2_meal_04.wav",
+			"id": "c2_meal_04",
+			"speaker": "何伯",
+			"text": "借吧。查明白了，记得还我。"
+		},
+		{
+			"event": "he_confirm",
+			"file": "c2_he_confirm_00.wav",
+			"id": "c2_he_confirm_00",
+			"speaker": "何伯",
+			"text": "她在十六楼布帘后休息。说好只借几天，后来我们都习惯了。"
+		},
+		{
+			"event": "he_confirm",
+			"file": "c2_he_confirm_01.wav",
+			"id": "c2_he_confirm_01",
+			"speaker": "许砚",
+			"text": "那不是哪家的杂物，是她一直生活的地方。"
+		},
+		{
+			"event": "he_confirm",
+			"file": "c2_he_confirm_02.wav",
+			"id": "c2_he_confirm_02",
+			"speaker": "何伯",
+			"text": "是。我见过她在那里收杯子、叠被子。后来有一阵没见着，都以为她回老家了。"
+		},
+		{
+			"event": "he_confirm",
+			"file": "c2_he_confirm_03.wav",
+			"id": "c2_he_confirm_03",
+			"speaker": "许砚",
+			"text": "先把您亲眼见过的这些留下。剩下的，我们继续核对。"
+		},
+		{
+			"event": "hospital_confirm",
+			"file": "c2_hospital_confirm_00.wav",
+			"id": "c2_hospital_confirm_00",
+			"speaker": "许砚",
+			"text": "退回的住院单，和门背便条停在同一天。她那几天怎么了？"
+		},
+		{
+			"event": "hospital_confirm",
+			"file": "c2_hospital_confirm_01.wav",
+			"id": "c2_hospital_confirm_01",
+			"speaker": "何伯",
+			"text": "她病了几天，各家都以为回老家了。清空储物间后才知道……她已经死了。"
+		},
+		{
+			"event": "hospital_confirm",
+			"file": "c2_hospital_confirm_02.wav",
+			"id": "c2_hospital_confirm_02",
+			"speaker": "何伯",
+			"text": "门都敲过。有人没答应，我们就换一家问。没谁想到，那扇没有门牌的也算一户。"
+		},
+		{
+			"event": "hospital_confirm",
+			"file": "c2_hospital_confirm_03.wav",
+			"id": "c2_hospital_confirm_03",
+			"speaker": "许砚",
+			"text": "先记下您确认的经过。不是因为没有登记，她就从来没有住过。"
+		},
+		{
+			"event": "witness9",
+			"file": "c2_witness9_00.wav",
+			"id": "c2_witness9_00",
+			"speaker": "九楼住户",
+			"text": "我这里留过她的送药记录。孙素琴，那个素字，她每次都写得很重。"
+		},
+		{
+			"event": "witness9",
+			"file": "c2_witness9_01.wav",
+			"id": "c2_witness9_01",
+			"speaker": "许砚",
+			"text": "能确认她在十六楼休息，不只是来上班吗？"
+		},
+		{
+			"event": "witness9",
+			"file": "c2_witness9_02.wav",
+			"id": "c2_witness9_02",
+			"speaker": "九楼住户",
+			"text": "能。她有自己的杯子和床，我借过热水壶。这些是我亲眼见的。"
+		},
+		{
+			"event": "sun_first",
+			"file": "c2_sun_first_00.wav",
+			"id": "c2_sun_first_00",
+			"speaker": "孙素琴",
+			"text": "哪一家叫我？"
+		},
+		{
+			"event": "sun_first",
+			"file": "c2_sun_first_01.wav",
+			"id": "c2_sun_first_01",
+			"speaker": "许砚",
+			"text": "先等一等。我在找您放下桶、能休息的地方。"
+		},
+		{
+			"event": "sun_first",
+			"file": "c2_sun_first_02.wav",
+			"id": "c2_sun_first_02",
+			"speaker": "孙素琴",
+			"text": "做完这家，我就歇一会儿。"
+		},
+		{
+			"event": "sun_first",
+			"file": "c2_sun_first_03.wav",
+			"id": "c2_sun_first_03",
+			"speaker": "门后",
+			"text": "顺便帮我带点水。"
+		},
+		{
+			"event": "sun_first",
+			"file": "c2_sun_first_04.wav",
+			"id": "c2_sun_first_04",
+			"speaker": "阿七",
+			"text": "她听见的都是下一家的事。看排班单，我们先把这一趟送完。"
+		},
+		{
+			"event": "four_times",
+			"file": "c2_four_times_00.wav",
+			"id": "c2_four_times_00",
+			"speaker": "许砚",
+			"text": "你做过四个案子，为什么还是临时的？"
+		},
+		{
+			"event": "four_times",
+			"file": "c2_four_times_01.wav",
+			"id": "c2_four_times_01",
+			"speaker": "阿七",
+			"text": "第一次，签字的人先出去了。第二次，我把人带出了现场，回去的时候已经封了。"
+		},
+		{
+			"event": "four_times",
+			"file": "c2_four_times_02.wav",
+			"id": "c2_four_times_02",
+			"speaker": "许砚",
+			"text": "后面两次呢？"
+		},
+		{
+			"event": "four_times",
+			"file": "c2_four_times_03.wav",
+			"id": "c2_four_times_03",
+			"speaker": "阿七",
+			"text": "有一个人不肯走。我去叫他。表上写协助。协助不计处置。"
+		},
+		{
+			"event": "four_times",
+			"file": "c2_four_times_04.wav",
+			"id": "c2_four_times_04",
+			"speaker": "许砚",
+			"text": "这一回，把你写上。"
+		},
+		{
+			"event": "four_times",
+			"file": "c2_four_times_05.wav",
+			"id": "c2_four_times_05",
+			"speaker": "阿七",
+			"text": "先把她写上。我的事，等楼不多那一层再说。"
+		},
+		{
+			"event": "memory",
+			"file": "c2_memory_00.wav",
+			"id": "c2_memory_00",
+			"speaker": "阿七",
+			"text": "说一件你确定自己做过的事。小一点。"
+		},
+		{
+			"event": "memory",
+			"file": "c2_memory_01.wav",
+			"id": "c2_memory_01",
+			"speaker": "许砚",
+			"text": "电话挂了，手机上还剩三十一块四。桌角缺了一块，我把手机放平才没再震。"
+		},
+		{
+			"event": "memory",
+			"file": "c2_memory_02.wav",
+			"id": "c2_memory_02",
+			"speaker": "阿七",
+			"text": "三十一块四，缺角的桌子，放平的手机。你是许砚，不是十七楼的共用户。"
+		},
+		{
+			"event": "memory",
+			"file": "c2_memory_03.wav",
+			"id": "c2_memory_03",
+			"speaker": "阿七",
+			"text": "我也留一件给你。有一次收工，最后一班车没等我。站台那盏灯很暖。我在下面站到天亮。"
+		},
+		{
+			"event": "valve_warning",
+			"file": "c2_valve_warning_00.wav",
+			"id": "c2_valve_warning_00",
+			"speaker": "派遣科",
+			"text": "建议先关闭十七层支路，再补交材料。"
+		},
+		{
+			"event": "valve_warning",
+			"file": "c2_valve_warning_01.wav",
+			"id": "c2_valve_warning_01",
+			"speaker": "阿七",
+			"text": "附注：关联事项同步注销。"
+		},
+		{
+			"event": "valve_warning",
+			"file": "c2_valve_warning_02.wav",
+			"id": "c2_valve_warning_02",
+			"speaker": "许砚",
+			"text": "关联事项包括什么？"
+		},
+		{
+			"event": "valve_warning",
+			"file": "c2_valve_warning_03.wav",
+			"id": "c2_valve_warning_03",
+			"speaker": "派遣科",
+			"text": "与未登记户有关的生活记录。"
+		},
+		{
+			"event": "valve_warning",
+			"file": "c2_valve_warning_04.wav",
+			"id": "c2_valve_warning_04",
+			"speaker": "何伯",
+			"text": "也包括，她给我煮的粥？"
+		},
+		{
+			"event": "valve_warning",
+			"file": "c2_valve_warning_05.wav",
+			"id": "c2_valve_warning_05",
+			"speaker": "许砚",
+			"text": "先隔离漏水段。她给人做过的事，不是漏水。"
+		},
+		{
+			"event": "settle",
+			"file": "c2_settle_00.wav",
+			"id": "c2_settle_00",
+			"speaker": "何伯",
+			"text": "素琴，你歇会儿。那水我自己打。"
+		},
+		{
+			"event": "settle",
+			"file": "c2_settle_01.wav",
+			"id": "c2_settle_01",
+			"speaker": "孙素琴",
+			"text": "那我回哪儿？"
+		},
+		{
+			"event": "settle",
+			"file": "c2_settle_02.wav",
+			"id": "c2_settle_02",
+			"speaker": "许砚",
+			"text": "你住过这里。它现在不能让你住了，也不能说你从来没住过。"
+		},
+		{
+			"event": "settle",
+			"file": "c2_settle_03.wav",
+			"id": "c2_settle_03",
+			"speaker": "阿七",
+			"text": "材料已核定。现在关的是异常水路，不是她和你们的事。"
+		},
+		{
+			"event": "joint",
+			"file": "c2_joint_00.wav",
+			"id": "c2_joint_00",
+			"speaker": "派遣科",
+			"text": "请确认另一处置人的工号。"
+		},
+		{
+			"event": "joint",
+			"file": "c2_joint_01.wav",
+			"id": "c2_joint_01",
+			"speaker": "许砚",
+			"text": "临-07。她从头到尾都在。口述规则、现场照片、人员撤离，都在附件。"
+		},
+		{
+			"event": "joint",
+			"file": "c2_joint_02.wav",
+			"id": "c2_joint_02",
+			"speaker": "阿七",
+			"text": "名字先别编。工号别漏。"
+		},
+		{
+			"event": "joint",
+			"file": "c2_joint_03.wav",
+			"id": "c2_joint_03",
+			"speaker": "派遣科",
+			"text": "共同处置材料复核通过。许砚权限：掌册。临-07，正式协助记录已留存。"
+		},
+		{
+			"event": "name",
+			"file": "c2_name_00.wav",
+			"id": "c2_name_00",
+			"speaker": "派遣科",
+			"text": "归还事项：真名。沈知远。"
+		},
+		{
+			"event": "name",
+			"file": "c2_name_01.wav",
+			"id": "c2_name_01",
+			"speaker": "许砚",
+			"text": "我叫许砚。"
+		},
+		{
+			"event": "name",
+			"file": "c2_name_02.wav",
+			"id": "c2_name_02",
+			"speaker": "派遣科",
+			"text": "许砚为后续登记用名。归还事项不因您未能回忆而撤销。"
+		},
+		{
+			"event": "name",
+			"file": "c2_name_03.wav",
+			"id": "c2_name_03",
+			"speaker": "阿七",
+			"text": "我先叫你许砚。等你自己说换。"
+		},
+		{
+			"event": "name",
+			"file": "c2_name_04.wav",
+			"id": "c2_name_04",
+			"speaker": "许砚",
+			"text": "把它放在工牌后面。名字先留着，不替它编过去。"
+		}
+	],
+	"version": 1
+}

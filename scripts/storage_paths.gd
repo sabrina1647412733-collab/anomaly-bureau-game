@@ -1,6 +1,7 @@
 extends RefCounted
 ## Desktop data follows the existing project/game folder; web keeps IndexedDB.
 static var cached_root := ""
+static var inspection_active := false
 const LEGACY := ["autosave.json","save_1.json","save_2.json","save_3.json","settings.cfg","laundry_archive.json","archive.json","archive_export.json"]
 
 static func root_dir() -> String:

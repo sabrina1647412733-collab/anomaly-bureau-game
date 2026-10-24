@@ -10,9 +10,11 @@ var rescue_count := 0
 
 func setup(g) -> void:game=g
 func current_zone() -> String:
+	if game.case_mode=="case2":return "case2"
 	return "laundry" if game.case_mode=="laundry" else String(game.prologue_stage)
 func anchor() -> Vector3:
 	match current_zone():
+		"case2":return game.case2_controller.recovery_anchor()
 		"laundry":return Vector3(-.55,.08,-8.8)
 		"room":return Vector3(-.35,12.12,323.05)
 		"town":return game.town_bridge.ORIGIN+Vector3(143.7,.12,126.5)
@@ -21,6 +23,9 @@ func anchor() -> Vector3:
 func in_bounds(p: Vector3) -> bool:
 	if not p.is_finite():return false
 	match current_zone():
+		"case2":
+			var q:Vector3=p-Vector3(1200,0,0)
+			return q.x>-18 and q.x<12 and q.z>-14 and q.z<14 and q.y>-.8 and q.y<53
 		"laundry":
 			var main:bool=p.x>-5.7 and p.x<6.0 and p.z>-11 and p.z<15.1 and p.y>-4.4 and p.y<20
 			var post:bool=p.x>=3.2 and p.x<22 and p.z>6.5 and p.z<14 and p.y>2.4 and p.y<7.5

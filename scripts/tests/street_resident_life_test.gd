@@ -1,6 +1,7 @@
 extends SceneTree
 ## Headless full-scene acceptance. Unit probes below do not replace player routes.
 const OUT := "F:/诡异事务局/验收/20261023_NPC生活化/"
+var out_dir := OUT
 const SAVE = preload("res://scripts/case_save.gd")
 var game
 var town
@@ -16,7 +17,12 @@ var samples := 0
 var body_overlaps := 0
 var scanning := false
 
-func _initialize() -> void:call_deferred("run")
+func _initialize() -> void:
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--report-dir="):
+			out_dir=argument.trim_prefix("--report-dir=").replace("\\","/").trim_suffix("/")+"/"
+	DirAccess.make_dir_recursive_absolute(out_dir)
+	call_deferred("run")
 func check(ok: bool,text: String) -> void:
 	if ok:passed+=1;print("PASS ",text)
 	else:failed+=1;errors.append(text);push_error("FAIL "+text)
@@ -118,6 +124,6 @@ func run() -> void:
 	town.leave();await frames(2)
 	for resident in people.actors:check(resident.collision_layer==0 and resident.animator.speed_scale==0.0 and not resident.footsteps.playing,"离街关闭人物实体、动作和脚步声 "+String(resident.definition.id))
 	var result: Dictionary={"passed":passed,"failed":failed,"errors":errors,"samples":samples,"minimum_y":min_y,"max_move_per_tick":max_move,"body_overlaps":body_overlaps,"states":states,"method":"real imported scene, CharacterBody swept movement and state/save probes; no visible gameplay or audible review"}
-	var file:=FileAccess.open(OUT+"life_test_result.json",FileAccess.WRITE)
+	var file:=FileAccess.open(out_dir+"life_test_result.json",FileAccess.WRITE)
 	if file!=null:file.store_string(JSON.stringify(result,"\t"));file.close()
 	print("LIFE_RESULT ",JSON.stringify(result));game.queue_free();await process_frame;quit(1 if failed else 0)

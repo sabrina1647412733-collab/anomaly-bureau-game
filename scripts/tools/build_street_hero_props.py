@@ -15,6 +15,8 @@ from pathlib import Path
 from mathutils import Vector
 
 ROOT = Path(sys.argv[sys.argv.index('--') + 1])
+sys.path.insert(0, str(ROOT / 'scripts/tools'))
+from street_vegetation import ground_plant, fallen_leaf
 OUT = ROOT / 'assets/town/renewal/hero_props'
 OUT.mkdir(parents=True, exist_ok=True)
 DATA = json.loads((ROOT / 'assets/town/town-layout.json').read_text(encoding='utf8'))
@@ -59,10 +61,11 @@ def face(mat, verts, polys, color=(1, 1, 1, 1), smooth=False):
     key = (batch, mat)
     vv, ff, cc, ss = GEOM.setdefault(key, [[], [], [], []])
     off = len(vv)
-    for p in verts:
+    per_vertex = bool(color) and isinstance(color[0], (tuple, list))
+    for index, p in enumerate(verts):
         x, y, z = world(p)
         vv.append((x, -z, y))
-        cc.append(color)
+        cc.append(color[index] if per_vertex else color)
         if DETAIL_ID is not None:
             DETAIL_VERTS[(ANCHOR['seed'],DETAIL_ID,mat)].append(tuple(p))
     ff.extend(tuple(off+i for i in f) for f in polys)
@@ -352,43 +355,31 @@ def tile_stack(x,z):
 
 
 def weeds(x,z,seed):
-    r=random.Random(seed)
-    for k in range(19):
-        a=r.random()*math.tau;length=r.uniform(.16,.44);width=r.uniform(.009,.021)
-        bx=x+r.uniform(-.06,.06);bz=z+r.uniform(-.06,.06)
-        dx,dz=math.cos(a),math.sin(a)
-        vv=[(bx-width*dz,.046,bz+width*dx),(bx+width*dz,.046,bz-width*dx),
-            (bx+dx*length*.30+width*.65*dz,.046+length*.62,bz+dz*length*.30-width*.65*dx),
-            (bx+dx*length*.66,.046+length*.84,bz+dz*length*.66),
-            (bx+dx*length*.30-width*.65*dz,.046+length*.62,bz+dz*length*.30+width*.65*dx)]
-        # Match the later small wall-joint growth and keep both shapes in one
-        # native plant batch instead of maintaining two dark-tinted materials.
-        value=r.uniform(.78,1.08)
-        face('verge_green',vv,[(0,1,2,3,4)],(.075*value,.105*value,.030*value,1))
+    # The four older 30-40 cm dagger bundles are also replaced, not left behind
+    # the small new tufts. They grow from wall mortar, not halfway into paving.
+    species = 'plantain' if seed % 2 else 'crabgrass'
+    record=ground_plant(lambda mat,v,f,c: face(mat,v,f,c,True),
+                        x,.0355,z,.145,seed,species,near=True,wall_strip=True)
+    record.update(seed=seed,anchor_seed=ANCHOR['seed'],root=list(world((x,.0355,z))))
+    MANIFEST.setdefault('wall_joint_plants',[]).append(record)
 
 
 def small_weeds(x,z,seed,height=.14):
-    # Sparse wall-joint growth: bent leaves with a central fold, not crossed cards.
-    # Native vertex colours retain green/brown variation without a second dark tint.
-    r=random.Random(seed)
-    for k in range(14):
-        angle=r.random()*math.tau;dx,dz=math.cos(angle),math.sin(angle)
-        bx=x+r.uniform(-.022,.022);bz=z+r.uniform(-.016,.016)
-        leaf_height=height*r.uniform(.45,1.0)
-        reach=r.uniform(.025,.075);width=r.uniform(.003,.008)
-        verts=[]
-        for t,flare in [(0.,.35),(.43,1.),(.78,.60)]:
-            cx=bx+dx*reach*t*t;cz=max(.065,bz+dz*reach*t*t)
-            yy=.036+leaf_height*t
-            for side in [-1,0,1]:
-                verts.append((cx-side*dz*width*flare,yy+(.0018 if side==0 else 0.),cz+side*dx*width*flare))
-        verts.append((bx+dx*reach,.036+leaf_height,max(.065,bz+dz*reach)))
-        polys=[(a,a+1,a+4,a+3) for a in [0,1,3,4]]+[(6,7,9),(7,8,9)]
-        value=r.uniform(.75,1.15)
-        color=(.070*value,.105*value,.027*value,1) if k%5 else (.15*value,.13*value,.055*value,1)
-        face('verge_green',verts,polys,color,True)
-    MANIFEST.setdefault('small_weeds',[]).append({'seed':seed,'anchor_seed':ANCHOR['seed'],
-        'root':list(world((x,.036,z))),'height_m':round(height,3),'collision':False})
+    record=ground_plant(lambda mat,v,f,c: face(mat,v,f,c,True),
+                        x,.0355,z,height,seed,near=True,wall_strip=seed!=8250)
+    record.update(seed=seed,anchor_seed=ANCHOR['seed'],
+                  root=list(world((x,.0355,z))),height_m=round(height,3))
+    MANIFEST.setdefault('small_weeds',[]).append(record)
+
+
+def doorstep_leaves(positions, seed):
+    # A few leaves caught at a wall or tile stack, not a uniform litter field.
+    rng=random.Random(seed)
+    for index,(x,z) in enumerate(positions):
+        fallen_leaf(lambda mat,v,f,c: face(mat,v,f,c,True),
+                    (x,.036,z),rng.uniform(.10,math.pi-.10),rng.uniform(.035,.065),seed+index)
+        MANIFEST.setdefault('fallen_leaves',[]).append({
+            'root':list(world((x,.036,z))),'anchor_seed':ANCHOR['seed'],'collision':False})
 
 
 def drying_rack():
@@ -522,6 +513,7 @@ for road in DATA['roads']:
         dx,dz=wx-ANCHOR['fx'],wz-ANCHOR['fz']
         small_weeds(dx*c-dz*s,dx*s+dz*c,8250,.08)
 entrance_craft(shop=False)
+doorstep_leaves([(-2.51,.105),(-2.57,.142),(-1.78,.105),(2.82,.088)],86221)
 
 set_anchor(551335,'electrical_shop')
 drawer_unit(-1.35,.225)
@@ -530,6 +522,7 @@ weeds(-1.81,.10,4520)
 for i,(x,z) in enumerate([(-2.40,.08),(-2.12,.08),(1.12,.08),(1.43,.07)]):
     small_weeds(x,z,8301+i,[.12,.17,.10,.14][i])
 entrance_craft(shop=True)
+doorstep_leaves([(-2.05,.101),(-2.01,.128),(-1.92,.075)],86235)
 
 set_anchor(993505,'tile_corner')
 tile_stack(-1.38,.28)
@@ -538,6 +531,7 @@ weeds(-1.77,.07,4513)
 drying_rack()
 for i,(x,z) in enumerate([(-3.05,.08),(-2.78,.10),(-2.02,.09),(.98,.08),(1.40,.10),(1.95,.09)]):
     small_weeds(x,z,8401+i,[.16,.11,.14,.09,.18,.12][i])
+doorstep_leaves([(-1.68,.103),(-1.73,.129),(-1.11,.081),(2.72,.083)],86249)
 
 
 def segment_distance(p,a,b):
@@ -606,6 +600,11 @@ for (seed,label,kind),verts in DETAIL_VERTS.items():
         if overlap_x and overlap_y and overlap_z:
             raise ValueError('Detail enters resident walking corridor: '+str(seed)+' '+label)
 MANIFEST['validation']['new_detail_npc_corridor_overlap']=False
+MANIFEST['vegetation_version']=2
+MANIFEST['vegetation_notes']=[
+    '17 original small wall-joint anchors and four older dagger clumps retained as locations, not geometry.',
+    'Bent multi-segment narrow leaves, low broad-leaf rosettes and sparse seed heads share one opaque vertex-colour batch.',
+    'Fallen leaves stay in the existing wall strip. No grass colliders or new NPC path obstructions.']
 
 basecolors={'wood':(.38,.28,.16,1),'metal':(.28,.31,.28,1),
     'rust':(.38,.22,.12,1),'concrete':(.46,.44,.37,1),'paper':(.67,.60,.44,1),

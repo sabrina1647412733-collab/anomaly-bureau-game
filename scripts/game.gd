@@ -100,6 +100,9 @@ var state := "play"            # play / cutscene / ending
 ## 设成 "laundry" 后，玩家/HUD/交互/字幕/淡入 全部沿用本文件这套，
 ## 只是场景换成洗衣店、时间轴换成第一夜、结局换成三选一。
 var case_mode := ""
+var series := {"chapter":"00184","case1_complete":false,"case2_started":false,"case2_complete":false}
+var case2_controller
+var developer_review
 var round := -1                # -1 序章, 0 林岚, 1 周砚, 2 陈默, 3 收束
 var round_elapsed := 0.0       # 本轮现实流逝秒
 var power := false
@@ -312,12 +315,21 @@ func _ready() -> void:
 	focus=preload("res://scripts/interaction_focus.gd").new();add_child(focus);focus.setup(self)
 	safety=preload("res://scripts/play_safety.gd").new();add_child(safety);safety.setup(self)
 	exit_save=preload("res://scripts/exit_autosave.gd").new();add_child(exit_save);exit_save.setup(self)
+	case2_controller=preload("res://scripts/case2_controller.gd").new();add_child(case2_controller);case2_controller.setup(self)
 	menu.recover_player.connect(func():safety.recover())
 	_apply_settings()
 	train.lights_on(false)     # 预热：列车灯常驻但能量极低，先把着色器变体编译掉
 	round = -2
 	_start_round()
 	_show_menu()
+	developer_review=preload("res://scripts/developer_review.gd").new();add_child(developer_review);developer_review.setup(self)
+	var updates := preload("res://scripts/update_service.gd").new()
+	updates.name = "Updates"; add_child(updates)
+	var update_view := preload("res://scripts/update_panel.gd").new()
+	update_view.name = "UpdatePanel"; menu.add_child(update_view); update_view.setup(menu, updates)
+	if RenderingServer.get_current_rendering_method() == "gl_compatibility":
+		updates.restart_args = PackedStringArray(["--rendering-method", "gl_compatibility"])
+	updates.call_deferred("startup")
 	print("[0017] 就绪 · 三角 ", builder.tri_count, " · 碰撞 ", builder.col_count, " · 灯 ", builder.lights.size())
 	if OS.has_feature("web"):
 		print("[WEB] light_limits renderable=", ProjectSettings.get_setting("rendering/limits/opengl/max_renderable_lights", -1),
@@ -2063,7 +2075,8 @@ func _ring_phone() -> void:
 	_prologue_set_objective("手机响了。拿起手机，点击接听。")
 	_say_seq("旁白", "手机响了。屏幕上写着：房东。", 1.6, false)
 
-func _prologue_act(id: String) -> void:
+func _prologue_act(id: String, bypass_case2 := false) -> void:
+	if not bypass_case2 and case2_controller!=null and case2_controller.active and case2_controller.interact(id):return
 	if id == "case_rest" and laundry != null and laundry.campaign != null:
 		laundry.campaign.rest_page()
 		return
@@ -3061,6 +3074,12 @@ func _process(delta: float) -> void:
 	_step_laundry_to_town(delta)
 	if town_bridge != null:
 		town_bridge.update_map()
+	if case2_controller!=null:case2_controller.step(delta)
+	# The legacy train ambience belongs to its own station prototype only.
+	# It otherwise overwhelms the dispatched locations with 47/71 Hz oscillators.
+	if ambient!=null:
+		if case_mode!="" or prologue_stage!="":
+			if ambient.playing:ambient.stop()
 
 	# ── 出租屋 → 洗衣店的转场（按真实 dt 推进，不依赖 await）──
 	_step_exit_to_laundry(delta)
@@ -3084,7 +3103,7 @@ func _process(delta: float) -> void:
 
 	t_now += delta
 	var reading := dialog.size() > 0 or bag_open or choice != null or sub_pause or (round_card != null and round_card.visible)
-	if state == "play" and not reading and case_mode != "laundry":
+	if state == "play" and not reading and case_mode not in ["laundry","case2"]:
 		round_elapsed += delta
 		clock_min += delta / SEC_PER_MIN
 		_check_scripted()
@@ -3670,6 +3689,7 @@ func _press_button(idx: int) -> void:
 	tw.tween_property(b["mat"], "emission_energy_multiplier", 0.6, 0.6)
 
 func _act(id: String) -> void:
+	if case2_controller!=null and case2_controller.active and case2_controller.interact(id):return
 	# ── 洗衣店那一局：交互全部走它自己的表 ──
 	# （HUD 提示、呼吸环、E 键判定、字幕队列都还是 0017 这套，没另写）
 	if case_mode == "laundry" and laundry != null:
@@ -3773,7 +3793,7 @@ func _got_count() -> int:
 
 # ------------------------------------------------------------------ 交互检测
 func _update_interaction() -> void:
-	if focus!=null and choice==null and (state=="prologue" or case_mode=="laundry"):
+	if focus!=null and choice==null and (state=="prologue" or case_mode in ["laundry","case2"]):
 		prompt=focus.select_target()
 		hud_prompt.text="[E]  "+String(prompt.text) if prompt!=null else ""
 		return
@@ -3946,7 +3966,7 @@ func _ring_floor_y(p: Vector3) -> float:
 func _update_prompt_ring(delta: float) -> void:
 	if prompt_ring == null:
 		return
-	if focus!=null and (case_mode=="laundry" or state.begins_with("prologue")):
+	if focus!=null and (case_mode in ["laundry","case2"] or state.begins_with("prologue")):
 		prompt_ring.visible=false
 		return
 	ring_flash = maxf(0.0, ring_flash - delta)
@@ -4167,7 +4187,7 @@ func _animate_items(delta: float) -> void:
 
 func _update_hud() -> void:
 	if hotbar != null:
-		hotbar.visible = case_mode != "laundry" and not state.begins_with("prologue") and state != "town"
+		hotbar.visible = case_mode not in ["laundry","case2"] and not state.begins_with("prologue") and state != "town"
 	if state in ["case_end", "case_title"]:
 		hud_clock.visible = false
 		hud_objective.visible = false
@@ -4187,14 +4207,14 @@ func _update_hud() -> void:
 		return
 	if state != "menu":
 		# 洗衣店那一局也要目标条（"下一步做什么"），站台则一直隐藏
-		if case_mode == "laundry" and state != "case_end" and state != "case_title":
+		if case_mode in ["laundry","case2"] and state != "case_end" and state != "case_title":
 			hud_objective.visible = (case_objective != "")
 			if case_objective != "":
 				hud_objective.text = "▸ " + case_objective
 		else:
 			hud_objective.visible = false
 		hud_clock.visible = true
-		hud_map.visible = (case_mode != "laundry")   # 站区图在洗衣店没意义
+		hud_map.visible = case_mode not in ["laundry","case2"]
 	var m := int(floor(clock_min))
 	var mm := ((m % 1440) + 1440) % 1440
 	var ss := int((clock_min - floor(clock_min)) * 60.0)
@@ -4207,7 +4227,7 @@ func _update_hud() -> void:
 	# 时钟：橙 → 红 随剩余时间推进；最后 30 秒里按秒跳一下（不再是一个静态颜色）
 	var tleft := T_LOCK - clock_min
 	var tcol := Color(0.88, 0.64, 0.29).lerp(Color(0.95, 0.22, 0.18), clampf(1.0 - tleft / 2.0, 0.0, 1.0))
-	if case_mode == "laundry": tcol = Color("d9bd81")
+	if case_mode in ["laundry","case2"]: tcol = Color("d9bd81")
 	var beat := 1.0
 	if tleft <= 0.5 and tleft > 0.0:
 		beat = 0.55 + 0.45 * (1.0 - fposmod(clock_min * 60.0, 1.0))
@@ -4218,6 +4238,7 @@ func _update_hud() -> void:
 	_refresh_items_ui()
 
 func _update_map() -> void:
+	if case_mode in ["laundry","case2"] or state.begins_with("prologue"):return
 	if hud_map == null:
 		return
 	var obs := []
@@ -4360,8 +4381,13 @@ func _fade_to(a: float, dur: float) -> void:
 	tw.tween_property(hud_fade, "modulate:a", a, dur)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if developer_review!=null and (developer_review.active or developer_review.login_open):return
+	if town_bridge!=null and town_bridge.active and town_bridge.town_map.big_open:
+		if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode in [KEY_M,KEY_ESCAPE]:
+			town_bridge.toggle_map();get_viewport().set_input_as_handled()
+		return
 	# Modal controls own their input; stale world prompts and shortcuts stay inert.
-	var modal_input := state in ["menu","paused","case_dialogue","case_reader","case_cinematic","clock_ui","prologue_ui"] or phone_open or bag_open or nb_open
+	var modal_input := state in ["menu","paused","case_dialogue","case_reader","case2_read","case_cinematic","clock_ui","prologue_ui"] or phone_open or bag_open or nb_open
 	if modal_input and event is InputEventKey and event.physical_keycode!=KEY_ESCAPE:
 		return
 	# ── 字幕：点鼠标左键 / 按空格 / 回车，一下推进一句 ──
@@ -4396,7 +4422,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if state == "cutscene" and (event.physical_keycode == KEY_SPACE or event.physical_keycode == KEY_ENTER or event.physical_keycode == KEY_E or event.physical_keycode == KEY_ESCAPE):
 			_skip_cutscene()
 		elif event.physical_keycode == KEY_E:
-			if choice==null and focus!=null and (state=="prologue" or (state=="play" and case_mode=="laundry")):
+			if choice==null and focus!=null and (state=="prologue" or (state=="play" and case_mode in ["laundry","case2"])):
 				_update_interaction()
 			_interact()
 		elif event.physical_keycode == KEY_C and choice == "case_final":
@@ -4419,7 +4445,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.physical_keycode == KEY_M:
 			if state == "prologue" and prologue_stage == "town":
 				town_bridge.toggle_map()
-			elif state == "play":
+			elif state == "play" and case_mode not in ["laundry","case2"]:
 				_toggle_cctv_review()
 		elif event.physical_keycode == KEY_Q:
 			# Q = 把眼前这个东西记进「疑」页（剧本 9-E：玩家自己画问号的地方）
@@ -4438,7 +4464,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_set_sel(event.physical_keycode - KEY_1)
 			_refresh_items_ui()
 		elif event.physical_keycode == KEY_T:
-			if state == "play" and case_mode != "laundry":
+			if state == "play" and case_mode not in ["laundry","case2"]:
 				_cost(0)
 				clock_min = T_ARRIVE
 				_say("旁白", "你决定提前结束这班。")
@@ -4577,6 +4603,7 @@ func show_case_title(title: String, sub: String) -> void:
 # ------------------------------------------------------------------ 第一案结局卡
 ## 用现成的 hud_end / hud_end_title（0017 本来就有这套「结局文字」控件）
 func _show_case_end(title: String, body: String, dossier: String) -> void:
+	if case_mode=="laundry":series.case1_complete=true
 	state = "case_end"
 	if case_end_backdrop == null:
 		case_end_backdrop = ColorRect.new()
@@ -4635,6 +4662,11 @@ func _close_phone() -> void:
 		player.can_move = true
 		player.allow_capture = true
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func finish_case2(summary: Dictionary) -> void:
+	series.case2_complete=true;series.chapter="00201"
+	case_mode="case2"
+	_show_case_end(String(summary.get("title","十七楼的水表 · 第二案结束")),String(summary.get("body","孙素琴曾在这里工作、居住与照护住户的事实已登记。异常水路关闭，住户记忆保留。")),String(summary.get("dossier","案卷00201 · 已核定\n许砚：掌册\n临-07：正式协助记录\n归还事项：沈知远\n后续派遣：00212 · 末班4路")))
 
 func _on_phone_closed() -> void:
 	phone_open = false
@@ -5010,6 +5042,8 @@ func _hide_menu() -> void:
 
 func _show_menu() -> void:
 	state = "menu"
+	if case2_controller!=null and case2_controller.active:case2_controller.campaign.cancel()
+	if town_bridge!=null and town_bridge.town_map.big_open:town_bridge.toggle_map()
 	if laundry!=null and is_instance_valid(laundry.campaign):
 		laundry.campaign.dialogue.cancel()
 	if hud != null: hud.visible = false
@@ -5042,6 +5076,8 @@ func _reset_case() -> void:
 	for b in buttons: b["done"] = false
 
 func _on_new_game() -> void:
+	if case2_controller!=null:case2_controller.reset()
+	series={"chapter":"00184","case1_complete":false,"case2_started":false,"case2_complete":false}
 	_discard_laundry()
 	field_kit.reset()
 	case_bag.clear()
@@ -5077,7 +5113,7 @@ func _on_start() -> void:
 
 func _on_load_slot(i: int) -> void:
 	if game_load(i):
-		if case_mode == "laundry" or state.begins_with("prologue"):
+		if case_mode in ["laundry","case2"] or state.begins_with("prologue"):
 			return
 		archive_tracking = true
 		archive_acc = 0.0
@@ -5134,6 +5170,8 @@ func slots_info() -> Array:
 					if j.get("case_id", "") == "00184":
 						var night_index: int = int(j.get("laundry",{}).get("campaign",{}).get("night",1))
 						d["round"] = "得利洗衣店 · 第%d夜 · %s" % [night_index,"现场" if j.get("mode")=="laundry" else ("街道" if j.get("stage")=="town" else "出租屋")]
+					elif j.get("case_id", "") == "00201":
+						d["round"] = "十七楼的水表 · "+("已归档" if bool(j.get("case2",{}).get("campaign",{}).get("completed",false)) else ("槐安住宅" if j.get("mode")=="case2" else "回潮镇"))
 					else:
 						d["legacy"] = true
 						d["round"] = "旧版车站 · 已保留"
@@ -5193,9 +5231,10 @@ func _archive_migrate_slots() -> void:
 	Archive.note_progress("0017", -1, T_START)
 
 func game_save(i: int) -> bool:
+	if preload("res://scripts/storage_paths.gd").inspection_active:return false
 	if i < 0 or i >= SLOT_PATHS.size():
 		return false
-	if case_mode == "laundry" or state.begins_with("prologue") or _pre_pause_state.begins_with("prologue"):
+	if case_mode in ["laundry","case2"] or state.begins_with("prologue") or _pre_pause_state.begins_with("prologue") or (case2_controller!=null and case2_controller.active):
 		var snapshot := preload("res://scripts/case_save.gd").capture(self)
 		if snapshot.is_empty():
 			return false
@@ -5241,7 +5280,7 @@ func game_load(i: int) -> bool:
 	var d = JSON.parse_string(txt)
 	if typeof(d) != TYPE_DICTIONARY:
 		return false
-	if d.get("case_id", "") == "00184":
+	if d.get("case_id", "") in ["00184","00201"]:
 		return preload("res://scripts/case_save.gd").restore(self, d)
 	round = int(d.get("round", -1))
 	clock_min = float(d.get("clock", T_START))

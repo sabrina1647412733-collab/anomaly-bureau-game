@@ -163,192 +163,398 @@
     "Wicker and enamel use exported native PBR plus vertex colour; do not override.",
     "This layer is additive. Do not load it twice or merge into old town GLBs."
   ],
+  "wall_joint_plants": [
+    {
+      "species": "plantain",
+      "leaves": 12,
+      "root": [
+        152.70549176222053,
+        0.0355,
+        127.3055770670508
+      ],
+      "height_limit_m": 0.1667,
+      "collision": false,
+      "seed": 3271,
+      "anchor_seed": 579349
+    },
+    {
+      "species": "crabgrass",
+      "leaves": 6,
+      "root": [
+        167.77375114775347,
+        0.0355,
+        119.57567664726575
+      ],
+      "height_limit_m": 0.1667,
+      "collision": false,
+      "seed": 4520,
+      "anchor_seed": 551335
+    },
+    {
+      "species": "crabgrass",
+      "leaves": 12,
+      "root": [
+        162.73253088180334,
+        0.0355,
+        129.22741301081828
+      ],
+      "height_limit_m": 0.1667,
+      "collision": false,
+      "seed": 4512,
+      "anchor_seed": 993505
+    },
+    {
+      "species": "plantain",
+      "leaves": 8,
+      "root": [
+        163.45239390921193,
+        0.0355,
+        129.39916056326123
+      ],
+      "height_limit_m": 0.1667,
+      "collision": false,
+      "seed": 4513,
+      "anchor_seed": 993505
+    }
+  ],
   "small_weeds": [
     {
-      "seed": 8201,
-      "anchor_seed": 579349,
+      "species": "clover",
+      "leaves": 7,
       "root": [
         154.9128341846186,
-        0.036,
+        0.0355,
         127.54277831131822
       ],
-      "height_m": 0.1,
-      "collision": false
+      "height_limit_m": 0.115,
+      "collision": false,
+      "seed": 8201,
+      "anchor_seed": 579349,
+      "height_m": 0.1
     },
     {
-      "seed": 8202,
-      "anchor_seed": 579349,
+      "species": "clover",
+      "leaves": 12,
       "root": [
         154.66609295018137,
-        0.036,
+        0.0355,
         127.49784766221991
       ],
-      "height_m": 0.16,
-      "collision": false
+      "height_limit_m": 0.184,
+      "collision": false,
+      "seed": 8202,
+      "anchor_seed": 579349,
+      "height_m": 0.16
     },
     {
-      "seed": 8203,
-      "anchor_seed": 579349,
+      "species": "crabgrass",
+      "leaves": 8,
       "root": [
         150.95283405849358,
-        0.036,
+        0.0355,
         127.14428238776308
       ],
-      "height_m": 0.09,
-      "collision": false
+      "height_limit_m": 0.1035,
+      "collision": false,
+      "seed": 8203,
+      "anchor_seed": 579349,
+      "height_m": 0.09
     },
     {
-      "seed": 8204,
-      "anchor_seed": 579349,
+      "species": "crabgrass",
+      "leaves": 10,
       "root": [
         150.5966455843896,
-        0.036,
+        0.0355,
         127.08833803223484
       ],
-      "height_m": 0.13,
-      "collision": false
+      "height_limit_m": 0.1495,
+      "collision": false,
+      "seed": 8204,
+      "anchor_seed": 579349,
+      "height_m": 0.13
     },
     {
-      "seed": 8205,
-      "anchor_seed": 579349,
+      "species": "clover",
+      "leaves": 14,
       "root": [
         150.06830763813787,
-        0.036,
+        0.0355,
         127.04522174122404
       ],
-      "height_m": 0.17,
-      "collision": false
+      "height_limit_m": 0.1955,
+      "collision": false,
+      "seed": 8205,
+      "anchor_seed": 579349,
+      "height_m": 0.17
     },
     {
-      "seed": 8206,
-      "anchor_seed": 579349,
+      "species": "plantain",
+      "leaves": 9,
       "root": [
         148.88328625388556,
-        0.036,
+        0.0355,
         126.93602321163375
       ],
-      "height_m": 0.12,
-      "collision": false
+      "height_limit_m": 0.138,
+      "collision": false,
+      "seed": 8206,
+      "anchor_seed": 579349,
+      "height_m": 0.12
     },
     {
-      "seed": 8250,
-      "anchor_seed": 579349,
+      "species": "clover",
+      "leaves": 7,
       "root": [
         153.42967606486675,
-        0.036,
+        0.0355,
         126.67959550886603
       ],
-      "height_m": 0.08,
-      "collision": false
+      "height_limit_m": 0.092,
+      "collision": false,
+      "seed": 8250,
+      "anchor_seed": 579349,
+      "height_m": 0.08
     },
     {
-      "seed": 8301,
-      "anchor_seed": 551335,
+      "species": "plantain",
+      "leaves": 7,
       "root": [
         167.68984741127883,
-        0.036,
+        0.0355,
         118.99133071974883
       ],
-      "height_m": 0.12,
-      "collision": false
+      "height_limit_m": 0.138,
+      "collision": false,
+      "seed": 8301,
+      "anchor_seed": 551335,
+      "height_m": 0.12
     },
     {
-      "seed": 8302,
-      "anchor_seed": 551335,
+      "species": "crabgrass",
+      "leaves": 13,
       "root": [
         167.73901020743295,
-        0.036,
+        0.0355,
         119.26698089564994
       ],
-      "height_m": 0.17,
-      "collision": false
+      "height_limit_m": 0.1955,
+      "collision": false,
+      "seed": 8302,
+      "anchor_seed": 551335,
+      "height_m": 0.17
     },
     {
-      "seed": 8303,
-      "anchor_seed": 551335,
+      "species": "clover",
+      "leaves": 10,
       "root": [
         168.3078939915018,
-        0.036,
+        0.0355,
         122.45664721679131
       ],
-      "height_m": 0.1,
-      "collision": false
+      "height_limit_m": 0.115,
+      "collision": false,
+      "seed": 8303,
+      "anchor_seed": 551335,
+      "height_m": 0.1
     },
     {
-      "seed": 8304,
-      "anchor_seed": 551335,
+      "species": "clover",
+      "leaves": 12,
       "root": [
         168.3721688792403,
-        0.036,
+        0.0355,
         122.76007552596204
       ],
-      "height_m": 0.14,
-      "collision": false
+      "height_limit_m": 0.161,
+      "collision": false,
+      "seed": 8304,
+      "anchor_seed": 551335,
+      "height_m": 0.14
     },
     {
-      "seed": 8401,
-      "anchor_seed": 993505,
+      "species": "crabgrass",
+      "leaves": 10,
       "root": [
         164.7035379183739,
-        0.036,
+        0.0355,
         129.6696021805062
       ],
-      "height_m": 0.16,
-      "collision": false
+      "height_limit_m": 0.184,
+      "collision": false,
+      "seed": 8401,
+      "anchor_seed": 993505,
+      "height_m": 0.16
     },
     {
-      "seed": 8402,
-      "anchor_seed": 993505,
+      "species": "plantain",
+      "leaves": 7,
       "root": [
         164.44446459338369,
-        0.036,
+        0.0355,
         129.5909827663739
       ],
-      "height_m": 0.11,
-      "collision": false
+      "height_limit_m": 0.1265,
+      "collision": false,
+      "seed": 8402,
+      "anchor_seed": 993505,
+      "height_m": 0.11
     },
     {
-      "seed": 8403,
-      "anchor_seed": 993505,
+      "species": "clover",
+      "leaves": 7,
       "root": [
         163.70070853422993,
-        0.036,
+        0.0355,
         129.4343720244942
       ],
-      "height_m": 0.14,
-      "collision": false
+      "height_limit_m": 0.161,
+      "collision": false,
+      "seed": 8403,
+      "anchor_seed": 993505,
+      "height_m": 0.14
     },
     {
-      "seed": 8404,
-      "anchor_seed": 993505,
+      "species": "clover",
+      "leaves": 8,
       "root": [
         160.77128130580985,
-        0.036,
+        0.0355,
         128.78741289642588
       ],
-      "height_m": 0.09,
-      "collision": false
+      "height_limit_m": 0.1035,
+      "collision": false,
+      "seed": 8404,
+      "anchor_seed": 993505,
+      "height_m": 0.09
     },
     {
-      "seed": 8405,
-      "anchor_seed": 993505,
+      "species": "clover",
+      "leaves": 8,
       "root": [
         160.36584607216338,
-        0.036,
+        0.0355,
         128.67595765286134
       ],
-      "height_m": 0.18,
+      "height_limit_m": 0.207,
+      "collision": false,
+      "seed": 8405,
+      "anchor_seed": 993505,
+      "height_m": 0.18
+    },
+    {
+      "species": "crabgrass",
+      "leaves": 9,
+      "root": [
+        159.82699668512836,
+        0.0355,
+        128.5653170721868
+      ],
+      "height_limit_m": 0.138,
+      "collision": false,
+      "seed": 8406,
+      "anchor_seed": 993505,
+      "height_m": 0.12
+    }
+  ],
+  "fallen_leaves": [
+    {
+      "root": [
+        154.4079000976249,
+        0.036,
+        127.46684039067344
+      ],
+      "anchor_seed": 579349,
       "collision": false
     },
     {
-      "seed": 8406,
-      "anchor_seed": 993505,
       "root": [
-        159.82699668512836,
+        154.47130320233316,
         0.036,
-        128.5653170721868
+        127.43603379538366
       ],
-      "height_m": 0.12,
+      "anchor_seed": 579349,
+      "collision": false
+    },
+    {
+      "root": [
+        153.68156841619995,
+        0.036,
+        127.39374942982036
+      ],
+      "anchor_seed": 579349,
+      "collision": false
+    },
+    {
+      "root": [
+        149.10298173005035,
+        0.036,
+        126.9500908252451
+      ],
+      "anchor_seed": 579349,
+      "collision": false
+    },
+    {
+      "root": [
+        167.7306271432789,
+        0.036,
+        119.33958064933678
+      ],
+      "anchor_seed": 551335,
+      "collision": false
+    },
+    {
+      "root": [
+        167.71106984719614,
+        0.036,
+        119.38369994409466
+      ],
+      "anchor_seed": 551335,
+      "collision": false
+    },
+    {
+      "root": [
+        167.77904881496983,
+        0.036,
+        119.46299597136226
+      ],
+      "anchor_seed": 551335,
+      "collision": false
+    },
+    {
+      "root": [
+        163.37180064649328,
+        0.036,
+        129.34725944569752
+      ],
+      "anchor_seed": 993505,
+      "collision": false
+    },
+    {
+      "root": [
+        163.42627949314695,
+        0.036,
+        129.33283532467448
+      ],
+      "anchor_seed": 993505,
+      "collision": false
+    },
+    {
+      "root": [
+        162.81080947194954,
+        0.036,
+        129.24394970712444
+      ],
+      "anchor_seed": 993505,
+      "collision": false
+    },
+    {
+      "root": [
+        159.0741398819862,
+        0.036,
+        128.4035900368384
+      ],
+      "anchor_seed": 993505,
       "collision": false
     }
   ],
@@ -540,11 +746,17 @@
       "solid_geometry": true
     }
   ],
+  "vegetation_version": 2,
+  "vegetation_notes": [
+    "17 original small wall-joint anchors and four older dagger clumps retained as locations, not geometry.",
+    "Bent multi-segment narrow leaves, low broad-leaf rosettes and sparse seed heads share one opaque vertex-colour batch.",
+    "Fallen leaves stay in the existing wall strip. No grass colliders or new NPC path obstructions."
+  ],
   "counts": {
-    "vertices": 29447,
-    "triangles": 54526,
+    "vertices": 31930,
+    "triangles": 58102,
     "material_batches": 20,
-    "glb_bytes": 2479360
+    "glb_bytes": 2624984
   },
   "geometry": {
     "doorstep_cane/concrete": {
@@ -560,8 +772,8 @@
       "triangles": 1246
     },
     "doorstep_cane/verge_green": {
-      "vertices": 1075,
-      "triangles": 1037
+      "vertices": 2027,
+      "triangles": 2426
     },
     "doorstep_cane/wicker": {
       "vertices": 10296,
@@ -596,8 +808,8 @@
       "triangles": 132
     },
     "electrical_shop/verge_green": {
-      "vertices": 655,
-      "triangles": 617
+      "vertices": 1352,
+      "triangles": 1566
     },
     "electrical_shop/wood": {
       "vertices": 880,
@@ -620,8 +832,8 @@
       "triangles": 112
     },
     "tile_corner/verge_green": {
-      "vertices": 1030,
-      "triangles": 954
+      "vertices": 1864,
+      "triangles": 2192
     },
     "tile_corner/wood": {
       "vertices": 248,
@@ -631,9 +843,9 @@
   "bounds_godot": {
     "doorstep_cane": [
       [
-        148.7999384699139,
-        0.036,
-        126.6297841229788
+        148.8072300358111,
+        0.0355,
+        126.64480541196906
       ],
       [
         155.13867467459707,
@@ -655,14 +867,14 @@
     ],
     "tile_corner": [
       [
-        159.78680248927603,
-        0.036,
+        159.03355668665412,
+        0.0355,
         128.2609801612896
       ],
       [
-        164.77601265778148,
+        164.78607379604136,
         3.682499885559082,
-        129.69052342115577
+        129.68276834452226
       ]
     ]
   }

@@ -116,18 +116,31 @@ def triangles(shape):
 surfaces={'ground':triangles(bare),'road':triangles(road_surface),'paving':triangles(paving),
           'collision':triangles(terrain),'river':triangles(river.intersection(box(-15,-15,315,255)).difference(bridges))}
 
-# Ground vegetation hugs construction edges, rather than being uniformly sprinkled on the road.
-grass=[]
+# Sparse wall-joint vegetation. The height/root plane comes from the same
+# partition as the visible paving; no floating grass on a guessed global y=0.
+# Most trafficked door strips stay clean, while shaded side/back joints can grow.
+grass=[];vegetation=[]
 for i,b in enumerate(data['buildings']+infill):
     local=random.Random(b.get('seed',i+13))
-    for k in range(local.randint(3,7)):
+    for k in range(local.randint(2,4)):
         side=local.randrange(4);a=local.uniform(-.46,.46)
         if side<2:lx=(b['w']/2+.10)*(1 if side==0 else -1);lz=a*b['d']
         else:lx=a*b['w'];lz=(b['d']/2+.10)*(1 if side==2 else -1)
+        if side==2 and (abs(lx)<.95 or local.random()<.58):continue
+        # These three frontages have deliberately authored foreground plants.
+        if side==2 and b.get('seed') in [579349,551335,993505]:continue
         yaw=b.get('rot',0);x=b['x']+lx*math.cos(yaw)+lz*math.sin(yaw);z=b['z']-lx*math.sin(yaw)+lz*math.cos(yaw)
         point=Point(x,z)
-        if road.buffer(.12).contains(point) or river.contains(point) or access.contains(point):continue
-        grass.append([round(x,3),round(z,3),round(local.uniform(.13,.42),3),local.randrange(99999)])
+        if road.buffer(.16).contains(point) or river.contains(point) or access.contains(point):continue
+        height=round(local.uniform(.055,.145),3);seed=local.randrange(99999)
+        on_paving=paving.contains(point)
+        root_y=.0355 if on_paving else -.0235
+        species=local.choices(['crabgrass','plantain','clover'],[6,3,2])[0]
+        grass.append([round(x,3),round(z,3),height,seed])
+        vegetation.append({'x':round(x,3),'z':round(z,3),'root_y':root_y,
+                           'height':height,'seed':seed,'species':species,
+                           'surface':'paving' if on_paving else 'ground',
+                           'anchor_seed':b.get('seed',0),'collision':False})
 
 puddles=[];puddle_regions=[]
 for i,(r,line) in enumerate(roads):
@@ -144,8 +157,10 @@ for i,(r,line) in enumerate(roads):
                 puddle_regions.append({'center':[center.x,center.y],'edge':[list(p) for p in list(part.exterior.coords)[:-1]]})
 surfaces['puddles']=puddles
 
-out={'version':1,'source':'town-layout.json preserved','seed':18420261023,'infill':infill,
+out={'version':2,'source':'town-layout.json preserved','seed':18420261023,'infill':infill,
      'surfaces':surfaces,'puddle_regions':puddle_regions,'grass':grass,'protected_fronts':[b['front'] for b in data['landmarks']],
+     'vegetation':vegetation,'vegetation_policy':{'version':2,'root_planes':{'paving':.0355,'ground':-.0235},
+         'traffic_strip_kept_clear':True,'maximum_tuft_height_m':.167,'collision':False},
      'validation':{'road_overlap_area':round(road_surface.intersection(paving).area,9),
                    'infill_count':len(infill),'annex_count':annex_count,'grass_count':len(grass),
                    'infill_over_road':sum(footprint(b).intersection(road).area for b in infill)}}

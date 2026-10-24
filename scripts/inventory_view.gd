@@ -35,6 +35,8 @@ static func category_of(id: String) -> String:
 	return "线索"
 
 static func art_of(id: String) -> String:
+	if id=="c2_pipeline":return "pipe_map"
+	if id in ["c2_hospital","c2_residence_record"]:return "registered"
 	if id in ["roof_copy", "hoodie"]: return "sweater"
 	if id == "sandal": return "shoe"
 	if id.contains("key"): return id if id in ["back_key", "drawer_key", "mail_key", "tool_key", "machine_key"] else "key"

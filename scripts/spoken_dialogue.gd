@@ -13,6 +13,7 @@ var return_state := "play"
 var source_position := Vector3.INF
 var active := false
 var actor
+var speaker_resolver:Callable
 func setup(g) -> void:
 	game=g
 	var layer=CanvasLayer.new();layer.layer=32;add_child(layer)
@@ -41,7 +42,12 @@ func advance() -> void:
 	speaker.text=item[0];caption.text=item[1]
 	if item.size()>2:
 		var npc:bool=item[0] not in ["许砚","广播"]
-		game.audio_system.speak_dialogue(item[2],source_position if npc else Vector3.INF,actor if npc else null)
+		var at:Vector3=source_position if npc else Vector3.INF
+		var line_actor=actor if npc else null
+		if npc and speaker_resolver.is_valid():
+			var info:Dictionary=speaker_resolver.call(String(item[0]))
+			at=info.get("at",at);line_actor=info.get("actor",null)
+		game.audio_system.speak_dialogue(item[2],at,line_actor)
 		remaining=float(game.audio_system.voice_profiles.get(item[2],{}).get("gap",.55))
 	else:remaining=maxf(2.0,float(String(item[1]).length())*.13)
 func finish(run_callback:=true) -> void:
