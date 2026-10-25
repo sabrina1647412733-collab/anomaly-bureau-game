@@ -66,3 +66,7 @@ F:/诡异事务局/验收/20261025_UI存档/查看实机对照.html 可切换720
 当前推荐build_patch.ps1：指定上一版完整清单与原BaselineRuntime，日常默认仅输出v3清单、变化容器、校验文件及干净上传目录；无变化时两文件。新增transport=3跨Release来源，保留protocol=2本地挂载布局。publish_release支持DryRun/CheckOnly、历史依赖公开状态及大小/digest核验，不默认发完整安装包/免安装ZIP/桥接ZIP。0.7及更早固定启动器需要一次完整Setup迁移，完整旧目录覆盖至0.8已验证保存玩家数据。
 
 实测UI/模型总上传约0.97/1.47MB，首次基础9文件约1.45GB；连续/跨版、旧源修复、下载失败/缓存/恢复均通过，证据在docs/verification/20261025/减少发布上传验收.md和F:\诡异事务局\验收\20261025_增量上传。体验包F:\诡异事务局\交付\AnomalyBureau-0.8.0-local来自已验收0.7.0导出快照，仅替换更新服务，不自动包含并行6b07c98的UI/存档整合。正式发行前按最终源码重建。未公开/上传Release、未覆盖附件，源码随本项同步；所有Godot验证仍须不可见桌面、headless、Dummy。不改其他会话代码或正式玩家目录。
+
+## 2026-10-25 主流程整合正式发行完成
+
+正式v0.8.0：https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/tag/v0.8.0，运行目标源码5d8a5f7722ac27f96f4647c38f2afb9159408039；已经整合安装更新会话和UI/存档会话成果。实际Windows包、旧0.7覆盖升级和线上校验通过，证据见整合发行验收。后续版本使用F盘AnomalyBureau-0.8.0-release及其完整v3清单作为起点，不要误用0.8.0-local旧专项快照。只登记了其余待办，没有恢复旧24小时任务。

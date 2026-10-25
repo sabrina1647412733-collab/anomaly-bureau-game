@@ -173,3 +173,8 @@
 - `finish_audio_test.gd`检查分区、事件、循环、暂停、避让和姿态。画面对照用`art_audio_review.gd`，不是玩家流程入口。
 - 近景手部使用独立SubViewport；viewmodel_view.gd中的补光已降低，避免手部过曝。不要直接套用主场景光照来解释近景问题。
 - 角色仍为合成配音与基础动作，没有完整面部口型；第二、第三案仍仅有剧本。
+
+## 2026-10-25 v0.8.0整合发行已完成
+- 正式Release为https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/tag/v0.8.0，目标源码5d8a5f7722ac27f96f4647c38f2afb9159408039；四附件digest/大小、两个来源实际HTTPS Range、生产客户端识别均通过。
+- 正式交付是F盘AnomalyBureau-0.8.0-release，包含新UI与第二夜存档修复；旧0.8.0-local仅为专项测试历史，不能替代正式包。
+- 后续补丁以正式v0.8.0完整v3清单及同基线Windows运行目录为起点，保留所有仍被引用的v0.7.0历史容器。其他任务继续等待用户安排。
