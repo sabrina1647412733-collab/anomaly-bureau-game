@@ -2,9 +2,13 @@
 
 Godot 4.7.2 的第一人称叙事恐怖游戏。所有开发继续在此工程进行。
 
-**下载游戏：[最新 Windows 正式版](https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/latest)**
+## [⬇ 点击下载游戏安装包 · Windows 64位 · v0.8.0](https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/download/v0.8.0/AnomalyBureau-Setup-0.8.0.exe)
 
-在 Releases 下载最新 **AnomalyBureau-Setup-版本号.exe**，运行安装器并选择安装位置，建议F盘。默认创建桌面快捷方式，无需安装Godot。v0.7.0及更早版本需用完整安装器覆盖原目录完成一次升级；后续支持按变化内容更新。线上版本以下载页为准。
+点击上方直接下载约780MB的安装器，下载后运行并选择安装位置，建议F盘。默认创建桌面快捷方式，无需安装Godot，也无需单独下载补丁BIN或JSON文件。
+
+[查看版本列表与更新说明](https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/latest)
+
+已有v0.7.0及更早版本：先退出游戏并备份`_玩家数据`，再选择原游戏目录覆盖升级；后续支持按变化内容更新。
 
 ## 开发入口
 
