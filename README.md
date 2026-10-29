@@ -2,7 +2,7 @@
 
 Godot 4.7.2 的第一人称叙事恐怖游戏。所有开发继续在此工程进行。
 
-## [⬇ 点击下载游戏安装包 · Windows 64位 · v0.8.0](https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/download/v0.8.0/AnomalyBureau-Setup-0.8.0.exe)
+
 
 点击上方直接下载约780MB的安装器，下载后运行并选择安装位置，建议F盘。默认创建桌面快捷方式，无需安装Godot，也无需单独下载补丁BIN或JSON文件。
 
