@@ -1,6 +1,6 @@
 # 诡异事务局 Windows发行工具
 
-**当前正式版：[v0.8.0](https://github.com/sabrina1647412733-collab/anomaly-bureau-game/releases/tag/v0.8.0)**。新玩家下载 `AnomalyBureau-Setup-0.8.0.exe`，本版包含新UI与第二夜存档修复。旧0.7.0及更早版本先备份玩家数据，再用完整安装器覆盖原目录升级。
+**发行版本：v0.8.0**。本目录记录 Windows 构建、安装器和更新系统的源码及操作说明，不在 README 中提供游戏下载链接。
 
 ## 当前推荐流程：只上传变化内容
 
