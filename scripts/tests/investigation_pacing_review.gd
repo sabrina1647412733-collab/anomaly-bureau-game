@@ -47,6 +47,8 @@ func reset_shift(night: int) -> void:
 	game.case_mode="laundry"
 	story.progress={"night":night,"rest_pending":false,"paid":0,"rent_due":2160,"earnings":0,"spare":0,"flags":{},"power":0,"knocks":0}
 	for key in ["signed","rules_seen","seven_seen"]:story.mark(key)
+	# This suite isolates ordered timing; physical work/input has its own suite.
+	for key in ["duty_version","duty_received_%d"%night,"glass_checked","examined_slip","duty_broadcast1","duty_broadcast2","duty_bag_logged","duty_towel_read"]:story.mark(key)
 	lc.clues={"slip":true}
 	lc.fired.clear();lc.t=0.0;lc.ended=false;lc.selected_ending="";lc.final_open=false
 	game.field_kit.letter_accepted=true

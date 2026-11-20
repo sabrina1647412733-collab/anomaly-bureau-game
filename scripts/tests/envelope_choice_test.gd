@@ -83,12 +83,10 @@ func _run() -> void:
 	game.field_kit.answer_phone()
 	game._prologue_act("door")
 	# 正式路线经过回潮镇，不能再把出出租屋等同于直接进洗衣店。
-	game._step_exit_to_town(game.LEAVE_FADE*2.0+.1)
+	while game.scene_transition.busy:await process_frame
 	_check(game.prologue_stage == "town", "房门先进入回潮镇")
 	game.town_bridge.interact("01")
-	game._step_exit_to_laundry(game.LEAVE_FADE*2.0+.1)
-	# 转场现在是两段（黑下去 LEAVE_FADE + 亮起来 LEAVE_FADE，共 2.2 s）。
-	# headless 下一帧只有几 ms，所以要给足帧数（实测约 850 帧）。
+	# Resource preparation, collision and ground contact now determine readiness.
 	for i in range(2000):
 		await process_frame
 		# 注意：state 在转场「第一段结束」就变成 play 了，但交还控制要等第二段结束，

@@ -1,0 +1,546 @@
+{
+  "scope": "First round: stairs, rental bookshelf, rear-room evidence models; no GitHub sync or new installer",
+  "checks": {
+    "interior_passed": 71,
+    "interior_failed": 0,
+    "routes": 25,
+    "minimum_visual_headroom_m": 2.55916595458984,
+    "collision_invariants_passed": 86,
+    "collision_invariants_failed": 0
+  },
+  "normal_route": {
+    "errors": [],
+    "finished": true,
+    "interactions": 52,
+    "pacing": {
+      "automated_seconds": 437.59,
+      "clock_stops": [
+        {
+          "from": 1422.36898888889,
+          "label": "00:01 第一遍广播",
+          "night": 1,
+          "to": 1441.0
+        },
+        {
+          "from": 1441.02222222222,
+          "label": "00:20 第二遍广播",
+          "night": 1,
+          "to": 1460.0
+        },
+        {
+          "from": 1460.01111111111,
+          "label": "01:10 来客",
+          "night": 1,
+          "to": 1510.0
+        },
+        {
+          "from": 1511.07268483334,
+          "label": "02:30 停电",
+          "night": 1,
+          "to": 1590.0
+        },
+        {
+          "from": 1590.55370353704,
+          "label": "02:31 擦拭",
+          "night": 1,
+          "to": 1591.0
+        },
+        {
+          "from": 1591.011111,
+          "label": "03:10 清点衣物",
+          "night": 1,
+          "to": 1630.0
+        },
+        {
+          "from": 1630.00925916667,
+          "label": "03:40 核对与回应",
+          "night": 1,
+          "to": 1660.0
+        },
+        {
+          "from": 1430.62132390476,
+          "label": "01:10 周秀兰到店",
+          "night": 2,
+          "to": 1510.0
+        },
+        {
+          "from": 1438.49974977778,
+          "label": "01:10 周秀兰到店",
+          "night": 3,
+          "to": 1510.0
+        },
+        {
+          "from": 1675.01121285185,
+          "label": "03:56 工资回执",
+          "night": 3,
+          "to": 1676.0
+        },
+        {
+          "from": 1676.02037016667,
+          "label": "03:58 录名",
+          "night": 3,
+          "to": 1678.0
+        },
+        {
+          "from": 1678.00925916667,
+          "label": "04:00 天亮",
+          "night": 3,
+          "to": 1680.0
+        },
+        {
+          "from": 1680.02037016667,
+          "label": "04:01 长椅",
+          "night": 3,
+          "to": 1681.0
+        },
+        {
+          "from": 1681.03333333333,
+          "label": "04:02 归档",
+          "night": 3,
+          "to": 1682.0
+        }
+      ],
+      "dispatch_messages": 9,
+      "goals": [
+        {
+          "id": "lb_booth",
+          "mode": "act",
+          "night": 1,
+          "text": "夜班报到（1/4）：在1F传达室按 E 签交接簿。"
+        },
+        {
+          "id": "l_price",
+          "mode": "act",
+          "night": 1,
+          "text": "确认工作（2/4）：上2F，按 E 阅读工作须知。"
+        },
+        {
+          "id": "l_m9",
+          "mode": "act",
+          "night": 1,
+          "text": "记录异常（3/4）：从九号烘干机取出纸张。"
+        },
+        {
+          "id": "l_m7",
+          "mode": "act",
+          "night": 1,
+          "text": "核对洗衣单（4/4）：检查七号机里的衣服。"
+        },
+        {
+          "id": "c1_broadcast",
+          "mode": "wait",
+          "night": 1,
+          "text": "等待00:01第一遍广播。"
+        },
+        {
+          "id": "c1_broadcast",
+          "mode": "wait",
+          "night": 1,
+          "text": "等待00:20第二遍广播。"
+        },
+        {
+          "id": "c1_broadcast",
+          "mode": "wait",
+          "night": 1,
+          "text": "留在店内，等待01:10的来客。"
+        },
+        {
+          "id": "c1_lady",
+          "mode": "arrival",
+          "night": 1,
+          "text": "来客正走向长椅，先观察她。"
+        },
+        {
+          "id": "c1_lady",
+          "mode": "act",
+          "night": 1,
+          "text": "走近长椅，按 E 问问她在等什么。"
+        },
+        {
+          "id": "c1_lady",
+          "mode": "wait",
+          "night": 1,
+          "text": "继续观察，等她03:40开口询问。"
+        },
+        {
+          "id": "c1_lady",
+          "mode": "act",
+          "night": 1,
+          "text": "她在问衣服洗好了没有，走近按 E 回应。"
+        },
+        {
+          "id": "l_backdoor",
+          "mode": "act",
+          "night": 1,
+          "text": "用她交给你的钥匙打开后房。"
+        },
+        {
+          "id": "l_sign",
+          "mode": "act",
+          "night": 1,
+          "text": "核对后房旧招牌，查清她和店的关系。"
+        },
+        {
+          "id": "c1_terminal",
+          "mode": "act",
+          "night": 1,
+          "text": "今晚还没找到原衣：到柜台申请续查。"
+        },
+        {
+          "id": "lb_exit",
+          "mode": "act",
+          "night": 1,
+          "text": "本夜结束：回出租公寓床边休息。"
+        },
+        {
+          "id": "l_locked_402",
+          "mode": "act",
+          "night": 2,
+          "text": "去4F402找老周，询问洗衣单上的住户。"
+        },
+        {
+          "id": "c1_drawer",
+          "mode": "act",
+          "night": 2,
+          "text": "用老周的钥匙打开303抽屉。"
+        },
+        {
+          "id": "c1_photo",
+          "mode": "act",
+          "night": 2,
+          "text": "查看303家庭照片背面的文字。"
+        },
+        {
+          "id": "c1_cert",
+          "mode": "act",
+          "night": 2,
+          "text": "到304核对孩子的接种证。"
+        },
+        {
+          "id": "lb_box503",
+          "mode": "act",
+          "night": 2,
+          "text": "回1F打开503信箱，寻找医院来信。"
+        },
+        {
+          "id": "c1_mail_letter",
+          "mode": "act",
+          "night": 2,
+          "text": "经2F东侧廊桥，按退件卡编号找医院挂号件。"
+        },
+        {
+          "id": "l_locked_402",
+          "mode": "act",
+          "night": 2,
+          "text": "把出院小结给老周看，核实那晚的事。"
+        },
+        {
+          "id": "c1_tools",
+          "mode": "act",
+          "night": 2,
+          "text": "到403维修挂板取检修盒钥匙。"
+        },
+        {
+          "id": "c1_lady",
+          "mode": "wait",
+          "night": 2,
+          "text": "身份材料已核实，等候周秀兰到店。"
+        },
+        {
+          "id": "c1_lady",
+          "mode": "arrival",
+          "night": 2,
+          "text": "周秀兰正走向长椅，等她坐稳。"
+        },
+        {
+          "id": "c1_lady",
+          "mode": "act",
+          "night": 2,
+          "text": "回2F告诉她：孩子叫周小满。"
+        },
+        {
+          "id": "c1_terminal",
+          "mode": "act",
+          "night": 2,
+          "text": "本夜材料已齐，到2F柜台提交续查。"
+        },
+        {
+          "id": "lb_exit",
+          "mode": "act",
+          "night": 2,
+          "text": "本夜结束：回出租公寓床边休息。"
+        },
+        {
+          "id": "c1_keybox",
+          "mode": "act",
+          "night": 3,
+          "text": "从502穿维修通道到503，打开检修盒。"
+        },
+        {
+          "id": "c1_unlock503",
+          "mode": "act",
+          "night": 3,
+          "text": "从503门内解除插销，打开回走廊的捷径。"
+        },
+        {
+          "id": "c1_roof_copy",
+          "mode": "act",
+          "night": 3,
+          "text": "到屋顶核对重复出现的童装。"
+        },
+        {
+          "id": "c1_roof_patch",
+          "mode": "act",
+          "night": 3,
+          "text": "核对水箱旁的维修印与管线图。"
+        },
+        {
+          "id": "c1_power",
+          "mode": "act",
+          "night": 3,
+          "text": "到2F配电盘，先切断浸水回路。"
+        },
+        {
+          "id": "c1_valve",
+          "mode": "act",
+          "night": 3,
+          "text": "从1F检修梯下B1，开启排水阀。"
+        },
+        {
+          "id": "c1_notice",
+          "mode": "act",
+          "night": 3,
+          "text": "核对B1未送达的停水通知。"
+        },
+        {
+          "id": "c1_waterline",
+          "mode": "act",
+          "night": 3,
+          "text": "查看池壁旧水位线。"
+        },
+        {
+          "id": "c1_ladder",
+          "mode": "act",
+          "night": 3,
+          "text": "在竖井边放下检修梯。"
+        },
+        {
+          "id": "c1_sandal",
+          "mode": "act",
+          "night": 3,
+          "text": "取出竖井里的蓝布鞋。"
+        },
+        {
+          "id": "l_boiler",
+          "mode": "act",
+          "night": 3,
+          "text": "回2F后房核对旧水痕。"
+        },
+        {
+          "id": "c1_accident",
+          "mode": "act",
+          "night": 3,
+          "text": "回B1安全步道整理事故证据。"
+        },
+        {
+          "id": "l_m7",
+          "mode": "act",
+          "night": 3,
+          "text": "用专用钥匙取回七号机原衣。"
+        },
+        {
+          "id": "c1_lady",
+          "mode": "wait",
+          "night": 3,
+          "text": "证据已齐，等待周秀兰到店。"
+        },
+        {
+          "id": "c1_lady",
+          "mode": "arrival",
+          "night": 3,
+          "text": "周秀兰正走向长椅，等她坐稳。"
+        },
+        {
+          "id": "c1_lady",
+          "mode": "act",
+          "night": 3,
+          "text": "把第六件原衣交还周秀兰。"
+        },
+        {
+          "id": "c1_terminal",
+          "mode": "wait",
+          "night": 3,
+          "text": "原衣已经归还，等待交班与录名。"
+        }
+      ],
+      "reading_and_voice_skipped": true
+    },
+    "position": "(0.812874, 3.500936, 5.028063)",
+    "state": "case_end"
+  },
+  "screenshots": [
+    {
+      "file": "before/01_1F楼梯入口.png",
+      "bytes": 1973446,
+      "sha256": "fa9072cccd5615f04b013074cbf03de9a26e92439b3724505a45a5c7579bdc47"
+    },
+    {
+      "file": "before/02_1F半层转身.png",
+      "bytes": 2023519,
+      "sha256": "bfd31882c9ce9f0742862ea6bc5a1bd93a5f6de3e8bb91c40ae00fcf613e109c"
+    },
+    {
+      "file": "before/03_3F下层踏步.png",
+      "bytes": 1797778,
+      "sha256": "f62c6230c20326dfe103cfac953e20fe2626ef09c2383d3410fca58937e78c77"
+    },
+    {
+      "file": "before/04_3F半层回望.png",
+      "bytes": 1546095,
+      "sha256": "4fa4fdc86db42b812a579eec8fc07bd2e4f1b0718e25f678c90cdfc6699dbfad"
+    },
+    {
+      "file": "before/05_后房入口.png",
+      "bytes": 1801113,
+      "sha256": "1668ee48200cf6d8e5587ee2cd907f71182f9d4a68d4a9852f82f776ffb99f7a"
+    },
+    {
+      "file": "before/06_后房东墙.png",
+      "bytes": 1916756,
+      "sha256": "0f1602d63355c2869fdddb46ebe7656d441452a987105e0fc5b5d81e1de40b47"
+    },
+    {
+      "file": "before/07_后房西墙.png",
+      "bytes": 1676844,
+      "sha256": "0d17e778015030a93db7bf99085495f4aadd6914a8f636f4cc1e5370a3f13983"
+    },
+    {
+      "file": "before/08_出租屋书架.png",
+      "bytes": 2360030,
+      "sha256": "9f869aade72a88da7d2d440a7846d7c8e58eb9fcc7126b1b7d3619be26438ed5"
+    },
+    {
+      "file": "before/09_书架上层.png",
+      "bytes": 2375882,
+      "sha256": "6f954a22d920e4db91c100b76198bd4c55e99070486f8a0b103b56027deff6f3"
+    },
+    {
+      "file": "after/01_1F楼梯入口.png",
+      "bytes": 2098288,
+      "sha256": "14dc592cc16b1fac073bca4bd5e91e4010c3cfb0f2032dc58dbf7aa2a5ce3471"
+    },
+    {
+      "file": "after/02_1F半层转身.png",
+      "bytes": 2080509,
+      "sha256": "3efbb7644e120ffab2373bdf04f97e7255584cbc6cb21be96d38e44b671e8085"
+    },
+    {
+      "file": "after/03_3F下层踏步.png",
+      "bytes": 2126565,
+      "sha256": "8ad10d84b095258a2e8ecb3e5fda03c122109fed3ac779c5eaedbaef5ecb64fd"
+    },
+    {
+      "file": "after/04_3F半层回望.png",
+      "bytes": 2124363,
+      "sha256": "62bdcb7977b695297c4773ec8fbf406a9ce4c9ddf79d5c8e37a1c4461777a87b"
+    },
+    {
+      "file": "after/05_后房入口.png",
+      "bytes": 1940060,
+      "sha256": "e5647576938955742201c7c9fd54e0c35afadcb5eb4d07b7b3f9b2548c8f6ef4"
+    },
+    {
+      "file": "after/06_后房东墙.png",
+      "bytes": 2146278,
+      "sha256": "e50f43e77a106d45403cb01d4ef640daedde49601f273639890cab071ce9c037"
+    },
+    {
+      "file": "after/07_后房西墙.png",
+      "bytes": 1992943,
+      "sha256": "b3fc5a15d181072cfae3b188ffa69a2d159b8b87a0f64d54dad30b0f882b31ea"
+    },
+    {
+      "file": "after/08_出租屋书架.png",
+      "bytes": 2389833,
+      "sha256": "27846871e27cad8f13e6868097e16d7d3e73d12d713f9c768d80a8a40571df21"
+    },
+    {
+      "file": "after/09_书架上层.png",
+      "bytes": 2363704,
+      "sha256": "c0b06ead2b472eaf4c9186af12038854930c95b7a19128735286ef3fa80ce24d"
+    },
+    {
+      "file": "after_forward_plus/01_1F楼梯入口.png",
+      "bytes": 1627196,
+      "sha256": "11c44985750c92640bb3a4e260764d388f5c2f7900d0d5515f7a16529b0e366a"
+    },
+    {
+      "file": "after_forward_plus/02_1F半层转身.png",
+      "bytes": 1688284,
+      "sha256": "ca3f5ef2923e81fe524c66775b14dd2421d7dad723dbfe1405ff30a818864b1c"
+    },
+    {
+      "file": "after_forward_plus/03_3F下层踏步.png",
+      "bytes": 1729522,
+      "sha256": "e8519bf866e7d07f15418601a75bf120a7df57d2110c55b8f00d51527546c12e"
+    },
+    {
+      "file": "after_forward_plus/04_3F半层回望.png",
+      "bytes": 1716775,
+      "sha256": "1e6ce21ceb4d72b22d742759b18deb503130aa26141d9e8819653d4d2c962a12"
+    },
+    {
+      "file": "after_forward_plus/05_后房入口.png",
+      "bytes": 1601616,
+      "sha256": "9c9de6832cc5c472ef81f1d101e2f2906d694b36ae58a10005c7f6beef013e71"
+    },
+    {
+      "file": "after_forward_plus/06_后房东墙.png",
+      "bytes": 1617323,
+      "sha256": "0998b399c017c135262f9d7e333dd17331500ae633d83ed3c3a6fc4480132511"
+    },
+    {
+      "file": "after_forward_plus/07_后房西墙.png",
+      "bytes": 1654872,
+      "sha256": "438aa3a6c8114ef7a14201fbbe7d2dfe166671082afed972e5cc346011618efe"
+    },
+    {
+      "file": "after_forward_plus/08_出租屋书架.png",
+      "bytes": 1877856,
+      "sha256": "e0a57a457c3b98a9830ef3b32eee5f4d19748fe1b66d5e6dc8f8d6b4a27bbf60"
+    },
+    {
+      "file": "after_forward_plus/09_书架上层.png",
+      "bytes": 1887412,
+      "sha256": "166c02cb2c5f0d83ba7b5f9f77adabd59bcd65228f6b87821098d91a12602be1"
+    }
+  ],
+  "renderer_captures": {
+    "before": {
+      "gpu": "NVIDIA GeForce RTX 3070 Laptop GPU",
+      "kind": "actual Godot framebuffer, private non-input desktop, Dummy audio",
+      "renderer": "gl_compatibility",
+      "resolution": "1600x900",
+      "shots": 9
+    },
+    "after": {
+      "gpu": "NVIDIA GeForce RTX 3070 Laptop GPU",
+      "kind": "actual Godot framebuffer, private non-input desktop, Dummy audio",
+      "renderer": "gl_compatibility",
+      "resolution": "1600x900",
+      "shots": 9
+    },
+    "after_forward_plus": {
+      "gpu": "NVIDIA GeForce RTX 3070 Laptop GPU",
+      "kind": "actual Godot framebuffer, private non-input desktop, Dummy audio",
+      "renderer": "forward_plus",
+      "resolution": "1600x900",
+      "shots": 9
+    }
+  },
+  "limits": [
+    "Automated route skips reading/voice and uses existing time-skip controls; not a human pacing/voice review",
+    "No installer, new release or cross-PC verification",
+    "Isolated Godot reports a root certificate-store warning; no explicit GitHub synchronization, upload or credential operation in this task"
+  ]
+}

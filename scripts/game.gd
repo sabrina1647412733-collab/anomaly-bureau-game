@@ -309,6 +309,7 @@ func _ready() -> void:
 	director = preload("res://scripts/case_director.gd").new()
 	add_child(director)
 	director.setup(self)
+	scene_transition=preload("res://scripts/scene_transition.gd").new();add_child(scene_transition);scene_transition.setup(self)
 	feedback = preload("res://scripts/case_feedback.gd").new()
 	add_child(feedback)
 	feedback.setup(self)
@@ -338,8 +339,11 @@ func _ready() -> void:
 ## ── 得利洗衣店：作为本框架的「一局」启动 ──
 ## 调用后：玩家/HUD/交互/字幕/呼吸环/淡入 全部还是 0017 这套，
 ## 只是世界换成洗衣店、spots 换成洗衣店的交互点、时间轴换成第一夜。
+var scene_transition
+var _laundry_prepared:=false
+
 func start_laundry_case() -> void:
-	if laundry != null:
+	if laundry != null and not _laundry_prepared:
 		case_mode = "laundry"
 		laundry.world.visible = true
 		laundry.t = maxf(laundry.t, (director.room_minutes - laundry.START_MIN) * 60.0)
@@ -370,8 +374,11 @@ func start_laundry_case() -> void:
 	_hide_station_world()
 	# 玩家挪到洗衣店
 	var LC := preload("res://scripts/laundry_case.gd")
-	laundry = LC.new(self)
-	laundry.enter()	# 交互点整体换成洗衣店的
+	if laundry==null:
+		laundry = LC.new(self)
+		laundry.enter()
+	_laundry_prepared=false
+	laundry.world.visible=true	# 交互点整体换成洗衣店的
 	spots = laundry.spots()
 	# 时钟从 23:40 起
 	clock_min = laundry.START_MIN
@@ -2211,127 +2218,37 @@ func _prologue_leave_room() -> void:
 
 ## 出租屋 → 回潮镇街道 → 得利洗衣店（本工程的第一案动线）
 ## ---------------------------------------------------------------------------
-## 注意：**不用 await create_timer**。
-## 原来写成 await 之后切状态，结果：
-##   ① 任何把主循环空转/暂停的场合（截图脚本、自动化测试）协程不再推进，
-##      状态永远卡在 prologue_transition —— 看起来就是"出门以后卡住不动"；
-##   ② 帧率骤降时转场时间会被拉长。
-## 改成「记一个时间戳，_process 里按真实 dt 推进」，状态机永远往前走。
-const LEAVE_FADE := 1.1
-
+## 资源线程读取与分帧组装由 SceneTransition 管理；碰撞和落点就绪后恢复操作。
 var _exit_to_laundry := false
-var _exit_t := 0.0
 var _exit_to_town := false
-var _exit_town_t := 0.0
 var _exit_laundry_to_town := false
-var _exit_laundry_t := 0.0
 
 func _leave_room_to_town() -> void:
-	if _exit_to_town:
-		return
+	if scene_transition.busy:return
 	if not bag_has("weird_clock"):
-		clock_appeared = true
-		bag_add("weird_clock", "诡异时钟", "随身黄铜钟。T 可拨到下一事件。")
+		clock_appeared=true
+		bag_add("weird_clock","诡异时钟","随身黄铜钟。T 可拨到下一事件。")
 		field_kit.sync_world()
-	audio_system.sfx("door", -6)
-	_exit_to_town = true
-	_exit_town_t = 0.0
-	state = "prologue_transition"
-	player.can_move = false
-	player.allow_capture = false
-	_fade_to(1.0, LEAVE_FADE)
-
-func _step_exit_to_town(delta: float) -> void:
-	if not _exit_to_town:
-		return
-	_exit_town_t += delta
-	if _exit_town_t >= LEAVE_FADE and prologue_stage != "town":
-		town_bridge.enter()
-		state = "prologue_transition"
-		player.can_move = false
-		player.allow_capture = false
-		_fade_to(0.0, LEAVE_FADE)
-	if _exit_town_t >= LEAVE_FADE * 2.0:
-		_exit_to_town = false
-		state = "prologue"
-		player.can_move = true
-		player.allow_capture = true
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	audio_system.sfx("door",-6)
+	_exit_to_town=true
+	scene_transition.begin("town")
 
 func _leave_laundry_to_town() -> void:
-	if _exit_laundry_to_town or laundry == null or state != "play":
-		return
-	_exit_laundry_to_town = true
-	_exit_laundry_t = 0.0
-	state = "prologue_transition"
-	player.can_move = false
-	player.allow_capture = false
-	audio_system.sfx("door", -6)
-	_fade_to(1.0, LEAVE_FADE)
-
-func _step_laundry_to_town(delta: float) -> void:
-	if not _exit_laundry_to_town:
-		return
-	_exit_laundry_t += delta
-	if _exit_laundry_t >= LEAVE_FADE and case_mode == "laundry":
-		director.room_minutes = maxf(director.room_minutes, laundry.START_MIN + laundry.t / 60.0)
-		laundry.world.visible = false
-		case_mode = ""
-		_apply_laundry_environment(false)
-		town_bridge.enter(true)
-		state = "prologue_transition"
-		player.can_move = false
-		player.allow_capture = false
-		_fade_to(0.0, LEAVE_FADE)
-	if _exit_laundry_t >= LEAVE_FADE * 2.0:
-		_exit_laundry_to_town = false
-		state = "prologue"
-		player.can_move = true
-		player.allow_capture = true
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if scene_transition.busy or laundry==null or state!="play":return
+	audio_system.sfx("door",-6)
+	_exit_laundry_to_town=true
+	scene_transition.begin("town",true)
 
 func _leave_room_to_laundry() -> void:
+	if scene_transition.busy:return
 	if not bag_has("weird_clock"):
-		clock_appeared = true
-		bag_add("weird_clock","诡异时钟","出门前一并收好的黄铜钟。T 随时打开，拨到下一事件。")
+		clock_appeared=true
+		bag_add("weird_clock","诡异时钟","随身黄铜钟。T可拨时，也可在2F柜台继续值守。")
 		field_kit.sync_world()
-	audio_system.sfx("door", -6)
-	if _exit_to_laundry:
-		return
-	_exit_to_laundry = true
-	_exit_t = 0.0
-	_entered = false
-	state = "prologue_transition"
-	player.can_move = false
-	player.allow_capture = false
-	player.dragging = false
-	_fade_to(1.0, LEAVE_FADE)
+	audio_system.sfx("door",-6)
+	_exit_to_laundry=true
+	scene_transition.begin("laundry")
 
-## 由 _process 每帧调用：转场推进
-func _step_exit_to_laundry(delta: float) -> void:
-	if not _exit_to_laundry:
-		return
-	_exit_t += delta
-	# 第一段：黑幕拉满 → 换场景
-	if not _entered and _exit_t >= LEAVE_FADE:
-		_entered = true
-		_enter_laundry_from_room()
-		_fade_to(0.0, LEAVE_FADE)
-	# 第二段：亮起来 → 交还控制
-	if _entered and _exit_t >= LEAVE_FADE * 2.0:
-		_exit_to_laundry = false
-		if state != "case_choice" and state != "case_end":
-			state = "play"
-			player.can_move = true
-			player.allow_capture = true
-		player.dragging = false
-		# start_laundry_case() 里可能还有把 can_move 设成 false 的分支，
-		# 这里收尾时再强制一次，保证「出门以后一定能走」。
-		player.set_physics_process(true)
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-		print("[LAUNDRY] 转场完成 · 玩家在洗衣店 · can_move=", player.can_move)
-
-var _entered := false
 
 ## 从回潮镇进入洗衣店：洗衣店接在 0017 框架上的「一局」
 func _enter_laundry_from_room() -> void:
@@ -3070,8 +2987,6 @@ func _start_round() -> void:
 
 func _process(delta: float) -> void:
 	_anim_npcs(delta)
-	_step_exit_to_town(delta)
-	_step_laundry_to_town(delta)
 	if town_bridge != null:
 		town_bridge.update_map()
 	if case2_controller!=null:case2_controller.step(delta)
@@ -3080,9 +2995,6 @@ func _process(delta: float) -> void:
 	if ambient!=null:
 		if case_mode!="" or prologue_stage!="":
 			if ambient.playing:ambient.stop()
-
-	# ── 出租屋 → 洗衣店的转场（按真实 dt 推进，不依赖 await）──
-	_step_exit_to_laundry(delta)
 
 	# ── 洗衣店那一局：时间轴 / 滚筒 / 她的动作，全部挂在现成的 _process 上 ──
 	if case_mode == "laundry" and laundry != null:
@@ -4683,6 +4595,7 @@ func _on_phone_closed() -> void:
 var _pre_pause_state := ""
 
 func _open_pause() -> void:
+	if scene_transition!=null and scene_transition.busy:return
 	if menu == null:
 		return
 	if state=="paused":return
@@ -5289,6 +5202,7 @@ func game_load(i: int) -> bool:
 	return true
 
 func _discard_laundry() -> void:
+	_laundry_prepared=false
 	if audio_system != null:audio_system.stop_voice()
 	if case_end_backdrop != null: case_end_backdrop.visible = false
 	hud_end_title.position = Vector2(340,320)

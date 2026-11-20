@@ -13,3 +13,7 @@
 程序材质与额外家具细节在 `scripts/laundry_finish.gd`、`shaders/aged_wall.gdshader`、`shaders/building_floor.gdshader`。材质继续使用项目现有CC0贴图，不改变街道建筑的名称或功能。
 
 原始零件保留在Blender源中；导出洗衣机、滚筒、长椅和门时按材质合并静态部件，减少绘制批次。具体分组数见 `finish_manifest.json`。
+
+## 2026-10-25楼梯与后房修复
+
+F1—F5及ROOF的运行finish已用`repair_case1_interiors.py`更新；当前可编辑源为`source_art/case1_interior_round1.blend`。旧源与上述原始manifest保留为首轮精修历史，不能再直接运行旧工具覆盖新梯板。新工具从旧源重新构造，退役旧实心踏步、过低灯座、横跨屋顶梯跑的门槛与旧后房占位物件；保留楼层高度、墙和门洞。踏步/平台用世界三平面材质，避免垂直立面被XZ投影拉成条纹。运行配套与验收见`laundry_backroom/README.md`及第一轮场景修复验收。

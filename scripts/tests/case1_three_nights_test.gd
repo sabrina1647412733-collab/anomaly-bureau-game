@@ -53,7 +53,7 @@ func clock_to(minutes: float) -> void:
 func rest_to_next() -> void:
 	close()
 	game._leave_laundry_to_town()
-	game._step_laundry_to_town(game.LEAVE_FADE*2.0+.1)
+	while game.scene_transition.busy:await process_frame
 	check(game.prologue_stage=="town" and game.case_mode=="","交班后到回潮镇街道")
 	game.town_bridge.interact("02")
 	check(game.prologue_stage=="room","从出租公寓入口回住处")
@@ -63,10 +63,12 @@ func rest_to_next() -> void:
 	drain_dialogue()
 	check(not bool(story.progress.rest_pending),"休息后进入下一夜，不连续驻守")
 	game._prologue_act("door")
-	game._step_exit_to_town(game.LEAVE_FADE*2.0+.1)
+	while game.scene_transition.busy:await process_frame
 	game.town_bridge.interact("01")
-	game._step_exit_to_laundry(game.LEAVE_FADE*2.0+.1)
+	while game.scene_transition.busy:await process_frame
 	check(game.case_mode=="laundry" and game.state=="play","下一夜从街道重新进入洗衣店")
+	game.player.set_physics_process(false)
+	act("lb_booth");story.invoke(0)
 
 func run() -> void:
 	game = load("res://scenes/main.tscn").instantiate()
@@ -97,6 +99,10 @@ func run() -> void:
 	lc.choose_final("C")
 	check(lc.selected_ending=="","旧顶替入口失效")
 	act("lb_booth")
+	story.invoke(0)
+	# Core plot fixture: physical work is exercised through actual input in
+	# duty_normal_route, not by this direct-interface logical test.
+	for key in ["glass_checked","examined_slip","duty_broadcast1","duty_broadcast2","duty_bag_logged","duty_towel_read"]:story.mark(key)
 	act("l_price")
 	act("l_m7")
 	check(story.flag("signed"),"签入交接簿")
@@ -118,7 +124,7 @@ func run() -> void:
 	check(not game.bag_has("permcard") and lc.selected_ending=="","首夜不升权、不结案")
 	act("c1_terminal")
 	check(int(story.progress.earnings)==800,"重复交班不重复发工资")
-	rest_to_next()
+	await rest_to_next()
 	check(story.night_number()==2 and lc.t<60,"第二夜重置时间保留线索")
 	check(lc.has_clue("slip"),"跨夜保留洗衣单")
 	act("l_locked_402")
@@ -127,6 +133,7 @@ func run() -> void:
 	check(story.flag("zhou_open") and game.bag_has("mail_key"),"两短一长和洗衣单打开老周对话")
 	act("c1_drawer")
 	act("c1_photo")
+	story.workbench.flip();story.workbench.examine("back")
 	act("c1_cert")
 	act("c1_homework")
 	act("c1_stones")
@@ -161,7 +168,7 @@ func run() -> void:
 	var saved: Dictionary = JSON.parse_string(JSON.stringify(preload("res://scripts/case_save.gd").capture(game)))
 	check(preload("res://scripts/case_save.gd").valid(saved),"跨夜现场可保存")
 	check(int(saved.laundry.campaign.night)==2 and saved.laundry.campaign.rest_pending,"存档包括夜次和待休息状态")
-	rest_to_next()
+	await rest_to_next()
 	check(story.night_number()==3,"第三夜到岗")
 	act("c1_roof_copy")
 	act("c1_roof_patch")

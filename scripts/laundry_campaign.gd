@@ -54,6 +54,7 @@ var power_caption: Label3D
 var pump: AudioStreamPlayer3D
 var workbench
 var cinematic
+var duty
 
 func setup(case_world) -> void:
 	lc = case_world
@@ -67,6 +68,9 @@ func setup(case_world) -> void:
 	add_child(dialogue);dialogue.setup(game)
 	_build_evidence()
 	_build_power_feedback()
+	duty=preload("res://scripts/shift_tasks.gd").new()
+	add_child(duty);duty.setup(self)
+	mark("duty_version")
 	reflection = preload("res://scripts/case1_mirror.gd").new()
 	lc.world.add_child(reflection)
 	reflection.setup(lc)
@@ -137,6 +141,8 @@ func _build_reader() -> void:
 	hud.add_child(chapter)
 
 func show_page(title: String, text: String, buttons: Array = []) -> void:
+	if duty!=null:duty.close_activity()
+	modal.get_child(1).visible=true
 	if workbench!=null:workbench.close()
 	if not modal.visible:
 		return_state = game.state
@@ -175,6 +181,8 @@ func invoke(index: int) -> void:
 		callback.call()
 
 func close_page() -> void:
+	if duty!=null:duty.close_activity()
+	modal.get_child(1).visible=true
 	if workbench!=null:workbench.close()
 	modal.visible = false
 	game.state = return_state if return_state in ["play","prologue"] else "play"
@@ -184,6 +192,7 @@ func close_page() -> void:
 	update_objective()
 
 func _input(event: InputEvent) -> void:
+	if duty!=null and duty.glass.visible:return
 	if not modal.visible or not event is InputEventKey or not event.pressed or event.echo: return
 	var key: int = event.physical_keycode
 	if key >= KEY_1 and key <= KEY_9:
@@ -229,6 +238,7 @@ func spots() -> Array:
 		_point("towel",Vector3(1.90,4.08,6.72),"看叠好的毛巾"),
 		_point("broadcast",Vector3(-2.80,5.55,8.85),"回听并对照两遍广播"),
 	]
+	if duty!=null:points.append_array(duty.spots())
 	if night_number() >= 2:
 		points.append_array([
 			_point("drawer",Vector3(-.83,7.08,3.53),"打开303最下层抽屉"),
@@ -275,9 +285,10 @@ func blocked(id: String, title: String, reason: String, next_step: String, cue :
 	game.feedback.blocked(id,title,reason,next_step,at,cue)
 
 func interact(id: String) -> bool:
+	if duty!=null and duty.interact(id):return true
 	if id=="l_price":
 		mark("rules_seen")
-		show_page("今晚的工作","先记录广播与机器异常，保管未取洗衣单。七号机需要专用钥匙，不可强开。\n\n许砚：先查九号烘干机里的纸，再看看七号机。")
+		show_page("今晚的工作","按当班单巡检：先擦三号机外侧玻璃，再查九号烘干机里的纸。把日期、机号与取衣状态核实后，检查七号机。\n\n七号机需要专用钥匙，不强开。每完成一段工作，可以去2F柜台登记并继续值守。")
 		return true
 	if not id.begins_with("c1_") and id not in ["lb_elev","lb_box503","lb_booth","l_locked_401","l_locked_402","l_locked_503","l_m7","l_m9","l_backdoor","l_keyring","l_registry","l_sign","l_photowall","l_clipping","l_boiler","l_raincoat"]: return false
 	match id:
@@ -492,6 +503,7 @@ func climb_skylight(down: bool) -> void:
 	game.state = "play"
 
 func stop_motion() -> void:
+	if duty!=null:duty.close_activity()
 	if climb_tween!=null and climb_tween.is_valid():climb_tween.kill()
 	climb_tween=null
 
@@ -581,6 +593,9 @@ func start_epilogue() -> void:
 		if is_instance_valid(lc.lady): lc.lady.visible=false)
 
 func terminal() -> void:
+	duty.open_counter()
+
+func submit_shift() -> void:
 	if bool(progress.rest_pending):
 		show_page("本夜已交班","工资已结算，请从一楼门厅回街道，进入出租公寓休息。不能连续驻守现场。")
 		return
@@ -668,13 +683,20 @@ func goal(id: String, text: String, why: String, mode := "act") -> Dictionary:
 	return {"id":id,"key":str(night_number())+"_"+text.sha256_text().left(12),"text":text,"why":why,"mode":mode}
 
 func current_goal() -> Dictionary:
+	var base=investigation_goal()
+	if duty!=null:
+		var work:Dictionary=duty.goal_override(base)
+		if not work.is_empty():return work
+	return base
+
+func investigation_goal() -> Dictionary:
 	if flag("recognized"):return goal("c1_terminal","原衣已经归还，等待交班与录名。","可按 T 到下一事件；听完对白后继续拨时。","wait")
 	if bool(progress.rest_pending):return goal("lb_exit","本夜结束：回出租公寓床边休息。","从1F出口回街道，地图目标已切换到出租公寓。")
 	if night_number()==1:
 		if not flag("signed"):return goal("lb_booth","夜班报到（1/4）：在1F传达室按 E 签交接簿。","签完交接簿，再沿楼梯去2F洗衣店。")
-		if not flag("rules_seen"):return goal("l_price","确认工作（2/4）：上2F，按 E 阅读工作须知。","先观察、记录异常，再按交接流程处理。")
-		if not lc.has_clue("slip"):return goal("l_m9","记录异常（3/4）：从九号烘干机取出纸张。","这张未取单可能解释店里还在等什么。")
-		if not flag("seven_seen"):return goal("l_m7","核对洗衣单（4/4）：检查七号机里的衣服。","先确认里面是什么，暂时不要强开机器。")
+		if not flag("rules_seen"):return goal("l_price","上2F，阅读工作须知，开始巡检。","先做清洁与登记，再记录工作中遇到的异常。")
+		if not lc.has_clue("slip"):return goal("l_m9","登记遗留物：从九号烘干机取出纸张。","把日期、机号与取衣状态逐项登记。")
+		if not flag("seven_seen"):return goal("l_m7","按洗衣单检查七号机，记录未取衣现状。","先确认里面是什么，暂时不要强开机器。")
 		if not lc.fired.has("oldlady"):
 			var waiting="等待00:01第一遍广播。" if not lc.fired.has("bc1") else ("等待00:20第二遍广播。" if not lc.fired.has("bc2") else "留在店内，等待01:10的来客。")
 			return goal("c1_broadcast",waiting,"当前调查已完成；可按 T 到下一事件，广播会留在记事本。","wait")
@@ -750,6 +772,7 @@ func pending_event() -> Dictionary:
 	return {}
 
 func next_event() -> Array:
+	if duty!=null and duty.event_blocked():return [1420.0+lc.t/60.0,"先完成当班工作："+objective()]
 	if cinematic.active:return [1420.0+lc.t/60.0,"先看完现场变化，空格可跳过"]
 	if lc.night != null and lc.night.lady_state=="walk":return [1420.0+lc.t/60.0,"等来客坐稳，再继续拨时"]
 	if lc.blackout_active:return [1420.0+lc.t/60.0,"灯还没有恢复，先观察现场变化"]
@@ -774,6 +797,8 @@ func timeline() -> void:
 	if lc.selected_ending=="":lc.t=minf(lc.t,260*60.0)
 	var event := pending_event()
 	if event.is_empty() or lc.t/60.0<float(event.at):return
+	if duty!=null and duty.event_blocked():
+		return
 	if not lc._once(event.id):return
 	match String(event.id):
 		"bc1":
@@ -833,6 +858,7 @@ func restore(data: Dictionary) -> void:
 		lc.fired.erase("ask"); lc.fired.erase("case_end")
 		lc.t = minf(lc.t,240.0*60.0)
 	sync_recognition()
+	if duty!=null:duty.restore_legacy(data)
 	for id in physical:
 		physical[id].visible = not lc.has_clue(id)
 	if flag("zhou_open"): lc.buildings.f4.k.doors["402"].rotation.y = 1.25

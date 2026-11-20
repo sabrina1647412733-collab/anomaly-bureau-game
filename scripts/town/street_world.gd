@@ -49,12 +49,20 @@ const SURFACE_PROFILES := {
 }
 
 func setup(owner_town)->void:
+	begin_build(owner_town)
+	for path in manifest.get("chunks",[]):build_chunk(path)
+	finish_build()
+
+func begin_build(owner_town)->void:
 	town=owner_town
 	manifest=JSON.parse_string(FileAccess.get_file_as_string(BASE+"street_manifest.json"))
-	for path in manifest.get("chunks",[]):
-		var packed:PackedScene=load(path)
-		if packed==null:push_error("街道模块缺失: "+path);continue
-		var chunk=packed.instantiate();town.add_child(chunk);_materials(chunk)
+
+func build_chunk(path:String)->void:
+	var packed:PackedScene=load(path)
+	if packed==null:push_error("街道模块缺失: "+path);return
+	var chunk=packed.instantiate();town.add_child(chunk);_materials(chunk)
+
+func finish_build()->void:
 	var faces=PackedVector3Array()
 	var graded_indices: Dictionary = {}
 	for index in manifest.get("graded_collision_indices",[]):

@@ -8,10 +8,12 @@ param(
     [switch]$SkipExport
 )
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'installer_integrity.ps1')
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $version=$Version
 if (-not $OutputDirectory) { $OutputDirectory=Join-Path $projectRoot "build\release-$version" }
 $outputRoot=[IO.Path]::GetFullPath($OutputDirectory)
+Assert-InstallerOutputContext $outputRoot
 if(-not $SkipExport) {
     & (Join-Path $PSScriptRoot 'build_grouped.ps1') -GodotBinary $GodotBinary -PythonBinary $PythonBinary -OutputDirectory $outputRoot -Version $version -BaselineRuntime $BaselineRuntime
     if($LASTEXITCODE -ne 0) {throw 'Grouped build failed'}

@@ -183,7 +183,7 @@ func _machine_glb(p: Vector3, yaw: float, old := false, open_door := false) -> N
 	a.root.add_child(body)
 	# 旧机（7 号）换一套偏黄的搪瓷色
 	if old:
-		_tint_glb(body, Color(0.94, 0.89, 0.74))
+		_finish_old_machine(body)
 	# 机门半开（7 号机用不到，留给以后）
 	if open_door:
 		var dm := a.push_group(Vector3(-0.42, 0.02, -0.40), -1.05, true)
@@ -208,7 +208,7 @@ func _machine_glb(p: Vector3, yaw: float, old := false, open_door := false) -> N
 		drum.position = Vector3.ZERO
 	return g
 
-func _tint_glb(n: Node, tint: Color) -> void:
+func _finish_old_machine(n: Node) -> void:
 	for c in n.find_children("*", "MeshInstance3D", true, false):
 		var mi: MeshInstance3D = c
 		if mi.mesh == null:
@@ -217,7 +217,19 @@ func _tint_glb(n: Node, tint: Color) -> void:
 			var base: Material = mi.get_active_material(i)
 			if base is BaseMaterial3D:
 				var mm: BaseMaterial3D = base.duplicate()
-				mm.albedo_color = base.albedo_color * tint
+				match String(base.resource_name):
+					"搪瓷_灰米白":
+						mm.albedo_color = base.albedo_color * Color("c7ba96")
+						mm.roughness = 0.69
+						mm.metallic = 0.08
+					"旧绿漆":
+						mm.albedo_color = base.albedo_color * Color("8c9a82")
+						mm.roughness = 0.71
+					"不锈钢":
+						mm.albedo_color = base.albedo_color * Color("a9aba0")
+						mm.roughness = 0.53
+					"橡胶":
+						mm.roughness = 0.92
 				mi.set_surface_override_material(i, mm)
 
 ## 旧版（盒子拼装）：GLB 加载失败时的 fallback，逻辑一行没动。
@@ -371,18 +383,17 @@ func _machines() -> void:
 func _machine_seven() -> void:
 	var p := w(0, 0.46, -3.70)
 	drums[7] = _machine(p, 0.0, true, false)
-	# 手写编号：红马克笔，7 上面圈一道
-	a.label("7", w(0, 1.215, -3.322), 0.058, Color(0.72, 0.10, 0.08), 0.0, 42)
-	a.cyl(w(0, 1.215, -3.330), 0.048, 0.003, a.plain(Color(0.72, 0.10, 0.08), 0.6), 20, "z")
-	# 投币槽被胶带封死
-	a.box(w(0.198, 0.80, -3.328), Vector3(0.10, 0.10, 0.008),
-		a.plain(Color(0.76, 0.72, 0.58), 0.88))
-	# 玻璃内侧的半张身高贴纸
-	a.box(w(0.0, 0.20, -3.352), Vector3(0.30, 0.22, 0.004),
-		a.plain(Color(0.86, 0.84, 0.70), 0.9))
-	# 纸条
-	a.box(w(-0.26, 0.60, -3.330), Vector3(0.13, 0.09, 0.004),
-		a.plain(Color(0.90, 0.88, 0.80), 0.9), false, 0.06)
+	fit_machine_number(7, p, 0.0)
+	# Tape overlaps the slot instead of floating at the drum rim.
+	var tape := a.plain(Color("c1b28b"), 0.91)
+	for i in range(3):
+		var strip := a.box(w(-0.218 + i * 0.028, 0.805, -3.308), Vector3(0.027, 0.044, 0.003), tape)
+		strip.rotation.z = [-0.14, 0.12, -0.20][i]
+	# Scrapes gather where hands and baskets hit the front edge of the lid.
+	var worn := a.plain(Color("6b6f61"), 0.7, 0.22)
+	for i in range(5):
+		var scratch := a.box(w(0.16 + i * 0.023, 0.921, -3.43 + (i % 3) * 0.015), Vector3(0.004, 0.001, 0.017 + i * 0.004), worn)
+		scratch.rotation.y = 0.22 + i * 0.08
 	# 悬在正中间的儿童毛衣
 	var knit := a.emit(Color(0.20, 0.27, 0.42), 0.35)
 	sweater = a.push_group(w(0, 0.48, -3.300), 0.0, true)
@@ -405,7 +416,17 @@ func _machine_seven() -> void:
 	a.box(Vector3(0, 0.088, 0.004), Vector3(0.075, 0.030, 0.010), collar)
 	a.pop_group()
 	# 绿光：全店唯一的"错的光源"
-	a.omni(w(0, 0.94, -3.46), Color(0.78, 1.0, 0.88), 1.1, 1.5, false)
+	var green := a.omni(w(0.01, 0.47, -3.19), Color("9de6b0"), 0.38, 0.83, false)
+	green.name = "Machine7AnomalyLight"
+	green.light_specular = 0.05
+
+# Fixed to the front lip of the imported machine, above the operating panel.
+func fit_machine_number(number: int, center: Vector3, yaw: float) -> void:
+	var offset := Basis(Vector3.UP, yaw)
+	var plate := a.bev(center + offset * Vector3(-0.099, 0.439, 0.350), Vector3(0.076, 0.027, 0.007),
+		a.plain(Color("6e473c") if number == 7 else Color("41534e"), 0.82), 0.003, false, yaw)
+	plate.name = "MachineNumberPlate%d" % number
+	a.label("%02d" % number, center + offset * Vector3(-0.099, 0.439, 0.361), 0.0095, Color("f3e8c8"), yaw, 38)
 
 # ------------------------------------------------------------------ 家具
 ## 家具 GLB（_setup/blender_furniture.py 产出）：
@@ -440,7 +461,19 @@ func _tint_node(n: Node, tint: Color) -> void:
 			var base: Material = mi.get_active_material(i)
 			if base is BaseMaterial3D:
 				var mm: BaseMaterial3D = base.duplicate()
-				mm.albedo_color = base.albedo_color * tint
+				match String(base.resource_name):
+					"搪瓷_灰米白":
+						mm.albedo_color = base.albedo_color * Color("c7ba96")
+						mm.roughness = 0.69
+						mm.metallic = 0.08
+					"旧绿漆":
+						mm.albedo_color = base.albedo_color * Color("8c9a82")
+						mm.roughness = 0.71
+					"不锈钢":
+						mm.albedo_color = base.albedo_color * Color("a9aba0")
+						mm.roughness = 0.53
+					"橡胶":
+						mm.roughness = 0.92
 				mi.set_surface_override_material(i, mm)
 
 func _furniture() -> void:

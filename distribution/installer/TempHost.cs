@@ -99,6 +99,11 @@ class TempHost {
 #endif
             var arguments = new StringBuilder(); bool hasLog = false;
             foreach(string arg in args) { arguments.Append(Quote(arg)).Append(' '); if(arg.Equals("/LOG", StringComparison.OrdinalIgnoreCase) || arg.StartsWith("/LOG=", StringComparison.OrdinalIgnoreCase)) hasLog = true; }
+#if !UNINSTALL
+            // {src} in the inner Setup points at its temporary extraction session.
+            // Supply the real installer location for the non-system-drive fallback.
+            arguments.Append(Quote("/ABINSTALLSOURCE=" + Path.GetDirectoryName(self))).Append(' ');
+#endif
             if(!hasLog) arguments.Append(Quote("/LOG=" + Path.Combine(session, "setup.log")));
             var info = new ProcessStartInfo(app, arguments.ToString());
             info.UseShellExecute = false; info.WorkingDirectory = Path.GetDirectoryName(self);

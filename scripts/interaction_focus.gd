@@ -90,6 +90,7 @@ func select_target() -> Variant:
 			var id=String(point.id)
 			if id=="c1_lady" and (game.laundry.lady==null or not game.laundry.lady.visible):continue
 			if id=="c1_towel" and not game.laundry.fired.has("beat14"):continue
+			if id=="c1_bag_check" and (game.laundry.campaign.night_number()!=1 or not game.laundry.fired.has("oldlady")):continue
 			var at:Vector3=point.pos
 			if id=="c1_lady":at=game.laundry.lady.global_position+Vector3(0,1.05,0)
 			candidates.append({"kind":"spot","id":id,"text":point.label,"spot":point,"pos":at,"reach":point.r,"radius":radius_for(id)})

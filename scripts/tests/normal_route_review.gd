@@ -30,6 +30,12 @@ func clear_ui() -> void:
 		elif game.sub!="" or not game.sub_queue.is_empty():key(KEY_ENTER)
 		elif game.laundry!=null and game.laundry.campaign.modal.visible:
 			story=game.laundry.campaign
+			if story.duty.waiting:
+				await create_timer(.1).timeout
+				continue
+			if story.duty.glass.visible:
+				await wipe_glass(story.duty.glass)
+				continue
 			var work=story.workbench
 			if work.visible:
 				match work.item_id:
@@ -50,6 +56,21 @@ func clear_ui() -> void:
 		else:break
 		await create_timer(.04).timeout
 	await process_frame
+func wipe_glass(glass) -> void:
+	for row in range(8):
+		var first_column=0
+		while first_column<8 and not glass.active_cell(row*8+first_column):first_column+=1
+		if first_column==8:continue
+		var p:Vector2=glass.cell_point(row*8+first_column)
+		var first:Vector2=glass.get_global_transform()*p
+		var click=InputEventMouseButton.new();click.button_index=MOUSE_BUTTON_LEFT;click.position=first;click.pressed=true;Input.parse_input_event(click)
+		for column in range(first_column,8):
+			var move=InputEventMouseMotion.new();move.position=glass.get_global_transform()*glass.cell_point(row*8+column);Input.parse_input_event(move)
+			await process_frame
+		click=InputEventMouseButton.new();click.button_index=MOUSE_BUTTON_LEFT;click.position=first;click.pressed=false;Input.parse_input_event(click)
+	await shot("三号机_实际擦拭")
+	print("GLASS_INPUT_COVERAGE ",glass.coverage())
+	key(KEY_1);await process_frame
 func look(at: Vector3) -> void:
 	var d=at-game.player.eye()
 	game.player.rotation.y=atan2(-d.x,-d.z)

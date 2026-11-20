@@ -5,6 +5,9 @@ param(
     [string]$LegacyRuntimeDirectory
 )
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'installer_integrity.ps1')
+Assert-InstallerOutputContext $OutputDirectory
+Assert-InstallerArtifactIntegrity $Installer
 $out=[IO.Path]::GetFullPath($OutputDirectory)
 if($out -notmatch '^[Ff]:\\' -or (Test-Path -LiteralPath $out)) {throw 'Use a fresh F: output directory'}
 New-Item -ItemType Directory -Path $out,(Join-Path $out 'temp'),(Join-Path $out 'desktop') | Out-Null

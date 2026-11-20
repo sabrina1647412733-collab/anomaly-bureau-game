@@ -589,18 +589,28 @@ func _kitchen() -> void:
 
 func _shelf() -> void:
 	# 左前 / 靠窗：书架单独放在西墙，不跟厨房挤在同一面墙。
-	_model("wooden_bookshelf_worn/wooden_bookshelf_worn_1k.gltf", Vector3(-3.62, 0, 1.65), PI * 0.5, 0.0, Color(0.86, 0.82, 0.76))
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 0.40, 1.34), PI * 0.5, 0.0)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 0.40, 1.58), PI * 0.5, 0.0)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 1.06, 1.42), PI * 0.5, 0.0)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 1.06, 1.66), PI * 0.5, 0.0)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 1.46, 1.38), PI * 0.5, 0.0)
-	_model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", Vector3(-3.60, 1.46, 1.62), PI * 0.5, 0.0)
-	_bev(Vector3(-3.60, 1.80, 1.74), Vector3(0.24, 0.16, 0.34), _plain(Color(0.38,0.36,0.31), 0.95), 0.02)
-	_cyl(Vector3(-3.60, 2.02, 1.82), 0.055, 0.10, _plain(Color(0.46,0.30,0.20), 0.9), 12)
+	# Asset is 1.374m wide, .581m deep, 2.063m high. Keep its back clear
+	# of the wall rail; book sets have twenty volumes and an off-centre origin.
+	var shelf := _model("wooden_bookshelf_worn/wooden_bookshelf_worn_1k.gltf", Vector3(-3.48, 0, 1.65), PI * 0.5, 0.0, Color(0.86, 0.82, 0.76))
+	shelf.name = "RentalBookshelf"
+	# Measured board tops, rather than guessed vertical spacing. The .214m
+	# editions fit the narrowest .236m compartment with a real upper gap.
+	var boards := [0.107, 0.392, 0.671, 0.961, 1.276]
+	for row in boards.size():
+		_shelf_books(Vector3(-3.44, boards[row] + 0.004, 1.34 if row % 2 == 0 else 1.96))
+	_shelf_books(Vector3(-3.44, 1.668, 1.34))
+	_bev(Vector3(-3.43, 1.748, 1.99), Vector3(0.24, 0.16, 0.34), _plain(Color(0.38,0.36,0.31), 0.95), 0.02)
+	_cyl(Vector3(-3.48, 2.118, 1.82), 0.055, 0.10, _plain(Color(0.46,0.30,0.20), 0.9), 12)
 	for k in range(5):
-		_cone_leaf(Vector3(-3.60, 2.14, 1.82), 0.05, 0.22, k)
-	_col(Vector3(-3.62, 0.95, 1.65), Vector3(0.36, 1.90, 0.96))
+		_cone_leaf(Vector3(-3.48, 2.25, 1.82), 0.05, 0.22, k)
+	_col(Vector3(-3.48, 1.032, 1.65), Vector3(0.582, 2.064, 1.374))
+
+func _shelf_books(center: Vector3) -> void:
+	var books := _model("book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf", center, PI * 0.5, 0.214)
+	books.name = "ShelfBooks"
+	var bounds := _aabb_rec(books, books.transform)
+	books.position.x += center.x - bounds.get_center().x
+	books.position.z += center.z - bounds.get_center().z
 
 func _cone_leaf(pos: Vector3, r: float, h: float, k: int) -> void:
 	var mi := MeshInstance3D.new()

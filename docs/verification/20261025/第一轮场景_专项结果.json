@@ -1,0 +1,497 @@
+{
+	"checks": [
+		{
+			"detail": 3.10416662693024,
+			"name": "0.0–3.5m stair flights and turn have standing visual clearance",
+			"ok": true
+		},
+		{
+			"detail": 2.68499946594238,
+			"name": "3.5–6.9m stair flights and turn have standing visual clearance",
+			"ok": true
+		},
+		{
+			"detail": 2.55916595458984,
+			"name": "6.9–9.8m stair flights and turn have standing visual clearance",
+			"ok": true
+		},
+		{
+			"detail": 2.55916690826416,
+			"name": "9.8–12.7m stair flights and turn have standing visual clearance",
+			"ok": true
+		},
+		{
+			"detail": 2.55916595458984,
+			"name": "12.7–15.6m stair flights and turn have standing visual clearance",
+			"ok": true
+		},
+		{
+			"detail": {
+				"at": "(0.69, 7.040833, 11.11)",
+				"mesh": "F4楼梯_顶平台",
+				"metres": 2.55916595458984
+			},
+			"name": "all stairs clear head and camera",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "keys are a complete visible model",
+			"ok": true
+		},
+		{
+			"detail": 0,
+			"name": "old blank boards, boiler and misplaced raincoat are replaced",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "l_registry anchor matches exported prop",
+			"ok": true
+		},
+		{
+			"detail": 0.00299978256225586,
+			"name": "l_registry marker touches visible prop geometry",
+			"ok": true
+		},
+		{
+			"detail": "l_registry",
+			"name": "l_registry can be selected from the actual aisle",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "l_sign anchor matches exported prop",
+			"ok": true
+		},
+		{
+			"detail": 0.0079999566078186,
+			"name": "l_sign marker touches visible prop geometry",
+			"ok": true
+		},
+		{
+			"detail": "l_sign",
+			"name": "l_sign can be selected from the actual aisle",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "l_photowall anchor matches exported prop",
+			"ok": true
+		},
+		{
+			"detail": 0.00400018692016602,
+			"name": "l_photowall marker touches visible prop geometry",
+			"ok": true
+		},
+		{
+			"detail": "l_photowall",
+			"name": "l_photowall can be selected from the actual aisle",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "l_clipping anchor matches exported prop",
+			"ok": true
+		},
+		{
+			"detail": 0.00499987602233887,
+			"name": "l_clipping marker touches visible prop geometry",
+			"ok": true
+		},
+		{
+			"detail": "l_clipping",
+			"name": "l_clipping can be selected from the actual aisle",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "l_boiler anchor matches exported prop",
+			"ok": true
+		},
+		{
+			"detail": 0.00273764063604176,
+			"name": "l_boiler marker touches visible prop geometry",
+			"ok": true
+		},
+		{
+			"detail": "l_boiler",
+			"name": "l_boiler can be selected from the actual aisle",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "l_raincoat anchor matches exported prop",
+			"ok": true
+		},
+		{
+			"detail": 0.0019338350975886,
+			"name": "l_raincoat marker touches visible prop geometry",
+			"ok": true
+		},
+		{
+			"detail": "l_raincoat",
+			"name": "l_raincoat can be selected from the actual aisle",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "l_keyring anchor matches exported prop",
+			"ok": true
+		},
+		{
+			"detail": 0.0307108908891678,
+			"name": "l_keyring marker touches visible prop geometry",
+			"ok": true
+		},
+		{
+			"detail": "l_keyring",
+			"name": "l_keyring can be selected from the actual aisle",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "obsolete furniture has no invisible blockers",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "key ownership hides the complete model after restore",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "uncollected key model survives restore",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 0.111, 1.09154), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set clears both shelf boards",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 0.111, 1.09154), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set stays inside shelf sides/back",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 0.396, 1.711541), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set clears both shelf boards",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 0.396, 1.711541), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set stays inside shelf sides/back",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 0.675, 1.09154), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set clears both shelf boards",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 0.675, 1.09154), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set stays inside shelf sides/back",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 0.965, 1.71154), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set clears both shelf boards",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 0.965, 1.71154), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set stays inside shelf sides/back",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 1.28, 1.09154), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set clears both shelf boards",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 1.28, 1.09154), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set stays inside shelf sides/back",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 1.668, 1.09154), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set clears both shelf boards",
+			"ok": true
+		},
+		{
+			"detail": "[P: (-3.513489, 1.668, 1.09154), S: (0.146978, 0.214, 0.496919)]",
+			"name": "book set stays inside shelf sides/back",
+			"ok": true
+		},
+		{
+			"detail": 6,
+			"name": "six existing book sets retained without increasing geometry cost",
+			"ok": true
+		},
+		{
+			"detail": "",
+			"name": "book sets do not intersect each other",
+			"ok": true
+		}
+	],
+	"failures": 0,
+	"kind": "automated actual player move_and_slide, mesh rays and centre interaction; not human playthrough",
+	"minimum_visual_headroom_m": 2.55916595458984,
+	"routes": [
+		{
+			"height_error_m": 0.00917829490499571,
+			"last_collision": "COL_F1地面_南",
+			"name": "门厅入口",
+			"ok": true,
+			"position": "(-0.55, 0.000822, -4.066645)",
+			"reached": 1,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.00917265266180038,
+			"last_collision": "COL_F1地面_南",
+			"name": "门厅到梯口",
+			"ok": true,
+			"position": "(0.869778, 0.000827, 10.49219)",
+			"reached": 2,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000833320617675604,
+			"last_collision": "COL_F2洗衣店地面",
+			"name": "2F店门到长椅",
+			"ok": true,
+			"position": "(1.320935, 3.500833, 6.289234)",
+			"reached": 2,
+			"side_collisions": [
+				"COL_F2长椅_座板"
+			],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000782537460326971,
+			"last_collision": "COL_F2配电房地面",
+			"name": "配电房绕椅进入",
+			"ok": true,
+			"position": "(4.062784, 3.500782, 6.951332)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000833559036254705,
+			"last_collision": "COL_F2后房地面",
+			"name": "后房门进入",
+			"ok": true,
+			"position": "(-1.619876, 3.500834, 0.656496)",
+			"reached": 1,
+			"side_collisions": [
+				"@StaticBody3D@2989"
+			],
+			"standing": true
+		},
+		{
+			"last_collision": "COL_F2后房地面",
+			"name": "后房实际开门角度进入",
+			"ok": true,
+			"position": "(-1.619876, 3.500834, 0.656496)",
+			"reached": 1,
+			"side_collisions": [
+				"@StaticBody3D@2989"
+			]
+		},
+		{
+			"last_collision": "COL_F2洗衣店地面",
+			"name": "后房实际开门角度返回",
+			"ok": true,
+			"position": "(-1.643661, 3.500811, 2.550693)",
+			"reached": 1,
+			"side_collisions": [
+				"@StaticBody3D@2989"
+			]
+		},
+		{
+			"height_error_m": 0.000845241546630682,
+			"last_collision": "COL_廊桥地板0",
+			"name": "店内到廊桥出口",
+			"ok": true,
+			"position": "(3.533327, 3.500845, 9.5)",
+			"reached": 2,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000827360153198065,
+			"last_collision": "COL_邮局地面",
+			"name": "廊桥到邮政间",
+			"ok": true,
+			"position": "(14.53347, 3.500827, 9.500001)",
+			"reached": 2,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000831413269042791,
+			"last_collision": "COL_F3303地面",
+			"name": "303门",
+			"ok": true,
+			"position": "(-1.25, 6.900831, 5.666677)",
+			"reached": 1,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000821876525878729,
+			"last_collision": "COL_F3304地面",
+			"name": "304门",
+			"ok": true,
+			"position": "(1.55, 6.900822, 4.56665)",
+			"reached": 1,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000832366943360086,
+			"last_collision": "COL_F4402地面",
+			"name": "402开门",
+			"ok": true,
+			"position": "(-2.1, 9.800833, 4.899979)",
+			"reached": 1,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000833320617676492,
+			"last_collision": "COL_F5503地面",
+			"name": "502维修通道至503",
+			"ok": true,
+			"position": "(1.633359, 12.70083, 4.350002)",
+			"reached": 1,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000841188430785955,
+			"last_collision": "COL_B1安全步道",
+			"name": "B1步道到阀门",
+			"ok": true,
+			"position": "(2.688682, -2.879159, 0.08353)",
+			"reached": 3,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000827598571778054,
+			"last_collision": "COL_屋顶_天窗NE",
+			"name": "屋顶到水箱",
+			"ok": true,
+			"position": "(-0.099723, 15.60083, 0.952654)",
+			"reached": 3,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000816154479980291,
+			"last_collision": "COL_F2洗衣店地面",
+			"name": "1F至2F",
+			"ok": true,
+			"position": "(1.575228, 3.500816, 9.640559)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000783252716064275,
+			"last_collision": "COL_F3走廊地面",
+			"name": "2F至3F",
+			"ok": true,
+			"position": "(1.584463, 6.900783, 9.654347)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000837135314942117,
+			"last_collision": "COL_F4走廊地面",
+			"name": "3F至4F",
+			"ok": true,
+			"position": "(1.574391, 9.800838, 9.639138)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000798988342285867,
+			"last_collision": "COL_F5走廊地面",
+			"name": "4F至5F",
+			"ok": true,
+			"position": "(1.574364, 12.7008, 9.639095)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000832366943360086,
+			"last_collision": "COL_屋顶_天窗SE_Cut0",
+			"name": "5F至屋顶",
+			"ok": true,
+			"position": "(1.574348, 15.60083, 9.639069)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000821908947546038,
+			"last_collision": "COL_F1地面_南",
+			"name": "3.5至0.0下楼",
+			"ok": true,
+			"position": "(1.525072, 0.000822, 9.638519)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000827360153198065,
+			"last_collision": "COL_F2洗衣店地面",
+			"name": "6.9至3.5下楼",
+			"ok": true,
+			"position": "(1.52025, 3.500827, 9.644526)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000799465179443182,
+			"last_collision": "COL_F3走廊地面",
+			"name": "9.8至6.9下楼",
+			"ok": true,
+			"position": "(1.518931, 6.900799, 9.646646)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000793266296387429,
+			"last_collision": "COL_F4走廊地面",
+			"name": "12.7至9.8下楼",
+			"ok": true,
+			"position": "(1.519294, 9.800794, 9.646061)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		},
+		{
+			"height_error_m": 0.000839042663574929,
+			"last_collision": "COL_F5走廊地面",
+			"name": "15.6至12.7下楼",
+			"ok": true,
+			"position": "(1.518877, 12.70084, 9.646735)",
+			"reached": 4,
+			"side_collisions": [],
+			"standing": true
+		}
+	]
+}

@@ -66,6 +66,27 @@ func _init(g) -> void:
 	game = g
 
 func enter() -> void:
+	if entered:return
+	_begin_enter()
+	rebuilt.build()
+	_finish_enter()
+
+func prepare_async(stage:Callable) -> void:
+	if entered:return
+	_begin_enter()
+	world.visible=false
+	for floor in rebuilt.FLOORS:
+		stage.call("组装洗衣楼 · "+floor)
+		rebuilt.build_floor(floor)
+		await game.get_tree().process_frame
+	stage.call("准备机台、门锁和后房物件")
+	rebuilt.build_contents()
+	await game.get_tree().process_frame
+	stage.call("准备住户与现场记录")
+	_finish_enter()
+	world.visible=false
+
+func _begin_enter() -> void:
 	if entered:
 		return
 	entered = true
@@ -84,8 +105,8 @@ func enter() -> void:
 
 	art = Art.new(world)
 	rebuilt = preload("res://scripts/laundry_rebuild.gd").new(self)
-	rebuilt.build()
 
+func _finish_enter() -> void:
 	# 三个剧情角色
 	cast = Cast.new(art)
 	cast.spawn_laozhou()

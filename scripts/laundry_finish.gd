@@ -44,12 +44,34 @@ func plaque(text:String,p:Vector3,size:Vector2,yaw:=0.,font_size:=.042)->void:
 	var label=a.label(text,Vector3(0,0,.016),font_size,Color("d6cdab"),0)
 	label.no_depth_test=false;label.double_sided=false
 	a.pop_group()
+func _shop_lighting()->void:
+	# Fixture-aligned pools with one shadowed overhead and one shadowed desk lamp.
+	var tube:SpotLight3D=a.spot(Vector3(0,6.17,4.4),Vector3(-.22,3.5,4.08),Color("c8ddd9"),1.68,6.1,65.,true)
+	tube.name="ShopMachineFixture"
+	tube.spot_angle_attenuation=.85
+	tube.light_specular=.34
+	tube.light_size=.22
+	tube.shadow_bias=.035
+	tube.shadow_normal_bias=.32
+	var entry:OmniLight3D=a.omni(Vector3(0,6.16,8.6),Color("d8e2d9"),.95,5.0)
+	entry.name="ShopEntryFixture"
+	entry.light_specular=.27
+	var task:SpotLight3D=a.spot(Vector3(-2.25,4.995,9.1),Vector3(-2.25,4.595,9.03),Color("ffd39a"),.63,2.05,63.,true)
+	task.name="ShopCounterLamp"
+	task.light_specular=.21
+	task.light_size=.062
+	task.shadow_bias=.025
+	task.shadow_normal_bias=.20
+	# A broad fill links the pools without bleaching the shadow side.
+	var bounce:OmniLight3D=a.omni(Vector3(1.48,5.94,5.72),Color("b9c8c3"),.35,5.8)
+	bounce.name="ShopWallBounce"
+	bounce.light_specular=0.0
+
 func build()->void:
 	var dressing: Node3D=load("res://assets/models/laundry_detail/shop_detail.glb").instantiate()
 	dressing.name="ShopDetail_Blender";a.root.add_child(dressing)
 	_dress_detail(dressing)
-	var task_light=a.omni(Vector3(-2.24,4.99,9.1),Color("ffcf88"),1.3,3.2,true)
-	task_light.light_size=.18;task_light.shadow_bias=.035;task_light.shadow_normal_bias=.3
+	_shop_lighting()
 	prop("bench",Vector3(1.93,3.5,6.65))
 	var steel=a.pbr("metal_plate",1.4,Color("737b73"),.78,.55,.22)
 	var oak=a.pbr("oak_wood_planks",1.8,Color("87775b"),.9,0,.22)
@@ -59,12 +81,20 @@ func build()->void:
 	for z in [7.76,8.42,9.08]:
 		a.bev(Vector3(-2.025,3.98,z),Vector3(.025,.76,.6),oak,.008)
 		a.box(Vector3(-2.004,4.09,z-.22),Vector3(.03,.12,.018),steel)
-	a.bev(Vector3(-2.38,4.57,8.4),Vector3(.7,.055,2.12),cream,.012)
+	a.bev(Vector3(-2.38,4.57,8.4),Vector3(.7,.055,2.12),a.plain(Color("aaa48e"),.74),.012)
+	# Worktop edging and a mounting plate below the existing lamp base.
+	a.bev(Vector3(-2.027,4.564,8.4),Vector3(.012,.026,2.07),a.plain(Color("716653"),.71),.004)
+	a.cyl(Vector3(-2.4,4.613,9.1),.109,.032,a.plain(Color("353a30"),.82),24)
+	var receipts:StandardMaterial3D=a.plain(Color("c6bca3"),.94)
+	var stack:MeshInstance3D=a.bev(Vector3(-2.53,4.605,8.83),Vector3(.22,.012,.15),receipts,.003,false,-.12)
+	stack.name="CounterReceiptStack"
+	for i in range(4):
+		a.box(Vector3(-2.55+i*.023,4.612,8.83),Vector3(.003,.001,.10),a.plain(Color("858575"),.92),false,-.12)
 	for i in range(3):
 		a.bev(Vector3(-.7,4.27+i*.035,9.28),Vector3(.42,.032,.3),a.pbr("rough_linen",2,Color("8b9a89"),1,0,.25),.008)
 	for i in range(3):
-		a.cyl(Vector3(-2.4,4.69,7.65+i*.14),.044,.2,a.plain(Color("596b62"),.5),16)
-		a.cyl(Vector3(-2.4,4.8,7.65+i*.14),.027,.025,cream,16)
+		a.cyl(Vector3(-2.59,4.69,7.57+i*.13),.044,.2,a.plain(Color("596b62"),.5),16)
+		a.cyl(Vector3(-2.59,4.8,7.57+i*.13),.027,.025,cream,16)
 	# The drawer target used to be unsupported in space; it now belongs to a real chest.
 	a.bev(Vector3(-.83,7.33,3.15),Vector3(.56,.86,.64),oak,.012,true)
 	for y in [7.08,7.34,7.6]:
@@ -85,17 +115,31 @@ func build()->void:
 		var y:float=[0.,3.5,6.9,9.8,12.7][floor-1]
 		for z in [4.4,8.6,13.7]:
 			var x=0. if z<10 else 1.55
-			a.bev(Vector3(x,y+2.36,z),Vector3(.18,.075,.78),steel,.012)
-			a.bev(Vector3(x,y+2.315,z),Vector3(.12,.025,.68),a.emit(Color("c7d7c9"),.85),.008)
+			if z<10:
+				if floor==2:continue # shop_detail.glb already supplies the twin-tube fittings.
+				a.bev(Vector3(x,y+2.36,z),Vector3(.18,.075,.78),steel,.012)
+				a.bev(Vector3(x,y+2.315,z),Vector3(.12,.025,.68),a.emit(Color("c7d7c9"),.85),.008)
+			else:
+				# Half-landing is already 1.45–1.75m above this floor. Mount
+				# the light on the side wall, never in the standing turn path.
+				var half_rise:float=[1.75,1.7,1.45,1.45,1.45][floor-1]
+				a.bev(Vector3(.38,y+half_rise+2.10,z),Vector3(.12,.20,.58),steel,.012)
+				a.bev(Vector3(.447,y+half_rise+2.10,z),Vector3(.018,.13,.46),a.emit(Color("c7d7c9"),.85),.008)
 		plaque(str(floor)+"F",Vector3(.35,y+1.9,10.35),Vector2(.38,.22),PI/2,.058)
 	for item in [["303",Vector3(-1.25,9.13,6.4)],["304",Vector3(1.55,9.13,5.4)],["402",Vector3(-2.1,12.03,5.4)],["403",Vector3(0,12.03,5.4)],["503",Vector3(1.7,14.93,5.4)]]:
 		plaque(item[0],item[1],Vector2(.34,.16),0,.045)
 	plaque("工作须知\n先记录 · 后交班",Vector3(-1.85,5.1,9.88),Vector2(.86,.52),PI,.05)
 	plaque("夜 班 工 作 须 知\n\n记录广播　保管未取件\n勿强开七号机　按时交班",Vector3(-2.2,5.4,2.08),Vector2(1.05,.72),0,.045)
-	plaque("七号机\n夜间请勿使用",Vector3(0,4.85,1.94),Vector2(.9,.46),0,.055)
-	a.bev(Vector3(-2.23,4.75,8.35),Vector3(.3,.32,.37),dark,.018)
-	a.bev(Vector3(-2.071,4.79,8.35),Vector3(.012,.19,.28),a.emit(Color("6d9180"),.18),.009)
-	a.bev(Vector3(-1.99,4.605,8.35),Vector3(.25,.035,.31),steel,.006)
+	plaque("07 · 专用\n夜间请勿使用",Vector3(0,4.83,2.025),Vector2(.69,.30),0,.028)
+	a.bev(Vector3(-2.31,4.766,8.35),Vector3(.33,.32,.37),dark,.018)
+	a.bev(Vector3(-2.141,4.786,8.35),Vector3(.012,.19,.28),a.plain(Color("40584d"),.61),.004)
+	var screen:Label3D=a.label("得利自助洗衣\n夜班交班终端",Vector3(-2.129,4.788,8.35),.016,Color("c4d6aa"),PI/2,45)
+	screen.name="CounterScreenText"
+	screen.alpha_cut=Label3D.ALPHA_CUT_DISCARD
+	a.bev(Vector3(-2.12,4.613,8.35),Vector3(.154,.027,.31),dark,.006)
+	for row in range(3):
+		for key in range(8):
+			a.box(Vector3(-2.16+row*.034,4.631,8.23+key*.033),Vector3(.021,.008,.021),a.plain(Color("756e5a"),.78))
 	a.bev(Vector3(-2.99,5.55,8.85),Vector3(.15,.28,.32),dark,.015)
 	for z in range(6):a.box(Vector3(-2.906,5.55,8.73+z*.045),Vector3(.012,.22,.008),steel)
 	# Service floor wear and pipe fasteners; overhead details leave capsule routes clear.

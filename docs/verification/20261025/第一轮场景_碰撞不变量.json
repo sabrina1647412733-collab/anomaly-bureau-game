@@ -1,0 +1,440 @@
+{
+  "checks": [
+    {
+      "name": "F2 only obsolete blockers removed",
+      "ok": true,
+      "removed": [
+        "COL_F2后房_水表箱-colonly",
+        "COL_F2后房_铁架台-colonly"
+      ]
+    },
+    {
+      "name": "COL_F2七号机-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2洗衣机_5-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2后房东墙_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2后房地面-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2洗衣机_6-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2烘干机_8-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2洗衣机_3-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2_RampE-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2长椅_座板-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2洗衣机_1-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2收银机-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2洗衣机_4-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2柜台_柜体-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2烘干机_11-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2南墙_东_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2烘干机_10-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2洗衣店北墙_西_2-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2长椅_靠背-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2洗衣店北墙_东_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2配电_总闸箱-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2楼梯_顶平台-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2配电东墙_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2折叠桌_台面-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2配电房地面-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2后房北墙_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2洗衣店地面-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2柜台_台面-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2洗衣机_2-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2东墙_中_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2南墙_西_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2梯井外墙W-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2梯井外墙E-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2西墙_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2楼梯_补中平台-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2东墙_北_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2配电南墙_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2洗衣店北墙_西_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2烘干机_9-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2配电北墙_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2_RampW-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2楼梯_中隔-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_F2梯井外墙S-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "ROOF only obsolete blockers removed",
+      "ok": true,
+      "removed": []
+    },
+    {
+      "name": "COL_ROOF楼梯_顶平台-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆5_E-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_梯帽_东_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶_天窗S-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶_天窗SE_Cut1-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆2_E-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶水箱_腿-colonly.002",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶_天窗NW-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶女儿墙S_W_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶_天窗SW-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆1_E-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆7_W-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆4_W-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆6_W-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆0_E-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_梯帽_南_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆0_W-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶女儿墙S_E_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶水箱_腿-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶_天窗SE_Cut0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶水箱_腿-colonly.003",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆1_W-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶通风机-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶水箱_腿-colonly.001",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶水箱_箱体-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆4_E-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶_天窗N-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆6_E-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆7_E-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶_天窗NE-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶_天窗E-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶女儿墙E_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆2_W-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆3_E-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆5_W-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶女儿墙N_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶烟道-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶晾衣杆3_W-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶_天窗W-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶女儿墙W_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_屋顶_天窗SE_Cut2-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    },
+    {
+      "name": "COL_梯帽_西_0-colonly",
+      "ok": true,
+      "volume_difference": 0.0
+    }
+  ],
+  "passed": 86,
+  "failed": 0,
+  "kind": "GLB world-space vertex sets and oriented volume, tolerance .11mm; independent of Godot movement tests"
+}

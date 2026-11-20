@@ -114,13 +114,14 @@ func after_rent_call() -> void:
 	if not game.prologue_letter_ready: game._prologue_drop_letter()
 
 func accepted() -> void:
+	if game.scene_transition!=null:game.scene_transition.call_deferred("warm","town")
 	send_once("accepted","派遣科","恭喜入职，许砚。临时派遣编号待核定。")
 	send_once("job","派遣科",JOB)
-	send_once("rules","派遣科","注意事项：先到一楼签交接簿，再上二楼查看工作须知。观察并记录异常；未查明前不要擅自使用七号机。手机保留任务记录，时钟可拨到下一事件。")
+	send_once("rules","派遣科","注意事项：先到一楼传达室签收当班工作单，再上二楼查看工作须知。按巡检单工作，不强开锁住的设备；阶段完成可在二楼柜台继续值守，不需要使用时钟。")
 	game.note("话","首次派遣 · 得利洗衣店",JOB)
 
 func on_arrival() -> void:
-	send_once("arrive","派遣科","你已到一楼门厅。先在传达室签交接簿，再沿门厅向里走到尽头，上左侧楼梯到二楼，进入得利洗衣店。先读价目表和广播须知，再记录异常。空闲时可按T拨动随身时钟。")
+	send_once("arrive","派遣科","你已到一楼门厅。先到传达室签收当班工作单，再向里走到尽头，沿左侧楼梯上二楼。先读工作须知，再做清洁、巡检与未取衣登记。二楼柜台可查进度、继续值守和交班。")
 
 func step(delta: float) -> void:
 	sync_toast(delta)

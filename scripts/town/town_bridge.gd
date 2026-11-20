@@ -56,7 +56,28 @@ func setup(owner_game: Node3D, font: Font) -> void:
 func _build_once() -> void:
 	if imported:
 		return
-	imported = true
+	_begin_build()
+	renewal.setup(self)
+	_finish_build()
+
+func prepare_async(stage:Callable) -> void:
+	if imported:return
+	stage.call("组装街道地标")
+	_begin_build()
+	renewal.begin_build(self)
+	var paths:Array=renewal.manifest.get("chunks",[])
+	for i in paths.size():
+		renewal.build_chunk(paths[i])
+		if i%6==5:
+			stage.call("组装街段 · %d / %d"%[i+1,paths.size()])
+			await get_tree().process_frame
+	renewal.finish_build()
+	await get_tree().process_frame
+	stage.call("校验道路碰撞与门前物件")
+	_finish_build()
+	floor_body.collision_layer=0
+
+func _begin_build() -> void:
 	var finish=preload("res://scripts/town/town_finish.gd").new()
 	for resource_path in [MODULES[2]]:
 		var packed: PackedScene = load(resource_path)
@@ -71,7 +92,8 @@ func _build_once() -> void:
 	floor_body.name = "TownCollision"
 	add_child(floor_body)
 	renewal=preload("res://scripts/town/street_world.gd").new()
-	renewal.setup(self)
+
+func _finish_build() -> void:
 	hero = preload("res://scripts/town/street_hero.gd").new()
 	hero.setup(self)
 	for entry in layout.get("buildings", []):
@@ -125,6 +147,7 @@ func _build_once() -> void:
 	if not resident_snapshot.is_empty():
 		residents.restore(resident_snapshot)
 		resident_snapshot.clear()
+	imported=true
 	print("[TOWN] 模块导入完成；地点 ", layout.get("landmarks", []).size(), "，建筑 ", layout.get("buildings", []).size())
 
 func _hide_replaced_landmarks(node:Node)->void:
